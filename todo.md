@@ -128,3 +128,12 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Update meta description in client/index.html to match
 - [x] Verify typecheck, build, and screenshots
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Mobile Site Optimization
+- [x] Audit current mobile CSS (@media max-width: 900px and 700px)
+- [x] Increase text size across mobile (headings, paragraphs to 15-16px, labels, card text, tags)
+- [x] Add generous side margins/padding (20-24px gutters) to container, sections, and cards to avoid cramped edges
+- [x] Make mobile offer boxes/columns have clear background, border, and distinct card styling
+- [x] Optimize mobile spacing on case study cards, trust strip, and squeeze page
+- [x] Verify with mobile screenshots at 375px and 414px viewports
+- [x] Save checkpoint and push directly to GitHub main branch
