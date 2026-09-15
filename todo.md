@@ -114,3 +114,11 @@ The live page confirms the same current language: “Engineering Growth Systems 
 ## Refined Hero Copy Update
 - [x] Update hero description in Home.tsx to: "Restart Inc. gives serious operators the engineering expertise, automation, and production discipline to move bold product ideas faster—and turn them into reliable systems that scale with confidence."
 - [x] Verify build, screenshot, save checkpoint, and push to GitHub main branch
+
+## Re-link All Inquiry Buttons to /start-project Squeeze Page
+- [x] Audit all buttons previously triggering the modal in Home.tsx (header CTA, mobile nav CTA, hero CTA, offer CTAs, lane links, final CTA, footer links)
+- [x] Update buttons in Home.tsx to route to /start-project (using wouter Link or navigate)
+- [x] Update buttons in CaseStudies.tsx and CaseStudyModal.tsx to route to /start-project
+- [x] Support pre-selecting matching Service Tier in StartProject.tsx when navigated with ?tier= query parameter
+- [x] Test navigation, verify build and screenshots
+- [x] Save checkpoint and push directly to GitHub main branch

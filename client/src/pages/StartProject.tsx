@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, ArrowUpRight, Check, CheckCircle2, ChevronRight, Cpu, Database, Loader2, Network, Radio, Send, Server, ShieldCheck, Sparkles, Zap } from "lucide-react";
 
@@ -53,6 +53,31 @@ export default function StartProject() {
   const [referenceId, setReferenceId] = useState("");
   const [webhookReceipt, setWebhookReceipt] = useState<WebhookReceipt | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tierParam = params.get("tier");
+      if (tierParam) {
+        const query = tierParam.toLowerCase();
+        const matched = premiumTiers.find(
+          (t) =>
+            t.name.toLowerCase().includes(query) ||
+            t.tag.toLowerCase().includes(query) ||
+            t.badge.toLowerCase().includes(query) ||
+            query.includes(t.id) ||
+            (query.includes("saas") && t.id === "saas") ||
+            (query.includes("cloud") && t.id === "cloud") ||
+            (query.includes("shopify") && t.id === "shopify") ||
+            (query.includes("ai") && t.id === "ai") ||
+            (query.includes("audit") && t.id === "architecture")
+        );
+        if (matched) {
+          setSelectedTier(matched.name);
+        }
+      }
+    } catch {}
+  }, []);
 
   const handleFillTestData = () => {
     setName("Alex Vance");

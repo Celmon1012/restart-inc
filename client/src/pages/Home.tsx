@@ -1,7 +1,7 @@
 // Design: Preserve Restart's midnight engineering theme, teal signal color, compact nav, and technical editorial tone from the supplied reference.
 // This homepage intentionally avoids fabricated testimonials; proof is expressed through operating principles, delivery systems, and concrete service scope.
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Cpu, Database, Gauge, Layers3, Menu, Network, Orbit, ShieldCheck, Sparkles, X, Zap, ExternalLink } from "lucide-react";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import CaseStudyModal from "@/components/CaseStudyModal";
@@ -67,10 +67,10 @@ export default function Home() {
   const [onboardingLane, setOnboardingLane] = useState<string | undefined>(undefined);
   const [activeSection, setActiveSection] = useState("top");
   const [selectedCaseStudy, setSelectedCaseStudy] = useState<CaseStudy | null>(null);
+  const [, setLocation] = useLocation();
 
   const openOnboarding = (lane?: string) => {
-    setOnboardingLane(lane);
-    setOnboardingOpen(true);
+    setLocation(lane ? `/start-project?tier=${encodeURIComponent(lane)}` : "/start-project");
   };
 
   // Smooth scroll handler with offset for sticky header
@@ -175,7 +175,7 @@ export default function Home() {
             <h1>Build for <span>what’s next.</span></h1>
             <p>Restart Inc. gives serious operators the engineering expertise, automation, and production discipline to move bold product ideas faster—and turn them into reliable systems that scale with confidence.</p>
             <div className="hero-buttons">
-              <button className="button solid" onClick={() => openOnboarding()}>Tell us what you’re building <ArrowUpRight size={15} /></button>
+              <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
               <a className="button outline" href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>See how we work <ChevronRight size={15} /></a>
             </div>
             <div className="hero-proof-row">
@@ -194,9 +194,9 @@ export default function Home() {
 
       <section className="trust-strip" id="platform"><span className="trust-kicker">POWERING EXPERIENCE</span><div className="logo-row"><span><i className="logo-shape shape-1" />Segment</span><span><i className="logo-shape shape-2" />Sisyphus</span><span><i className="logo-shape shape-3" />Polymath</span><span><i className="logo-shape shape-4" />Luminous</span><span><i className="logo-shape shape-5" />Alt+Shift</span><span><i className="logo-shape shape-6" />FeatherDev</span><span><i className="logo-shape shape-7" />Lightbox</span></div></section>
 
-      <section className="lanes-section container" id="solutions"><div className="section-intro centered"><h2>Four lanes. <span>Let's work together on<br />any of them.</span></h2><p>Scoped, time-boxed, senior. Pick one—or stack two.</p></div><div className="lane-grid">{lanes.map((lane) => { const Icon = lane.icon; return <article className={`lane-card ${lane.accent}`} key={lane.number}><div className="lane-top"><span className="lane-number">{lane.number}</span><Icon size={17} /></div><h3>{lane.title}</h3><p>{lane.text}</p><div className="tag-row">{lane.tags.map((tag) => <span key={tag}>{tag}</span>)}</div><a href="#contact" className="card-link">{lane.action} <ArrowRight size={14} /></a></article>; })}</div></section>
+      <section className="lanes-section container" id="solutions"><div className="section-intro centered"><h2>Four lanes. <span>Let's work together on<br />any of them.</span></h2><p>Scoped, time-boxed, senior. Pick one—or stack two.</p></div><div className="lane-grid">{lanes.map((lane) => { const Icon = lane.icon; return <article className={`lane-card ${lane.accent}`} key={lane.number}><div className="lane-top"><span className="lane-number">{lane.number}</span><Icon size={17} /></div><h3>{lane.title}</h3><p>{lane.text}</p><div className="tag-row">{lane.tags.map((tag) => <span key={tag}>{tag}</span>)}</div><Link href={`/start-project?tier=${encodeURIComponent(lane.title)}`} className="card-link">{lane.action} <ArrowRight size={14} /></Link></article>; })}</div></section>
 
-      <section className="offers-section container" id="work"><div className="offer-list">{offers.map((offer, i) => <article className={`offer-row ${i % 2 ? "reverse" : ""}`} key={offer.kicker}><div className="offer-copy"><div className="offer-kicker"><SectionLabel tone={i % 2 ? "violet" : "teal"}>{offer.kicker}</SectionLabel><span>{offer.duration}</span></div><h2>{offer.title}</h2><p>{offer.text}</p><button className="button outline small" onClick={() => openOnboarding(`${offer.kicker}: ${offer.title}`)}>Get Started <ArrowUpRight size={14} /></button></div><div className={`offer-visual ${offer.visual}`}><Visual kind={offer.visual} /></div><div className="offer-specs"><div className="spec-tabs"><span className="active">SCOPE</span><span>DELIVERABLES</span><span>NOTES</span></div><ul>{offer.tags.map((tag) => <li key={tag}><Check size={13} />{tag}</li>)}</ul></div></article>)}</div></section>
+      <section className="offers-section container" id="work"><div className="offer-list">{offers.map((offer, i) => <article className={`offer-row ${i % 2 ? "reverse" : ""}`} key={offer.kicker}><div className="offer-copy"><div className="offer-kicker"><SectionLabel tone={i % 2 ? "violet" : "teal"}>{offer.kicker}</SectionLabel><span>{offer.duration}</span></div><h2>{offer.title}</h2><p>{offer.text}</p><Link href={`/start-project?tier=${encodeURIComponent(offer.kicker)}`} className="button outline small">Get Started <ArrowUpRight size={14} /></Link></div><div className={`offer-visual ${offer.visual}`}><Visual kind={offer.visual} /></div><div className="offer-specs"><div className="spec-tabs"><span className="active">SCOPE</span><span>DELIVERABLES</span><span>NOTES</span></div><ul>{offer.tags.map((tag) => <li key={tag}><Check size={13} />{tag}</li>)}</ul></div></article>)}</div></section>
 
       <section className="case-studies-section container" id="case-studies">
         <div className="section-intro centered">
@@ -273,7 +273,7 @@ export default function Home() {
 
       <section className="insights-section container" id="insights"><div className="section-intro centered"><SectionLabel>INSIGHTS</SectionLabel><h2>Featured <span>Blog.</span></h2><p>Technical notes for people making consequential product decisions.</p></div><div className="insight-grid"><a href="#insights" className="insight-card"><div className="insight-image image-one"><Code2 size={40} /></div><span>ENGINEERING</span><h3>The Future of Cloud Hosting: Trends and Innovations</h3><ArrowUpRight size={15} /></a><a href="#insights" className="insight-card"><div className="insight-image image-two"><Database size={40} /></div><span>OPERATIONS</span><h3>How to Optimize Performance and Cost in Cloud Hosting</h3><ArrowUpRight size={15} /></a><a href="#insights" className="insight-card"><div className="insight-image image-three"><Network size={40} /></div><span>ARCHITECTURE</span><h3>Cloud Hosting vs. Traditional Hosting: Which One Is Right for You?</h3><ArrowUpRight size={15} /></a></div><a className="button outline small center-button" href="#contact">View all <ArrowRight size={14} /></a></section>
 
-      <section className="faq-section container" id="faq"><div className="faq-heading"><SectionLabel>FAQS</SectionLabel><h2>Good questions.<br /><span>Clear answers.</span></h2></div><div className="faq-list">{faqs.map(([question, answer], i) => <div className={`faq-item ${openFaq === i ? "open" : ""}`} key={question}><button onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i}><span>{question}</span><ChevronDown size={16} /></button>{openFaq === i && <p>{answer}</p>}</div>)}<button className="button outline small center-button" onClick={() => openOnboarding("General Inquiry / FAQ")}>Still have questions? <ArrowRight size={14} /></button></div></section>
+      <section className="faq-section container" id="faq"><div className="faq-heading"><SectionLabel>FAQS</SectionLabel><h2>Good questions.<br /><span>Clear answers.</span></h2></div><div className="faq-list">{faqs.map(([question, answer], i) => <div className={`faq-item ${openFaq === i ? "open" : ""}`} key={question}><button onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i}><span>{question}</span><ChevronDown size={16} /></button>{openFaq === i && <p>{answer}</p>}</div>)}<Link href="/start-project" className="button outline small center-button">Still have questions? <ArrowRight size={14} /></Link></div></section>
 
       <section className="final-cta" id="contact">
         <div className="final-cta-grid" />
@@ -282,14 +282,14 @@ export default function Home() {
           <h2>Operate With the Credibility of a Far<br /><span>Larger Organization.</span></h2>
           <p>Bring us the hard part. We will help you turn it into a system that can ship, scale, and keep its promises.</p>
           <div className="hero-buttons">
-            <button className="button solid" onClick={() => openOnboarding()}>Request Demo &amp; Start Onboarding <ArrowUpRight size={15} /></button>
+            <Link href="/start-project" className="button solid">Request Demo &amp; Start Onboarding <ArrowUpRight size={15} /></Link>
             <a className="button outline" href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Explore solutions <ChevronRight size={15} /></a>
           </div>
         </div>
       </section>
     </main>
 
-    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")}><LogoMark /><span>RESTART<span className="logo-dot">.</span></span></a><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><a href="#platform" onClick={(e) => handleScrollTo(e, "platform")}>Platform</a><a href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Solutions</a><a href="#case-studies" onClick={(e) => handleScrollTo(e, "case-studies")}>Case Studies</a><a href="#insights" onClick={(e) => handleScrollTo(e, "insights")}>Insights</a></div><div><strong>COMPANY</strong><a href="#about" onClick={(e) => handleScrollTo(e, "about")}>About</a><a href="#contact" onClick={() => openOnboarding()}>Contact</a><a href="#contact" onClick={() => openOnboarding("Careers")}>Careers</a></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><button className="footer-text-btn" onClick={() => openOnboarding()}>Book an intro <ArrowUpRight size={12} /></button></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><a href="#contact" onClick={() => openOnboarding("Privacy")}>Privacy Policy</a><a href="#contact" onClick={() => openOnboarding("Terms")}>Terms of Service</a></span></div></footer>
+    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")}><LogoMark /><span>RESTART<span className="logo-dot">.</span></span></a><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><a href="#platform" onClick={(e) => handleScrollTo(e, "platform")}>Platform</a><a href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Solutions</a><a href="#case-studies" onClick={(e) => handleScrollTo(e, "case-studies")}>Case Studies</a><a href="#insights" onClick={(e) => handleScrollTo(e, "insights")}>Insights</a></div><div><strong>COMPANY</strong><a href="#about" onClick={(e) => handleScrollTo(e, "about")}>About</a><Link href="/start-project">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
   </div>;
 }
 

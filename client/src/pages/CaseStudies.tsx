@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ArrowRight, ArrowUpRight, Check, ChevronRight, ShieldCheck, ArrowLeft, Menu, X, ExternalLink } from "lucide-react";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import CaseStudyModal from "@/components/CaseStudyModal";
@@ -11,6 +11,7 @@ export default function CaseStudies() {
   const [onboardingLane, setOnboardingLane] = useState<string | undefined>(undefined);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [, setLocation] = useLocation();
 
   const categories = [
     { id: "all", label: "All Deliveries", count: caseStudiesData.length },
@@ -25,8 +26,7 @@ export default function CaseStudies() {
     : caseStudiesData.filter((c) => c.category === activeCategory);
 
   const openOnboarding = (lane?: string) => {
-    setOnboardingLane(lane);
-    setOnboardingOpen(true);
+    setLocation(lane ? `/start-project?tier=${encodeURIComponent(lane)}` : "/start-project");
   };
 
   return (
@@ -167,7 +167,7 @@ export default function CaseStudies() {
           <h2>Build your system with<br /><span>senior engineering rigor.</span></h2>
           <p>Tell us what you are building, where your architecture is feeling pressure, or which migration you need to execute with zero downtime.</p>
           <div className="hero-buttons">
-            <button className="button solid" onClick={() => openOnboarding()}>Tell us what you’re building <ArrowUpRight size={15} /></button>
+            <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
             <Link href="/" className="button outline">Back to Home <ChevronRight size={15} /></Link>
           </div>
         </section>
