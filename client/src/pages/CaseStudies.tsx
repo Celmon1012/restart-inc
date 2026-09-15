@@ -51,16 +51,16 @@ export default function CaseStudies() {
           </Link>
           <Link href="/#insights" onClick={() => setMenuOpen(false)}><span>INSIGHTS</span></Link>
           <div className="mobile-nav-actions">
-            <button className="header-cta" onClick={() => openOnboarding()}>Start a Project <ArrowUpRight size={14} /></button>
+            <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
           </div>
         </nav>
         <div className="header-actions">
           <Link href="/" className="login-link">
             <ArrowLeft size={14} /> Back to Home
           </Link>
-          <button className="header-cta" onClick={() => openOnboarding()}>
+          <Link href="/start-project" className="header-cta">
             Start a Project <ArrowUpRight size={14} />
-          </button>
+          </Link>
           <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>

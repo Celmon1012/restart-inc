@@ -1,33 +1,12 @@
 import { useState, useEffect } from "react";
 import { CheckCircle2, ChevronRight, Loader2, Send, ShieldCheck, Sparkles, X, ArrowUpRight, Radio, Check } from "lucide-react";
+import { premiumTiers, budgetRanges, stages, timelines } from "@/pages/StartProject";
 
 export interface OnboardingModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialLane?: string;
 }
-
-const lanes = [
-  { id: "saas", name: "01 · Laravel SaaS That Scales", tag: "Laravel / PostgreSQL / Octane" },
-  { id: "shopify", name: "02 · Shopify Plus Apps", tag: "Remix / GraphQL / App Bridge" },
-  { id: "ai", name: "03 · AI Engineering Sprint", tag: "Claude / MCP / pgvector / RAG" },
-  { id: "architecture", name: "04 · Architecture & Leadership", tag: "Audits / Fractional CTO / Mentorship" },
-  { id: "cloud", name: "05 · Private Cloud & Migration", tag: "Zero-downtime / Bare-metal / Uptime" },
-];
-
-const timelines = [
-  "Immediate (1–2 weeks)",
-  "Within 30 days",
-  "Next quarter",
-  "Exploring architecture options",
-];
-
-const stages = [
-  "Whiteboard to MVP (4–12 Weeks)",
-  "Scaling Existing Production Stack",
-  "AI Integration Sprint (2–4 Weeks)",
-  "1-Week Architecture Audit",
-];
 
 interface WebhookReceipt {
   status: number;
@@ -38,7 +17,8 @@ interface WebhookReceipt {
 }
 
 export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModalProps) {
-  const [selectedLane, setSelectedLane] = useState(initialLane || lanes[0].name);
+  const [selectedLane, setSelectedLane] = useState(initialLane || premiumTiers[0].name);
+  const [selectedBudget, setSelectedBudget] = useState(budgetRanges[1]);
   const [selectedStage, setSelectedStage] = useState(stages[0]);
   const [selectedTimeline, setSelectedTimeline] = useState(timelines[0]);
   const [name, setName] = useState("");
@@ -72,6 +52,8 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
     setName("Tariq Al-Mansoor");
     setEmail("tariq@apollologistics.io");
     setCompany("Apollo Logistics Global");
+    setSelectedLane(premiumTiers[0].name);
+    setSelectedBudget(budgetRanges[1]);
     setProjectBrief("Need high-throughput bare-metal cloud cutover and custom Shopify Plus integration for our B2B trade portal. Zero downtime tolerance.");
     setError(null);
   };
@@ -100,7 +82,8 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
         name: name.trim(),
         email: email.trim(),
         company: company.trim() || "Independent / Stealth",
-        lane: selectedLane,
+        serviceTier: selectedLane,
+        budgetRange: selectedBudget,
         scopeStage: selectedStage,
         targetTimeline: selectedTimeline,
         projectBrief: projectBrief.trim() || "Initial scoping consultation requested",
@@ -221,8 +204,12 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
                 <strong className="text-teal">{referenceId}</strong>
               </div>
               <div className="summary-row">
-                <span>TARGET LANE</span>
+                <span>PREMIUM TIER</span>
                 <strong>{selectedLane}</strong>
+              </div>
+              <div className="summary-row">
+                <span>QUALIFIED BUDGET</span>
+                <strong>{selectedBudget.split(" ")[0]}</strong>
               </div>
               <div className="summary-row">
                 <span>TIMELINE</span>
@@ -277,23 +264,40 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
             {error && <div className="form-error-banner">{error}</div>}
 
             <div className="form-section">
-              <label className="form-section-title">Select Primary Lane</label>
+              <label className="form-section-title">Select Premium Service Tier *</label>
               <div className="lane-select-grid">
-                {lanes.map((lane) => (
+                {premiumTiers.map((tier) => (
                   <button
                     type="button"
-                    key={lane.id}
-                    className={`lane-option ${selectedLane === lane.name ? "selected" : ""}`}
-                    onClick={() => setSelectedLane(lane.name)}
+                    key={tier.id}
+                    className={`lane-option ${selectedLane === tier.name ? "selected" : ""}`}
+                    onClick={() => setSelectedLane(tier.name)}
                   >
-                    <strong>{lane.name}</strong>
-                    <small>{lane.tag}</small>
+                    <div className="tier-badge-line">
+                      <span className="tier-pill-badge">{tier.badge}</span>
+                    </div>
+                    <strong>{tier.name}</strong>
+                    <small>{tier.tag}</small>
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="form-row-two">
+              <div className="form-group">
+                <label>Target Budget Range *</label>
+                <select
+                  value={selectedBudget}
+                  onChange={(e) => setSelectedBudget(e.target.value)}
+                  className="form-select"
+                >
+                  {budgetRanges.map((br) => (
+                    <option key={br} value={br}>
+                      {br}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="form-group">
                 <label>Engagement Scope</label>
                 <select

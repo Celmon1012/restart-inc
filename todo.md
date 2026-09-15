@@ -85,3 +85,19 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Replace "Request Demo" with "Start a Project" in CaseStudies.tsx header
 - [x] Verify build and screenshots
 - [x] Save checkpoint and push to GitHub repository main
+
+## Premium Service Tiers & Budget Range Dropdown
+- [x] Update Onboarding inquiry options to highlight premium service tiers (Dedicated Bare-Metal Cloud, Custom AI Agentic Systems, Shopify Plus Core, Multi-Tenant SaaS, Fractional CTO)
+- [x] Add budget range dropdown field ($10k-$25k, $25k-$50k, $50k-$100k, $100k+) for lead qualification
+- [x] Update webhook payload to include selected budget range
+
+## Dedicated High-Conversion Squeeze Page
+- [x] Build dedicated /start-project squeeze page with distraction-free layout, social proof dossier, and embedded high-converting inquiry workflow
+- [x] Wire /start-project and /onboarding routes in App.tsx
+- [x] Update header "Start a Project" CTAs to link to /start-project
+
+## Typography Update: Increase Paragraph Font Sizes by 2px
+- [x] Increase font-size by 2px across all body paragraphs in index.css (hero, section intros, lane cards, offer copies, case cards, saas copy, use cases, proof grid, faq answers, and footer)
+- [x] Verify legibility and contrast across desktop and mobile
+- [x] Run typecheck and production build
+- [x] Save checkpoint and push directly to GitHub main branch
