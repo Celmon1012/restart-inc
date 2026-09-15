@@ -48,3 +48,8 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Run type-check and production build to verify zero regressions
 - [x] Capture screenshots of the populated case study section and modal workflow
 - [x] Push changes to GitHub using gh CLI and create webdev checkpoint
+
+## Push to main branch in GitHub repo
+- [x] Inspect remote github/main branch
+- [x] Push current codebase directly to github main branch (adeusuf/restart-inc)
+- [x] Verify remote GitHub repository state
