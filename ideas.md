@@ -57,3 +57,10 @@ Use a compact “R/” monogram: a vertical graphite stem with a single orange d
 
 ### Signature Brand Color
 Signal Orange — #F26A3D. It is the color of the next move: visible, warm, and ownable without looking like a generic tech accent.
+
+
+## Style Decisions
+
+The delivered refresh intentionally keeps Restart's established midnight navy atmosphere, technical editorial tone, teal trust signal, compact navigation, and service language. The modern layer adds a more asymmetric product surface in the hero, a contained operating-signal exhibit, sticky glass navigation, and clearer exhibit-style provenance cues.
+
+DM Serif Display now carries the major thesis statements while Plus Jakarta Sans remains the body and UI face. Signal orange `#F26A3D` replaces the former amber role for decisions, action cues, and opportunity moments; teal remains the primary evidence/control color. This is a deliberate merge rather than a full move to the warm paper direction: the site should feel more modern and editorial without losing the recognizable Restart dark engineering system.
