@@ -178,10 +178,10 @@ export default function StartProject() {
         <div className="squeeze-grid">
           {/* Left Column: Authority, Value Proposition & Track Record */}
           <div className="squeeze-pitch">
-            <span className="section-label teal">START A PROJECT WITH RESTART</span>
-            <h1>Build the system your business<br /><span>cannot outgrow.</span></h1>
+            <span className="section-label teal">START A PROJECT</span>
+            <h1>Build the system your business <span>cannot outgrow.</span></h1>
             <p className="squeeze-subheading">
-              No junior hand-offs, no agency theater, no tech-debt traps. You work directly with senior systems architects who scope precisely, protect continuous production uptime, and build reliable software.
+              You work directly with systems architects who scope precisely, protect continuous production uptime, and build reliable software.
             </p>
 
             {/* 3 Core Commitments */}
@@ -206,26 +206,6 @@ export default function StartProject() {
                   <h4>Clear Time-Boxed Deliverables</h4>
                   <p>Scoped 2-week to 12-week milestones with transparent commercial terms and weekly verifiable production releases.</p>
                 </div>
-              </div>
-            </div>
-
-            {/* Verified Track Record Badges */}
-            <div className="squeeze-proof-banner">
-              <div className="squeeze-stat-item">
-                <strong>−70%</strong>
-                <small>SaaS Spend Saved</small>
-              </div>
-              <div className="squeeze-stat-item">
-                <strong>7TB+</strong>
-                <small>Zero-Downtime Cutover</small>
-              </div>
-              <div className="squeeze-stat-item">
-                <strong>&lt;150ms</strong>
-                <small>P99 Retrieval Latency</small>
-              </div>
-              <div className="squeeze-stat-item">
-                <strong>99.99%</strong>
-                <small>Uptime Target SLA</small>
               </div>
             </div>
 
