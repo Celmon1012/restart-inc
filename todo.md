@@ -162,3 +162,9 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Ensure wide viewport layout scales gracefully with the >=1300px canvas
 - [x] Verify desktop and mobile screenshots
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Footer CTA Centralization & Button Copy
+- [x] Update footer CTA button copy in Home.tsx from "Request Demo & Start Onboarding" to "Tell us what you’re building"
+- [x] Centralize footer CTA text, headline, description, and button cluster using dedicated centered flex styling in index.css
+- [x] Verify desktop and mobile layout with screenshots
+- [x] Save checkpoint and push directly to GitHub main branch

@@ -281,8 +281,8 @@ export default function Home() {
           <SectionLabel>THE NEXT MOVE</SectionLabel>
           <h2>Operate With the Credibility of a Far<br /><span>Larger Organization.</span></h2>
           <p>Bring us the hard part. We will help you turn it into a system that can ship, scale, and keep its promises.</p>
-          <div className="hero-buttons">
-            <Link href="/start-project" className="button solid">Request Demo &amp; Start Onboarding <ArrowUpRight size={15} /></Link>
+          <div className="final-cta-buttons">
+            <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
             <a className="button outline" href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Explore solutions <ChevronRight size={15} /></a>
           </div>
         </div>
