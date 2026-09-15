@@ -191,3 +191,10 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Verify visual editor changes for discipline card H3 titles (fontSize 24px, fontWeight 600)
 - [x] Clean up accidental parent/sibling inline style leakage and resolve TypeScript build errors
 - [x] Verify production build and save checkpoint
+
+## Discipline Section Header & Typography Upgrade
+- [x] Update discipline section header in Home.tsx to "Let's build together!"
+- [x] Set "Laravel SaaS That Scales" and other lane-card H3 titles to 24px size and 600 bold sitewide in index.css
+- [x] Set discipline card description P text to minimum 18px (`font-size: 18px !important; line-height: 1.6;`) in index.css
+- [x] Verify desktop and mobile layout with screenshots
+- [x] Save checkpoint and push directly to GitHub main branch

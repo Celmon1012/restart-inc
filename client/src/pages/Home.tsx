@@ -194,10 +194,10 @@ export default function Home() {
 
       <section className="trust-strip" id="platform"><span className="trust-kicker">POWERING EXPERIENCE</span><div className="logo-row"><span><i className="logo-shape shape-1" />Segment</span><span><i className="logo-shape shape-2" />Sisyphus</span><span><i className="logo-shape shape-3" />Polymath</span><span><i className="logo-shape shape-4" />Luminous</span><span><i className="logo-shape shape-5" />Alt+Shift</span><span><i className="logo-shape shape-6" />FeatherDev</span><span><i className="logo-shape shape-7" />Lightbox</span></div></section>
 
-            <section className="lanes-section container" id="solutions">
+      <section className="lanes-section container" id="solutions">
         <div className="section-intro centered">
           <SectionLabel>FOUR DISCIPLINES</SectionLabel>
-          <h2>Let's work together!</h2>
+          <h2>Let's build together!</h2>
           <p>We provide the expertise, infrastructure, and production discipline to move bold product ideas faster</p>
         </div>
         <div className="lane-grid">

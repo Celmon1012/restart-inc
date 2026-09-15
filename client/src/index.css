@@ -9,6 +9,8 @@ html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: "Plus Jakarta Sans", sans-serif; -webkit-font-smoothing: antialiased; }
 p { font-family: "DM Sans", sans-serif !important; }
 h3, .lane-card h3, .case-study-card h3, .insight-card h3, .squeeze-form-header h3 { font-size: 22px !important; }
+.lane-card h3 { font-size: 24px !important; font-weight: 600 !important; }
+.lane-card p { font-size: 18px !important; min-height: auto !important; line-height: 1.6 !important; }
 .lane-card .card-link { display: inline-flex !important; align-items: center !important; gap: 8px !important; margin-top: 22px !important; padding: 10px 18px !important; font-size: 13px !important; font-weight: 700 !important; border-radius: 6px !important; background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.16) !important; color: #ffffff !important; width: fit-content !important; transition: all .2s var(--ease-out) !important; }
 .lane-card .card-link:hover { background: rgba(255,255,255,.16) !important; border-color: rgba(46,229,193,.5) !important; color: #ffffff !important; transform: translateY(-2px) !important; box-shadow: 0 4px 16px rgba(0,0,0,.45) !important; }
 a { color: inherit; text-decoration: none; }
@@ -158,8 +160,8 @@ button { font: inherit; }
   .lane-grid, .use-cases-grid, .proof-grid, .insight-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
   .lane-card { min-height: auto !important; padding: 24px 20px !important; }
   .lane-number { font-size: 14px !important; font-weight: 700 !important; }
-  .lane-card h3 { font-size: 20px !important; margin: 18px 0 10px !important; }
-  .lane-card p { font-size: 15px !important; line-height: 1.6 !important; color: #a4b3dc !important; min-height: auto !important; }
+  .lane-card h3 { font-size: 24px !important; font-weight: 600 !important; margin: 18px 0 10px !important; }
+  .lane-card p { font-size: 18px !important; line-height: 1.6 !important; color: #a4b3dc !important; min-height: auto !important; }
   .tag-row span { font-size: 12px !important; padding: 6px 10px !important; }
   .card-link { font-size: 13px !important; }
 
