@@ -3,7 +3,7 @@
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark *));
 @theme inline { --color-background: var(--bg); --color-foreground: var(--text); --color-card: var(--surface); --color-card-foreground: var(--text); --color-border: var(--line); --color-input: var(--line); --color-ring: var(--teal); }
-:root { --bg: #050719; --bg-soft: #080d25; --surface: #0a1030; --surface-2: #0d153b; --surface-3: #111a45; --line: rgba(103,128,201,.2); --text: #f2f4ff; --muted: #9aa7c9; --dim: #6d789c; --teal: #2ee5c1; --teal-deep: #0dbfa8; --blue: #6f8dff; --violet: #a98cff; --amber: #f26a3d; --ease-out: cubic-bezier(.23,1,.32,1); }
+:root { --bg: #050719; --bg-soft: #080d25; --surface: #0a1030; --surface-2: #0d153b; --surface-3: #111a45; --line: rgba(103,128,201,.2); --text: #f2f4ff; --muted: #9aa7c9; --dim: #6d789c; --teal: #2ee5c1; --teal-deep: #0dbfa8; --blue: #6f8dff; --violet: #a98cff; --amber: #d9ad68; --ease-out: cubic-bezier(.23,1,.32,1); }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: "Plus Jakarta Sans", sans-serif; -webkit-font-smoothing: antialiased; }
@@ -124,7 +124,7 @@ button { font: inherit; }
 .ring-inner { width: 155px; height: 155px; border-color: rgba(46,229,193,.32); transform: rotate(31deg); }
 .ring-inner::after { top: auto; right: auto; bottom: 12%; left: 8%; background: var(--violet); box-shadow: 0 0 15px rgba(169,140,255,.85); }
 .signal-orbit-core { width: 92px; height: 92px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 1px solid rgba(46,229,193,.7); border-radius: 50%; color: #071222; background: radial-gradient(circle at 34% 28%, #ddfff8, var(--teal) 60%, #0da991); box-shadow: 0 0 38px rgba(46,229,193,.2), 0 0 0 9px rgba(46,229,193,.06); }
-.signal-orbit-core span { font-family: Georgia, serif; font-size: 34px; font-weight: 700; line-height: 1; }
+.signal-orbit-core span { font-size: 34px; font-weight: 800; line-height: 1; }
 .signal-orbit-core small { font-size: 7px; font-weight: 900; letter-spacing: .16em; }
 .orbit-label { position: absolute; padding: 5px 7px; border: 1px solid rgba(103, 135, 221, .28); border-radius: 3px; background: rgba(7, 14, 42, .72); color: #9aa8cd; font-size: 7px; letter-spacing: .15em; }
 .label-top { top: 18px; }.label-right { right: 27px; top: 137px; color: var(--teal); }.label-bottom { bottom: 16px; left: 40px; color: var(--violet); }
@@ -289,14 +289,3 @@ button { font: inherit; }
   .success-summary { grid-template-columns: 1fr; }
   .dossier-footer { flex-direction: column; gap: 10px; align-items: flex-start; }
 }
-
-
-/* Editorial lift: DM Serif carries the thesis; Plus Jakarta Sans remains the operating UI. */
-.hero-content h1, .section-intro h2, .offer-copy h2, .section-copy h2, .saas-copy h2, .faq-heading h2, .final-cta h2 { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; letter-spacing: -.035em; }
-.hero-content h1 { line-height: 1.01; }
-.section-intro h2, .offer-copy h2, .section-copy h2, .saas-copy h2, .faq-heading h2, .final-cta h2 { line-height: 1.04; }
-.section-intro.centered, .case-studies-section .section-intro, .use-cases-section .section-intro, .proof-section .section-intro, .insights-section .section-intro { position: relative; }
-.section-intro.centered::before { content: "EXHIBIT / 01"; display: block; margin-bottom: 16px; color: #6575a5; font-size: 8px; font-weight: 800; letter-spacing: .18em; }
-.case-studies-section .section-intro::before { content: "EXHIBIT / 02"; }.use-cases-section .section-intro::before { content: "EXHIBIT / 03"; }.proof-section .section-intro::before { content: "EXHIBIT / 04"; }.insights-section .section-intro::before { content: "EXHIBIT / 05"; }
-.case-study-note::before { content: "SOURCE NOTE"; color: var(--amber); font-size: 8px; font-weight: 800; letter-spacing: .14em; }
-@media (max-width: 700px) { .section-intro.centered::before { margin-bottom: 13px; } }

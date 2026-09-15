@@ -31,3 +31,12 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Test with TypeScript check and production build
 - [x] Visually verify via webdev_take_screenshot
 - [x] Save checkpoint and push changes to origin
+
+## Restore original style, CSS, and fonts while keeping new structure intact
+- [x] Inspect git history to see the original index.css, index.html fonts, and typography rules in earlier checkpoints
+- [x] Remove serif/editorial typography override and restore original sans-serif fonts and font imports
+- [x] Align CSS classes and styling with the original repository look and feel
+- [x] Keep all new features (onboarding modal, outcome metrics grid, scrollspy navigation, etc.) intact
+- [x] Test TypeScript and build
+- [x] Verify with desktop and mobile screenshots
+- [x] Save checkpoint to origin
