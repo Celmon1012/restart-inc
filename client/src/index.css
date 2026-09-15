@@ -8,7 +8,7 @@
 html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: "Plus Jakarta Sans", sans-serif; -webkit-font-smoothing: antialiased; }
 p { font-family: "DM Sans", sans-serif !important; }
-h3, .lane-card h3, .case-study-card h3, .insight-card h3, .squeeze-form-header h3 { font-size: 22px !important; }
+h3, .lane-card h3, .case-study-card h3, .insight-card h3 { font-size: 22px !important; }
 .lane-card h3 { font-size: 24px !important; font-weight: 600 !important; }
 .lane-card p { font-size: 17px !important; min-height: auto !important; line-height: 1.65 !important; }
 .lane-card .card-link { display: inline-flex !important; align-items: center !important; gap: 8px !important; margin-top: 22px !important; padding: 13px 24px !important; font-size: 14px !important; font-weight: 700 !important; border-radius: 7px !important; background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.16) !important; color: #ffffff !important; width: fit-content !important; transition: all .2s var(--ease-out) !important; }
@@ -538,7 +538,7 @@ button { font: inherit; }
 
 .squeeze-form-card { background: linear-gradient(165deg, rgba(15, 15, 20, .96), rgba(8, 8, 11, .98)); border: 1px solid rgba(255, 255, 255, .1); border-radius: 12px; padding: 28px; box-shadow: 0 25px 70px rgba(0, 0, 0, .6); }
 .squeeze-form-header { display: flex; flex-direction: column; gap: 4px; position: relative; margin-bottom: 22px; padding-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, .08); }
-.squeeze-form-header h3 { font-size: 18px; font-weight: 800; letter-spacing: -.03em; color: #f5f8ff; margin: 0; padding-right: 140px; }
+.form-header h3, .squeeze-form-header h3 { font-size: 28px !important; font-weight: 800 !important; letter-spacing: -.03em; color: #f5f8ff; margin: 0; padding-right: 140px; line-height: 1.15; }
 .squeeze-form-header p { font-size: 13px; color: #8e95a7; margin: 0; }
 .squeeze-autofill-btn { position: absolute; right: 0; top: 0; background: rgba(46, 229, 193, .08); border: 1px solid rgba(46, 229, 193, .3); color: var(--teal); font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; transition: all .18s; }
 .squeeze-autofill-btn:hover { background: rgba(46, 229, 193, .16); color: #fff; }

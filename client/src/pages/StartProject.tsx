@@ -305,7 +305,7 @@ export default function StartProject() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="squeeze-form">
-                <div className="squeeze-form-header">
+                <div className="squeeze-form-header form-header">
                   <h3>Project Scope &amp; Architecture Intake</h3>
                   <p>Select your target tier, qualified budget, and timeline to begin.</p>
                   <button

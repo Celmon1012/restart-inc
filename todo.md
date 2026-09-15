@@ -243,3 +243,8 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Set `.squeeze-back-link` font size to `14px !important;`
 - [x] Verify with screenshots on desktop and mobile
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Form Header H3 28px
+- [x] Set `.form-header h3, .squeeze-form-header h3` to `font-size: 28px !important;` in index.css
+- [x] Verify form card header visual balance with screenshots
+- [x] Save checkpoint and push directly to GitHub main branch
