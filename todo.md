@@ -151,3 +151,14 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Update disciplines subtitle in Home.tsx: "We provide the expertise, infrastructure, and production discipline to move bold product ideas faster"
 - [x] Verify build and screenshots
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Obsidian Black Theme Switch
+- [x] Audit all blueish color tokens, backgrounds, and gradient definitions across index.css
+- [x] Update CSS variables: `--bg: #050507;` / obsidian backdrops, `--border: rgba(255,255,255,0.08);`, obsidian graphite cards
+- [x] Refactor hero glow, radial gradients, header glass, service lane cards, and offer boxes from blueish to obsidian dark graphite
+- [x] Update CaseStudies page and /start-project squeeze page to obsidian black aesthetic
+- [x] Maintain high-contrast brand teal (#2ee5c1) and crisp white typography
+- [x] Expand page container width to at least 1300px (e.g. min(1320px, calc(100% - 64px))) for .container, .site-header, .hero-shell, and footer
+- [x] Ensure wide viewport layout scales gracefully with the >=1300px canvas
+- [x] Verify desktop and mobile screenshots
+- [x] Save checkpoint and push directly to GitHub main branch
