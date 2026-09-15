@@ -214,3 +214,8 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Add margin-top/spacing (28px) above offer section "Get Started" buttons in index.css
 - [x] Verify desktop and mobile layout with screenshots
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Nav Menu Font & Weight Update
+- [x] Set nav menu titles to font-family: "DM Sans", font-size: 12px, font-weight: 600 in index.css
+- [x] Verify desktop and mobile navigation appearance with screenshots
+- [x] Save checkpoint and push directly to GitHub main branch

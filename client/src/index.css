@@ -25,7 +25,7 @@ button { font: inherit; }
 .restart-mark::after { width: 9px; height: 2px; top: 9px; left: 6px; transform: rotate(-44deg); }
 .restart-mark span { width: 2px; height: 8px; top: 4px; left: 10px; transform: rotate(45deg); }
 .site-header nav { display: flex; align-items: center; gap: 31px; margin-left: 92px; }
-.site-header nav > a, .login-link, .mobile-nav-actions > a:first-child { font-size: 10px; letter-spacing: .12em; color: #9aa1b2; transition: color .18s ease-out; }
+.site-header nav > a, .login-link, .mobile-nav-actions > a:first-child { font-family: "DM Sans", sans-serif !important; font-size: 12px !important; font-weight: 600 !important; letter-spacing: .08em; color: #9aa1b2; transition: color .18s ease-out; }
 .site-header nav > a { position: relative; padding: 6px 0; display: inline-flex; flex-direction: column; align-items: center; }
 .site-header nav > a .nav-indicator { position: absolute; bottom: -4px; width: 0; height: 2px; border-radius: 999px; background: var(--teal); box-shadow: 0 0 10px rgba(46,229,193,.8); transition: width .22s var(--ease-out), opacity .22s ease-out; opacity: 0; }
 .site-header nav > a:hover, .login-link:hover, .mobile-nav-actions > a:first-child:hover { color: var(--teal); }
