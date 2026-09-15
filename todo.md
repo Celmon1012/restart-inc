@@ -122,3 +122,9 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Support pre-selecting matching Service Tier in StartProject.tsx when navigated with ?tier= query parameter
 - [x] Test navigation, verify build and screenshots
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Site Description Update
+- [x] Update hero description in Home.tsx: "Restart Inc. provides serious operators the engineering expertise, infrastructure, and production discipline to move bold product ideas faster—and turn them into reliable systems that scale with confidence."
+- [x] Update meta description in client/index.html to match
+- [x] Verify typecheck, build, and screenshots
+- [x] Save checkpoint and push directly to GitHub main branch
