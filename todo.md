@@ -137,3 +137,10 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Optimize mobile spacing on case study cards, trust strip, and squeeze page
 - [x] Verify with mobile screenshots at 375px and 414px viewports
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Four Disciplines Section Header Update
+- [x] In Home.tsx, add <SectionLabel>FOUR DISCIPLINES</SectionLabel> above the header
+- [x] Remove "Four lanes." from the H2 so it reads "Let's work together on any of them."
+- [x] Ensure the H2 text is solid white (no teal span)
+- [x] Verify build and screenshots
+- [x] Save checkpoint and push directly to GitHub main branch
