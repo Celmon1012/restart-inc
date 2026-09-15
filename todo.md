@@ -79,3 +79,9 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Configure routing in App.tsx for /case-studies
 - [x] Test TypeScript compilation, build, and verify desktop/mobile screenshots
 - [x] Save checkpoint and push updates directly to GitHub main branch
+
+## Header CTA Update
+- [x] Replace "Request Demo" with "Start a Project" in Home.tsx header
+- [x] Replace "Request Demo" with "Start a Project" in CaseStudies.tsx header
+- [x] Verify build and screenshots
+- [x] Save checkpoint and push to GitHub repository main

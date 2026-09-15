@@ -51,7 +51,7 @@ export default function CaseStudies() {
           </Link>
           <Link href="/#insights" onClick={() => setMenuOpen(false)}><span>INSIGHTS</span></Link>
           <div className="mobile-nav-actions">
-            <button className="header-cta" onClick={() => openOnboarding()}>Request Demo <ArrowUpRight size={14} /></button>
+            <button className="header-cta" onClick={() => openOnboarding()}>Start a Project <ArrowUpRight size={14} /></button>
           </div>
         </nav>
         <div className="header-actions">
@@ -59,7 +59,7 @@ export default function CaseStudies() {
             <ArrowLeft size={14} /> Back to Home
           </Link>
           <button className="header-cta" onClick={() => openOnboarding()}>
-            Request Demo <ArrowUpRight size={14} />
+            Start a Project <ArrowUpRight size={14} />
           </button>
           <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <X size={18} /> : <Menu size={18} />}
