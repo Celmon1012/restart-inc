@@ -1,0 +1,292 @@
+import { useState, useEffect } from "react";
+import { CheckCircle2, ChevronRight, Loader2, Send, ShieldCheck, Sparkles, X, ArrowUpRight } from "lucide-react";
+
+export interface OnboardingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  initialLane?: string;
+}
+
+const lanes = [
+  { id: "saas", name: "01 · Laravel SaaS That Scales", tag: "Laravel / PostgreSQL / Octane" },
+  { id: "shopify", name: "02 · Shopify Plus Apps", tag: "Remix / GraphQL / App Bridge" },
+  { id: "ai", name: "03 · AI Engineering Sprint", tag: "Claude / MCP / pgvector / RAG" },
+  { id: "architecture", name: "04 · Architecture & Leadership", tag: "Audits / Fractional CTO / Mentorship" },
+  { id: "cloud", name: "05 · Private Cloud & Migration", tag: "Zero-downtime / Bare-metal / Uptime" },
+];
+
+const timelines = [
+  "Immediate (1–2 weeks)",
+  "Within 30 days",
+  "Next quarter",
+  "Exploring architecture options",
+];
+
+const stages = [
+  "Whiteboard to MVP (4–12 Weeks)",
+  "Scaling Existing Production Stack",
+  "AI Integration Sprint (2–4 Weeks)",
+  "1-Week Architecture Audit",
+];
+
+export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModalProps) {
+  const [selectedLane, setSelectedLane] = useState(initialLane || lanes[0].name);
+  const [selectedStage, setSelectedStage] = useState(stages[0]);
+  const [selectedTimeline, setSelectedTimeline] = useState(timelines[0]);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [projectBrief, setProjectBrief] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
+  const [referenceId, setReferenceId] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialLane) {
+      setSelectedLane(initialLane);
+    }
+  }, [initialLane]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !name.trim()) {
+      setError("Please provide your name and work email so our engineering leads can reach you.");
+      return;
+    }
+    if (!email.includes("@")) {
+      setError("Please provide a valid work email address.");
+      return;
+    }
+    setError(null);
+    setStatus("submitting");
+
+    setTimeout(() => {
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      setReferenceId(`RST-${rand}-ENG`);
+      setStatus("success");
+    }, 950);
+  };
+
+  const handleReset = () => {
+    setStatus("idle");
+    setName("");
+    setEmail("");
+    setCompany("");
+    setProjectBrief("");
+    setError(null);
+    onClose();
+  };
+
+  return (
+    <div className="onboarding-overlay" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="onboarding-card" onClick={(e) => e.stopPropagation()}>
+        <div className="onboarding-header">
+          <div className="onboarding-header-left">
+            <span className="onboarding-badge">
+              <i /> ONBOARDING WORKFLOW
+            </span>
+            <h2>Start an Engineering Engagement</h2>
+          </div>
+          <button className="onboarding-close" onClick={onClose} aria-label="Close modal">
+            <X size={18} />
+          </button>
+        </div>
+
+        {status === "success" ? (
+          <div className="onboarding-success-state">
+            <div className="success-icon-wrap">
+              <div className="success-pulse" />
+              <CheckCircle2 size={48} className="success-icon" />
+            </div>
+            <h3>Inquiry Staged Successfully</h3>
+            <p className="success-deck">
+              Your onboarding brief has been routed directly to Restart's senior technical leadership.
+            </p>
+
+            <div className="success-summary">
+              <div className="summary-row">
+                <span>REFERENCE</span>
+                <strong className="text-teal">{referenceId}</strong>
+              </div>
+              <div className="summary-row">
+                <span>TARGET LANE</span>
+                <strong>{selectedLane}</strong>
+              </div>
+              <div className="summary-row">
+                <span>TIMELINE</span>
+                <strong>{selectedTimeline}</strong>
+              </div>
+              <div className="summary-row">
+                <span>CONTACT</span>
+                <strong>{name} &lt;{email}&gt;</strong>
+              </div>
+            </div>
+
+            <div className="success-next-steps">
+              <h4>What Happens Next:</h4>
+              <ul>
+                <li>
+                  <CheckCircle2 size={14} />
+                  <span><strong>Senior Architecture Review:</strong> A tech lead analyzes your system requirements within 24 hours.</span>
+                </li>
+                <li>
+                  <CheckCircle2 size={14} />
+                  <span><strong>Scoping &amp; Timeline Dossier:</strong> We outline delivery milestones, architecture boundaries, and cost guardrails.</span>
+                </li>
+                <li>
+                  <CheckCircle2 size={14} />
+                  <span><strong>Direct Intro Scheduling:</strong> A booking link has been staged for {email}.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="success-actions">
+              <button className="button solid w-full" onClick={handleReset}>
+                Done
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="onboarding-form">
+            <p className="form-intro">
+              Tell us what you're building, where your team is constrained, and what milestone makes this engagement successful.
+            </p>
+
+            {error && <div className="form-error-banner">{error}</div>}
+
+            <div className="form-section">
+              <label className="form-section-title">Select Primary Lane</label>
+              <div className="lane-select-grid">
+                {lanes.map((lane) => (
+                  <button
+                    type="button"
+                    key={lane.id}
+                    className={`lane-option ${selectedLane === lane.name ? "selected" : ""}`}
+                    onClick={() => setSelectedLane(lane.name)}
+                  >
+                    <strong>{lane.name}</strong>
+                    <small>{lane.tag}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-row-two">
+              <div className="form-group">
+                <label>Engagement Scope</label>
+                <select
+                  value={selectedStage}
+                  onChange={(e) => setSelectedStage(e.target.value)}
+                  className="form-select"
+                >
+                  {stages.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Target Timeline</label>
+                <select
+                  value={selectedTimeline}
+                  onChange={(e) => setSelectedTimeline(e.target.value)}
+                  className="form-select"
+                >
+                  {timelines.map((tl) => (
+                    <option key={tl} value={tl}>
+                      {tl}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row-two">
+              <div className="form-group">
+                <label>Your Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Alex Vance"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+              <div className="form-group">
+                <label>Work Email *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="alex@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Company / Project Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Apex Logistics or stealth SaaS"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Brief System Context &amp; Key Bottleneck</label>
+              <textarea
+                rows={3}
+                placeholder="Briefly describe what you need to ship, existing stack, and what success looks like in production..."
+                value={projectBrief}
+                onChange={(e) => setProjectBrief(e.target.value)}
+                className="form-textarea"
+              />
+            </div>
+
+            <div className="form-footer">
+              <div className="form-reassurance">
+                <ShieldCheck size={15} />
+                <span>Direct review by senior engineers. Confidential and non-binding.</span>
+              </div>
+              <button
+                type="submit"
+                disabled={status === "submitting"}
+                className="button solid submit-btn"
+              >
+                {status === "submitting" ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Staging inquiry...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Submit Onboarding Inquiry</span>
+                    <ArrowUpRight size={15} />
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}

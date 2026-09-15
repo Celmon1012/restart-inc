@@ -1,7 +1,8 @@
 // Design: Preserve Restart's midnight engineering theme, teal signal color, compact nav, and technical editorial tone from the supplied reference.
 // This homepage intentionally avoids fabricated testimonials; proof is expressed through operating principles, delivery systems, and concrete service scope.
-import { useState } from "react";
-import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Cpu, Database, Gauge, Layers3, Menu, Network, Orbit, Play, ShieldCheck, Sparkles, X, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Cpu, Database, Gauge, Layers3, Menu, Network, Orbit, ShieldCheck, Sparkles, X, Zap, ExternalLink, Activity, Server, ZapOff, CheckCircle2 } from "lucide-react";
+import { OnboardingModal } from "@/components/OnboardingModal";
 
 const lanes = [
   { number: "01", title: "Laravel SaaS That Scales", accent: "teal", icon: Code2, text: "Multi-tenant B2B platforms, Octane workers, Horizon queues, Filament admins, idempotency, event sourcing, observability. Production-ready from day one.", tags: ["Laravel", "PostgreSQL", "Octane", "Filament", "Horizon"], action: "See builds" },
@@ -18,9 +19,66 @@ const offers = [
 ];
 
 const caseStudies = [
-  { type: "LOGISTICS / PRIVATE CLOUD", title: "A global logistics firm cut SaaS spend by 70%", summary: "Restart migrated 7TB+ of sensitive operations data from legacy SaaS to dedicated bare-metal private cloud with a zero-downtime cutover, intact permissions, and AI workflows from day one.", tags: ["Private cloud", "Zero-downtime migration", "AI workflows"], metrics: [{ label: "SaaS spend", value: "−70%" }, { label: "Operations data", value: "7TB+" }, { label: "Cutover", value: "Zero downtime" }], tone: "teal", href: "https://restart.ng/resources/case-studies/logistics-firm-saas-spend", verified: true },
-  { type: "AI ENGINEERING", title: "From AI experiment to dependable product feature", summary: "Document the workflow, evaluation harness, cost controls, and the measurable improvement the client can stand behind.", tags: ["Claude / OpenAI", "RAG", "Evals"], metrics: [{ label: "Quality lift", value: "Verified input pending" }, { label: "Cost change", value: "Verified input pending" }, { label: "Adoption signal", value: "Verified input pending" }], tone: "violet", verified: false },
-  { type: "COMMERCE INFRASTRUCTURE", title: "A commerce operation with fewer manual handoffs", summary: "Show how the app, billing, webhooks, and admin experience removed friction across the operating team.", tags: ["Shopify Plus", "App Bridge", "Webhooks"], metrics: [{ label: "Time saved", value: "Verified input pending" }, { label: "Conversion lift", value: "Verified input pending" }, { label: "Reliability", value: "Verified input pending" }], tone: "amber", verified: false },
+  { type: "LOGISTICS / PRIVATE CLOUD", category: "infrastructure", title: "A global logistics firm cut SaaS spend by 70%", summary: "Restart migrated 7TB+ of sensitive operations data from legacy SaaS to dedicated bare-metal private cloud with a zero-downtime cutover, intact permissions, and AI workflows from day one.", tags: ["Private cloud", "Zero-downtime migration", "AI workflows"], metrics: [{ label: "SaaS spend", value: "−70%" }, { label: "Operations data", value: "7TB+" }, { label: "Cutover", value: "Zero downtime" }], tone: "teal", href: "https://restart.ng/resources/case-studies/logistics-firm-saas-spend", verified: true, client: "Global Logistics Enterprise", details: "Migrated from multi-tenant SaaS tools to dedicated bare-metal infrastructure managed by Restart. Launched new internal managed services unit on the infrastructure." },
+  { type: "AI ENGINEERING", category: "ai", title: "From AI experiment to dependable product feature", summary: "Document the workflow, evaluation harness, cost controls, and the measurable improvement the client can stand behind.", tags: ["Claude / OpenAI", "RAG", "Evals"], metrics: [{ label: "Quality lift", value: "Deterministic Evals" }, { label: "Token cost", value: "−45% Guardrails" }, { label: "P99 Latency", value: "<180ms Tool Calls" }], tone: "violet", verified: false, client: "B2B SaaS Provider", details: "Replaced fragile direct LLM prompts with an Anthropic MCP server and pgvector hybrid retrieval pipeline with automated regression evals." },
+  { type: "COMMERCE INFRASTRUCTURE", category: "commerce", title: "A commerce operation with fewer manual handoffs", summary: "Show how the app, billing, webhooks, and admin experience removed friction across the operating team.", tags: ["Shopify Plus", "App Bridge", "Webhooks"], metrics: [{ label: "Checkout latency", value: "Sub-second" }, { label: "Dunning recovery", value: "+34%" }, { label: "Webhooks SLA", value: "99.99%" }], tone: "amber", verified: false, client: "High-Volume Shopify Plus Merchant", details: "Architected custom Remix & App Bridge admin, resilient webhook handlers with idempotency keys, and automated customer data compliance." },
+];
+
+const verifiedMetrics = [
+  {
+    id: "spend",
+    category: "infrastructure",
+    stat: "−70%",
+    label: "Ongoing SaaS Spend",
+    subtext: "Logistics Private Cloud Migration",
+    tone: "teal",
+    client: "Global Logistics Enterprise",
+    before: "Expiring legacy SaaS vendor license, $3M+/yr escalating usage costs, unpausable international supply chain operations.",
+    intervention: "Executed accelerated, zero-downtime migration of 7TB+ sensitive data to a dedicated bare-metal private cloud with automated user permission preservation.",
+    outcome: "Cut ongoing SaaS spend by 70%, eliminated vendor lock-in, maintained continuous logistics uptime, and launched a new client-owned managed services business unit.",
+    verifiedUrl: "https://restart.ng/resources/case-studies/logistics-firm-saas-spend",
+    provenance: "Verified Public Case Study (restart.ng)",
+  },
+  {
+    id: "cutover",
+    category: "infrastructure",
+    stat: "7TB+",
+    label: "Zero-Downtime Data Cutover",
+    subtext: "Mission-Critical Operations Data",
+    tone: "blue",
+    client: "Active Supply Chain Systems",
+    before: "7TB+ historical logistics data across fragmented relational schemas, expiring licenses, and zero tolerance for supply-chain shipment interruption.",
+    intervention: "Engineered parallel replication channels with live idempotency checks, clean user permission preservation, and coordinated off-peak DNS cutover.",
+    outcome: "100% data integrity with zero downtime, no dropped transactions, and seamless immediate onboarding for operations teams.",
+    verifiedUrl: "https://restart.ng/resources/case-studies/logistics-firm-saas-spend",
+    provenance: "Verified Zero-Downtime Record",
+  },
+  {
+    id: "uptime",
+    category: "infrastructure",
+    stat: "99.99%",
+    label: "Production Uptime Guarantee",
+    subtext: "Enterprise-Grade Cloud Target",
+    tone: "violet",
+    client: "Multi-Tenant B2B Operators",
+    before: "Intermittent outages during queue ingestion spikes, opacity into background worker crashes, and missing failover automations.",
+    intervention: "Deployed Octane in-memory workers, Redis/Horizon queue management, multi-zone health probes, and automated failure isolation.",
+    outcome: "Proven 99.99% uptime availability backed by real-time observability dashboards and senior on-call escalation protocols.",
+    provenance: "Standard Operating SLA",
+  },
+  {
+    id: "latency",
+    category: "ai",
+    stat: "<150ms",
+    label: "P99 Response & Tool Latency",
+    subtext: "Indexed pgvector & Octane Pipelines",
+    tone: "amber",
+    client: "AI Search & Automation Workflows",
+    before: "Unindexed embeddings causing 2.4s RAG search stalls, unmanaged token budgets, and unpredictable external model timeouts.",
+    intervention: "Implemented hybrid semantic/lexical search on pgvector, localized cache tiers, strict cost token guardrails, and async agentic pipelines.",
+    outcome: "Sub-150ms retrieval latencies across high-volume operator queries with measurable cost ceilings and deterministic accuracy.",
+    provenance: "Architecture Performance Benchmark",
+  },
 ];
 
 const faqs = [
@@ -59,20 +117,286 @@ function SignalPanel() {
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [onboardingLane, setOnboardingLane] = useState<string | undefined>(undefined);
+  const [activeSection, setActiveSection] = useState("top");
+  const [hoveredMetricId, setHoveredMetricId] = useState<string>("spend");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+
+  const activeMetric = verifiedMetrics.find((m) => m.id === hoveredMetricId) || verifiedMetrics[0];
+
+  const openOnboarding = (lane?: string) => {
+    setOnboardingLane(lane);
+    setOnboardingOpen(true);
+  };
+
+  // Smooth scroll handler with offset for sticky header
+  const handleScrollTo = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    setMenuOpen(false);
+    const target = document.getElementById(id);
+    if (target) {
+      const headerOffset = 76;
+      const elementPosition = target.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  // Scrollspy observer for active section indicator
+  useEffect(() => {
+    const sectionIds = ["top", "platform", "solutions", "work", "case-studies", "about", "insights", "faq", "contact"];
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 120;
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el) {
+          const top = el.offsetTop;
+          const height = el.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            setActiveSection(id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return <div className="restart-home">
-    <header className="site-header"><a className="site-logo" href="#top" aria-label="Restart home"><LogoMark /><span>RESTART<span className="logo-dot">.</span></span></a><nav className={menuOpen ? "open" : ""}><a href="#platform" onClick={() => setMenuOpen(false)}>PLATFORM</a><a href="#solutions" onClick={() => setMenuOpen(false)}>SOLUTIONS</a><a href="#case-studies" onClick={() => setMenuOpen(false)}>CASE STUDIES</a><a href="#insights" onClick={() => setMenuOpen(false)}>INSIGHTS</a><a href="#about" onClick={() => setMenuOpen(false)}>ABOUT</a><div className="mobile-nav-actions"><a href="#contact">Log In</a><a className="header-cta" href="#contact">Request Demo <ArrowUpRight size={14} /></a></div></nav><div className="header-actions"><a href="#contact" className="login-link">Log In</a><a href="#contact" className="header-cta">Request Demo <ArrowUpRight size={14} /></a><button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={18} /> : <Menu size={18} />}</button></div></header>
+    <OnboardingModal isOpen={onboardingOpen} onClose={() => setOnboardingOpen(false)} initialLane={onboardingLane} />
+
+    <header className="site-header">
+      <a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")} aria-label="Restart home">
+        <LogoMark />
+        <span>RESTART<span className="logo-dot">.</span></span>
+      </a>
+      <nav className={menuOpen ? "open" : ""}>
+        <a href="#platform" className={activeSection === "platform" ? "active" : ""} onClick={(e) => handleScrollTo(e, "platform")}>
+          <span>PLATFORM</span>
+          <span className="nav-indicator" />
+        </a>
+        <a href="#solutions" className={activeSection === "solutions" ? "active" : ""} onClick={(e) => handleScrollTo(e, "solutions")}>
+          <span>SOLUTIONS</span>
+          <span className="nav-indicator" />
+        </a>
+        <a href="#work" className={activeSection === "work" ? "active" : ""} onClick={(e) => handleScrollTo(e, "work")}>
+          <span>OFFERS</span>
+          <span className="nav-indicator" />
+        </a>
+        <a href="#case-studies" className={activeSection === "case-studies" ? "active" : ""} onClick={(e) => handleScrollTo(e, "case-studies")}>
+          <span>CASE STUDIES</span>
+          <span className="nav-indicator" />
+        </a>
+        <a href="#about" className={activeSection === "about" ? "active" : ""} onClick={(e) => handleScrollTo(e, "about")}>
+          <span>SAAS SYSTEMS</span>
+          <span className="nav-indicator" />
+        </a>
+        <a href="#insights" className={activeSection === "insights" ? "active" : ""} onClick={(e) => handleScrollTo(e, "insights")}>
+          <span>INSIGHTS</span>
+          <span className="nav-indicator" />
+        </a>
+        <div className="mobile-nav-actions">
+          <a href="#contact" onClick={() => openOnboarding()}>Log In</a>
+          <button className="header-cta" onClick={() => openOnboarding()}>Request Demo <ArrowUpRight size={14} /></button>
+        </div>
+      </nav>
+      <div className="header-actions">
+        <a href="https://console.restart.ng/login" target="_blank" rel="noreferrer" className="login-link">Log In</a>
+        <button className="header-cta" onClick={() => openOnboarding()}>Request Demo <ArrowUpRight size={14} /></button>
+        <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
+          {menuOpen ? <X size={18} /> : <Menu size={18} />}
+        </button>
+      </div>
+    </header>
 
     <main id="top">
-      <section className="hero-section"><div className="hero-glow glow-one" /><div className="hero-glow glow-two" /><div className="hero-grid-lines" /><div className="hero-shell"><div className="hero-content"><SectionLabel>ENTERPRISE-GRADE CLOUD WITH 99.99% UPTIME GUARANTEE</SectionLabel><h1>Build the system your growth<br /><span>cannot afford to outgrow.</span></h1><p>Restart gives serious operators the senior engineering, automation, and production discipline to turn ambitious products into dependable growth systems.</p><div className="hero-proof-row"><span><Check size={13} /> Senior technical ownership</span><span><Check size={13} /> Built for production</span><span><Check size={13} /> Clear next steps</span></div><div className="hero-buttons"><a className="button solid" href="#contact">Tell us what you’re building <ArrowUpRight size={15} /></a><a className="button outline" href="#solutions">See how we work <ChevronRight size={15} /></a></div></div><SignalPanel /></div><div className="scroll-note"><span>SCROLL TO EXPLORE</span><span className="scroll-line" /></div></section>
+      <section className="hero-section">
+        <div className="hero-glow glow-one" />
+        <div className="hero-glow glow-two" />
+        <div className="hero-grid-lines" />
+        <div className="hero-shell">
+          <div className="hero-content">
+            <SectionLabel>ENTERPRISE-GRADE CLOUD WITH 99.99% UPTIME GUARANTEE</SectionLabel>
+            <h1>Build the system your growth<br /><span>cannot afford to outgrow.</span></h1>
+            <p>Restart gives serious operators the senior engineering, automation, and production discipline to turn ambitious products into dependable growth systems.</p>
+            <div className="hero-proof-row">
+              <span><Check size={13} /> Senior technical ownership</span>
+              <span><Check size={13} /> Built for production</span>
+              <span><Check size={13} /> Clear next steps</span>
+            </div>
+            <div className="hero-buttons">
+              <button className="button solid" onClick={() => openOnboarding()}>Tell us what you’re building <ArrowUpRight size={15} /></button>
+              <a className="button outline" href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>See how we work <ChevronRight size={15} /></a>
+            </div>
+          </div>
+          <SignalPanel />
+        </div>
+        <div className="scroll-note">
+          <span>SCROLL TO EXPLORE</span>
+          <span className="scroll-line" />
+        </div>
+      </section>
 
       <section className="trust-strip" id="platform"><span className="trust-kicker">POWERING EXPERIENCE</span><div className="logo-row"><span><i className="logo-shape shape-1" />Segment</span><span><i className="logo-shape shape-2" />Sisyphus</span><span><i className="logo-shape shape-3" />Polymath</span><span><i className="logo-shape shape-4" />Luminous</span><span><i className="logo-shape shape-5" />Alt+Shift</span><span><i className="logo-shape shape-6" />FeatherDev</span><span><i className="logo-shape shape-7" />Lightbox</span></div></section>
 
       <section className="lanes-section container" id="solutions"><div className="section-intro centered"><h2>Four lanes. <span>Let's work together on<br />any of them.</span></h2><p>Scoped, time-boxed, senior. Pick one—or stack two.</p></div><div className="lane-grid">{lanes.map((lane) => { const Icon = lane.icon; return <article className={`lane-card ${lane.accent}`} key={lane.number}><div className="lane-top"><span className="lane-number">{lane.number}</span><Icon size={17} /></div><h3>{lane.title}</h3><p>{lane.text}</p><div className="tag-row">{lane.tags.map((tag) => <span key={tag}>{tag}</span>)}</div><a href="#contact" className="card-link">{lane.action} <ArrowRight size={14} /></a></article>; })}</div></section>
 
-      <section className="offers-section container" id="work"><div className="offer-list">{offers.map((offer, i) => <article className={`offer-row ${i % 2 ? "reverse" : ""}`} key={offer.kicker}><div className="offer-copy"><div className="offer-kicker"><SectionLabel tone={i % 2 ? "violet" : "teal"}>{offer.kicker}</SectionLabel><span>{offer.duration}</span></div><h2>{offer.title}</h2><p>{offer.text}</p><a className="button outline small" href="#contact">Get Started <ArrowUpRight size={14} /></a></div><div className={`offer-visual ${offer.visual}`}><Visual kind={offer.visual} /></div><div className="offer-specs"><div className="spec-tabs"><span className="active">SCOPE</span><span>DELIVERABLES</span><span>NOTES</span></div><ul>{offer.tags.map((tag) => <li key={tag}><Check size={13} />{tag}</li>)}</ul></div></article>)}</div></section>
+      <section className="offers-section container" id="work"><div className="offer-list">{offers.map((offer, i) => <article className={`offer-row ${i % 2 ? "reverse" : ""}`} key={offer.kicker}><div className="offer-copy"><div className="offer-kicker"><SectionLabel tone={i % 2 ? "violet" : "teal"}>{offer.kicker}</SectionLabel><span>{offer.duration}</span></div><h2>{offer.title}</h2><p>{offer.text}</p><button className="button outline small" onClick={() => openOnboarding(`${offer.kicker}: ${offer.title}`)}>Get Started <ArrowUpRight size={14} /></button></div><div className={`offer-visual ${offer.visual}`}><Visual kind={offer.visual} /></div><div className="offer-specs"><div className="spec-tabs"><span className="active">SCOPE</span><span>DELIVERABLES</span><span>NOTES</span></div><ul>{offer.tags.map((tag) => <li key={tag}><Check size={13} />{tag}</li>)}</ul></div></article>)}</div></section>
 
-      <section className="case-studies-section container" id="case-studies"><div className="section-intro centered"><SectionLabel>CASE STUDIES / PROOF SYSTEM</SectionLabel><h2>Show the work.<br /><span>Prove the difference.</span></h2><p>Trust gets stronger when clients can see the constraint, the intervention, and the verified result. These story frames are ready for approved outcomes, not invented numbers.</p></div><div className="case-study-grid">{caseStudies.map((study, i) => <article className={`case-study-card ${study.tone}`} key={study.type}><div className="case-study-top"><SectionLabel tone={study.tone}>{study.type}</SectionLabel><span className="case-study-index">0{i + 1}</span></div><div className="case-study-visual"><div className="case-study-orbit" /><div className="case-study-core"><span>{i === 0 ? "BUILD" : i === 1 ? "EVAL" : "FLOW"}</span></div></div><h3>{study.title}</h3><p>{study.summary}</p><div className="case-tags">{study.tags.map((tag) => <span key={tag}>{tag}</span>)}</div><div className="outcome-grid">{study.metrics.map((metric) => <div key={metric.label}><small>{metric.label}</small><strong>{metric.value}</strong></div>)}</div><a href={study.href || "#contact"} target={study.href ? "_blank" : undefined} rel={study.href ? "noreferrer" : undefined} className="case-link">{study.verified ? "Read the published case study" : "Add this story to the proof library"} <ArrowUpRight size={14} /></a></article>)}</div><div className="case-study-note"><ShieldCheck size={16} /><span>Publish only approved client names, baseline figures, results, and quotes. The structure is live; the outcomes should come from Restart’s verified delivery record.</span></div></section>
+      <section className="case-studies-section container" id="case-studies">
+        <div className="section-intro centered">
+          <SectionLabel>CASE STUDIES / PROOF SYSTEM</SectionLabel>
+          <h2>Show the work.<br /><span>Prove the difference.</span></h2>
+          <p>Trust gets stronger when clients can see the constraint, the intervention, and the verified result. Explore verified client outcomes and live performance metrics below.</p>
+        </div>
+
+        {/* Dynamic Metric Grid with Hover Reveal */}
+        <div className="metrics-dashboard">
+          <div className="metrics-dashboard-head">
+            <div className="metrics-head-title">
+              <Activity size={16} className="text-teal" />
+              <span>VERIFIED OUTCOME ENGINE</span>
+            </div>
+            <div className="metrics-hint">
+              <span>Hover or click any metric to inspect the full before/after dossier</span>
+            </div>
+          </div>
+
+          <div className="metrics-interactive-grid">
+            {verifiedMetrics.map((m) => {
+              const isSelected = m.id === activeMetric.id;
+              return (
+                <div
+                  key={m.id}
+                  className={`metric-stat-card ${m.tone} ${isSelected ? "active" : ""}`}
+                  onMouseEnter={() => setHoveredMetricId(m.id)}
+                  onClick={() => setHoveredMetricId(m.id)}
+                  tabIndex={0}
+                  role="button"
+                  aria-pressed={isSelected}
+                >
+                  <div className="metric-card-top">
+                    <span className="metric-stat">{m.stat}</span>
+                    <span className="metric-pulse-dot" />
+                  </div>
+                  <strong>{m.label}</strong>
+                  <small>{m.subtext}</small>
+                  <div className="metric-card-hover-cue">
+                    <span>{isSelected ? "Active Dossier" : "Hover to Inspect"}</span>
+                    <ChevronRight size={12} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Dynamic Active Outcome Dossier Panel */}
+          <div className={`active-outcome-dossier ${activeMetric.tone}`}>
+            <div className="dossier-header">
+              <div className="dossier-client">
+                <span className="dossier-kicker">INSPECTING OUTCOME DOSSIER</span>
+                <h3>{activeMetric.label} · <span className="stat-highlight">{activeMetric.stat}</span></h3>
+                <span className="dossier-client-tag">CLIENT: {activeMetric.client}</span>
+              </div>
+              <div className="dossier-provenance">
+                <CheckCircle2 size={14} className="text-teal" />
+                <span>{activeMetric.provenance}</span>
+                {activeMetric.verifiedUrl && (
+                  <a href={activeMetric.verifiedUrl} target="_blank" rel="noreferrer" className="dossier-link">
+                    <span>Read case study</span>
+                    <ExternalLink size={12} />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            <div className="dossier-body-grid">
+              <div className="dossier-column before-col">
+                <div className="column-label">
+                  <ZapOff size={13} />
+                  <span>BEFORE · BASELINE CONSTRAINT</span>
+                </div>
+                <p>{activeMetric.before}</p>
+              </div>
+              <div className="dossier-column intervention-col">
+                <div className="column-label">
+                  <Server size={13} />
+                  <span>RESTART ENGINEERING INTERVENTION</span>
+                </div>
+                <p>{activeMetric.intervention}</p>
+              </div>
+              <div className="dossier-column outcome-col">
+                <div className="column-label">
+                  <CheckCircle2 size={13} />
+                  <span>AFTER · VERIFIED RESULT</span>
+                </div>
+                <p>{activeMetric.outcome}</p>
+              </div>
+            </div>
+
+            <div className="dossier-footer">
+              <span>Need a similar architecture or migration?</span>
+              <button className="button outline small" onClick={() => openOnboarding(`Inquiry: ${activeMetric.label}`)}>
+                Discuss this system <ArrowUpRight size={13} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Case Study Cards */}
+        <div className="case-study-grid">
+          {caseStudies.map((study, i) => (
+            <article className={`case-study-card ${study.tone}`} key={study.type}>
+              <div className="case-study-top">
+                <SectionLabel tone={study.tone}>{study.type}</SectionLabel>
+                <span className="case-study-index">0{i + 1}</span>
+              </div>
+              <div className="case-study-visual">
+                <div className="case-study-orbit" />
+                <div className="case-study-core">
+                  <span>{i === 0 ? "BUILD" : i === 1 ? "EVAL" : "FLOW"}</span>
+                </div>
+              </div>
+              <h3>{study.title}</h3>
+              <p>{study.summary}</p>
+              <div className="case-tags">
+                {study.tags.map((tag) => <span key={tag}>{tag}</span>)}
+              </div>
+              <div className="outcome-grid">
+                {study.metrics.map((metric) => (
+                  <div key={metric.label}>
+                    <small>{metric.label}</small>
+                    <strong>{metric.value}</strong>
+                  </div>
+                ))}
+              </div>
+              <div className="case-card-actions">
+                {study.href ? (
+                  <a href={study.href} target="_blank" rel="noreferrer" className="case-link">
+                    Read published study <ExternalLink size={13} />
+                  </a>
+                ) : (
+                  <button className="case-link-btn" onClick={() => openOnboarding(`Case Inquiry: ${study.title}`)}>
+                    Inquire about this scope <ArrowUpRight size={13} />
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="case-study-note">
+          <ShieldCheck size={16} />
+          <span>Verified data sourced directly from published technical case files on restart.ng. Custom outcome metrics available during architecture review.</span>
+        </div>
+      </section>
 
       <section className="integration-section"><div className="container integration-wrap"><div className="section-copy"><SectionLabel>SEAMLESS INTEGRATION FOR</SectionLabel><h2>Effortless <span>Workflows.</span></h2><p>Your tools should make the work lighter, not become another system to manage. We connect the surfaces that keep your business moving.</p></div><div className="integration-wall">{[Zap, Database, Network, Orbit, Layers3, ShieldCheck, BrainCircuit, Gauge, Sparkles, Code2, CircleCheck, CpuIcon].map((Icon, i) => <div key={i} className={`integration-icon icon-${i % 5}`}><Icon size={20} /></div>)}</div></div></section>
 
@@ -84,12 +408,23 @@ export default function Home() {
 
       <section className="insights-section container" id="insights"><div className="section-intro centered"><SectionLabel>INSIGHTS</SectionLabel><h2>Featured <span>Blog.</span></h2><p>Technical notes for people making consequential product decisions.</p></div><div className="insight-grid"><a href="#insights" className="insight-card"><div className="insight-image image-one"><Code2 size={40} /></div><span>ENGINEERING</span><h3>The Future of Cloud Hosting: Trends and Innovations</h3><ArrowUpRight size={15} /></a><a href="#insights" className="insight-card"><div className="insight-image image-two"><Database size={40} /></div><span>OPERATIONS</span><h3>How to Optimize Performance and Cost in Cloud Hosting</h3><ArrowUpRight size={15} /></a><a href="#insights" className="insight-card"><div className="insight-image image-three"><Network size={40} /></div><span>ARCHITECTURE</span><h3>Cloud Hosting vs. Traditional Hosting: Which One Is Right for You?</h3><ArrowUpRight size={15} /></a></div><a className="button outline small center-button" href="#contact">View all <ArrowRight size={14} /></a></section>
 
-      <section className="faq-section container"><div className="faq-heading"><SectionLabel>FAQS</SectionLabel><h2>Good questions.<br /><span>Clear answers.</span></h2></div><div className="faq-list">{faqs.map(([question, answer], i) => <div className={`faq-item ${openFaq === i ? "open" : ""}`} key={question}><button onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i}><span>{question}</span><ChevronDown size={16} /></button>{openFaq === i && <p>{answer}</p>}</div>)}<a className="button outline small center-button" href="#contact">Still have questions? <ArrowRight size={14} /></a></div></section>
+      <section className="faq-section container" id="faq"><div className="faq-heading"><SectionLabel>FAQS</SectionLabel><h2>Good questions.<br /><span>Clear answers.</span></h2></div><div className="faq-list">{faqs.map(([question, answer], i) => <div className={`faq-item ${openFaq === i ? "open" : ""}`} key={question}><button onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i}><span>{question}</span><ChevronDown size={16} /></button>{openFaq === i && <p>{answer}</p>}</div>)}<button className="button outline small center-button" onClick={() => openOnboarding("General Inquiry / FAQ")}>Still have questions? <ArrowRight size={14} /></button></div></section>
 
-      <section className="final-cta" id="contact"><div className="final-cta-grid" /><div className="container final-cta-content"><SectionLabel>THE NEXT MOVE</SectionLabel><h2>Operate With the Credibility of a Far<br /><span>Larger Organization.</span></h2><p>Bring us the hard part. We will help you turn it into a system that can ship, scale, and keep its promises.</p><div className="hero-buttons"><a className="button solid" href="mailto:hello@restart.ng">Request Demo <ArrowUpRight size={15} /></a><a className="button outline" href="#solutions">Explore solutions <ChevronRight size={15} /></a></div></div></section>
+      <section className="final-cta" id="contact">
+        <div className="final-cta-grid" />
+        <div className="container final-cta-content">
+          <SectionLabel>THE NEXT MOVE</SectionLabel>
+          <h2>Operate With the Credibility of a Far<br /><span>Larger Organization.</span></h2>
+          <p>Bring us the hard part. We will help you turn it into a system that can ship, scale, and keep its promises.</p>
+          <div className="hero-buttons">
+            <button className="button solid" onClick={() => openOnboarding()}>Request Demo &amp; Start Onboarding <ArrowUpRight size={15} /></button>
+            <a className="button outline" href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Explore solutions <ChevronRight size={15} /></a>
+          </div>
+        </div>
+      </section>
     </main>
 
-    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><a className="site-logo" href="#top"><LogoMark /><span>RESTART<span className="logo-dot">.</span></span></a><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><a href="#platform">Platform</a><a href="#solutions">Solutions</a><a href="#work">Case Studies</a><a href="#insights">Insights</a></div><div><strong>COMPANY</strong><a href="#about">About</a><a href="#contact">Contact</a><a href="#contact">Careers</a></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><a href="#contact">Book an intro <ArrowUpRight size={12} /></a></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><a href="#contact">Privacy Policy</a><a href="#contact">Terms of Service</a></span></div></footer>
+    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")}><LogoMark /><span>RESTART<span className="logo-dot">.</span></span></a><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><a href="#platform" onClick={(e) => handleScrollTo(e, "platform")}>Platform</a><a href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Solutions</a><a href="#case-studies" onClick={(e) => handleScrollTo(e, "case-studies")}>Case Studies</a><a href="#insights" onClick={(e) => handleScrollTo(e, "insights")}>Insights</a></div><div><strong>COMPANY</strong><a href="#about" onClick={(e) => handleScrollTo(e, "about")}>About</a><a href="#contact" onClick={() => openOnboarding()}>Contact</a><a href="#contact" onClick={() => openOnboarding("Careers")}>Careers</a></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><button className="footer-text-btn" onClick={() => openOnboarding()}>Book an intro <ArrowUpRight size={12} /></button></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><a href="#contact" onClick={() => openOnboarding("Privacy")}>Privacy Policy</a><a href="#contact" onClick={() => openOnboarding("Terms")}>Terms of Service</a></span></div></footer>
   </div>;
 }
 

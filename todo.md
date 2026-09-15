@@ -22,3 +22,12 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Create a dedicated case-studies section with a reusable structure for verified client context, measurable outcomes, and delivery detail; do not invent client names, testimonials, or metrics.
 - [x] Validate the updated homepage at desktop and mobile sizes and run type-check/build.
 - [x] Save a checkpoint and deliver the updated project.
+
+## Interactive onboarding, case-study metrics, and navigation tasks
+- [x] Inspect current Home.tsx and index.css after git fast-forward
+- [x] Connect interactive inquiry forms to an onboarding workflow modal with scope selectors, budget/timeline, and a smooth animated success state
+- [x] Build a dynamic case-study metrics grid that reveals detailed client outcomes and before/after context on hover/focus
+- [x] Enhance sticky glass navigation with smooth scroll-to-section behavior and active section indicator (scrollspy)
+- [x] Test with TypeScript check and production build
+- [x] Visually verify via webdev_take_screenshot
+- [x] Save checkpoint and push changes to origin
