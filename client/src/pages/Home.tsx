@@ -150,14 +150,14 @@ export default function Home() {
           <span>INSIGHTS</span>
           <span className="nav-indicator" />
         </a>
-        <div className="mobile-nav-actions">
-          <a href="#contact" onClick={() => openOnboarding()}>Log In</a>
+          <div className="mobile-nav-actions">
+            <Link href="/login">Log In</Link>
+            <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
+          </div>
+        </nav>
+        <div className="header-actions">
+          <Link href="/login" className="login-link">Log In</Link>
           <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
-        </div>
-      </nav>
-      <div className="header-actions">
-        <a href="https://console.restart.ng/login" target="_blank" rel="noreferrer" className="login-link">Log In</a>
-        <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
         <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X size={18} /> : <Menu size={18} />}
         </button>

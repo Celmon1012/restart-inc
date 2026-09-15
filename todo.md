@@ -219,3 +219,11 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Set nav menu titles to font-family: "DM Sans", font-size: 12px, font-weight: 600 in index.css
 - [x] Verify desktop and mobile navigation appearance with screenshots
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Discipline Description 17px & Console Login/Dashboard Obsidian Theme
+- [x] Set `.lane-card p` to `font-size: 17px !important;` in index.css
+- [x] Check for existing or implement console login (`/login`) and client dashboard (`/dashboard`) routes with obsidian black theme
+- [x] Connect Log In nav links to `/login` with full obsidian styling (auth form, security badges, telemetry preview)
+- [x] Provide interactive client console dashboard with active systems, SLA monitors, delivery sprints, and zero-downtime health metrics
+- [x] Verify layout on desktop and mobile with screenshots
+- [x] Save checkpoint and push directly to GitHub main branch
