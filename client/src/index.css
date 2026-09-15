@@ -996,6 +996,121 @@ button { font: inherit; }
   border-color: rgba(239, 68, 68, 0.3);
 }
 
+/* User profile button & Obsidian Dropdown */
+.dash-user-menu-wrapper {
+  position: relative;
+}
+
+.dash-user-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #d1d9ea;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dash-user-trigger:hover,
+.dash-user-trigger.active {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(46, 229, 193, 0.4);
+  color: #ffffff;
+}
+
+.dash-user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(46, 229, 193, 0.2), rgba(91, 132, 255, 0.3));
+  border: 1px solid rgba(46, 229, 193, 0.4);
+  display: grid;
+  place-items: center;
+  color: var(--teal);
+}
+
+.dash-user-chevron {
+  color: #727a8c;
+  transition: transform 0.2s;
+}
+
+.dash-user-chevron.rotate {
+  transform: rotate(180deg);
+  color: var(--teal);
+}
+
+.dash-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 230px;
+  background: #07070a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(46, 229, 193, 0.15);
+  padding: 6px;
+  z-index: 150;
+  animation: modal-scale-up 0.18s var(--ease-out) both;
+}
+
+.dash-dropdown-header {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  margin-bottom: 4px;
+}
+
+.dropdown-user-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  display: block;
+}
+
+.dropdown-user-email {
+  font-size: 11px;
+  color: #798399;
+  display: block;
+  margin-top: 2px;
+}
+
+.dash-dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: #a6b2c8;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.dash-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.dash-dropdown-item.logout {
+  color: #f87171;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 4px;
+  border-radius: 0 0 6px 6px;
+}
+
+.dash-dropdown-item.logout:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
 .dash-main {
   padding-top: 40px;
   padding-bottom: 80px;

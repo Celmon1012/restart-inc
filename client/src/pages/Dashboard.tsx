@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import {
   Activity,
@@ -27,13 +27,30 @@ import {
   Check,
   Radio,
   Sparkles,
-  Copy
+  Copy,
+  User,
+  ChevronDown,
+  Settings,
+  CreditCard,
+  Key
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<"systems" | "hosting" | "sprints" | "logs">("systems");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     try {
@@ -46,8 +63,12 @@ export default function Dashboard() {
       if (subParam === "overview" || subParam === "envs" || subParam === "history") {
         setHostingSubTab(subParam);
       }
+      if (params.get("menu") === "open") {
+        setUserMenuOpen(true);
+      }
     } catch {}
   }, []);
+
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deployingApp, setDeployingApp] = useState(false);
   const [restartingApp, setRestartingApp] = useState(false);
@@ -124,14 +145,88 @@ export default function Dashboard() {
           </button>
 
           <Link href="/start-project" className="dash-action-btn">
-            <span>Request New Sprint</span>
+            <span>Start a Project</span>
             <ArrowUpRight size={14} />
           </Link>
 
-          <button onClick={handleLogout} className="dash-logout-btn" title="Sign out of Console">
-            <LogOut size={15} />
-            <span>Sign Out</span>
-          </button>
+          {/* User Profile Avatar with Obsidian Dropdown */}
+          <div className="dash-user-menu-wrapper" ref={userMenuRef}>
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className={`dash-user-trigger ${userMenuOpen ? "active" : ""}`}
+              title="Account & Settings"
+              aria-expanded={userMenuOpen}
+            >
+              <div className="dash-user-avatar">
+                <User size={14} />
+              </div>
+              <ChevronDown size={12} className={`dash-user-chevron ${userMenuOpen ? "rotate" : ""}`} />
+            </button>
+
+            {userMenuOpen && (
+              <div className="dash-dropdown-menu">
+                <div className="dash-dropdown-header">
+                  <span className="dropdown-user-name">Ademola Usuf</span>
+                  <span className="dropdown-user-email">operator@acme-logistics.internal</span>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    toast.info("Opening Operator Profile & Key Details...");
+                  }}
+                  className="dash-dropdown-item"
+                >
+                  <User size={14} />
+                  <span>Profile & Security</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    toast.info("Navigating to Pod & Infrastructure Settings...");
+                  }}
+                  className="dash-dropdown-item"
+                >
+                  <Settings size={14} />
+                  <span>Console Settings</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    toast.info("Loading API Key Vault...");
+                  }}
+                  className="dash-dropdown-item"
+                >
+                  <Key size={14} />
+                  <span>API & Key Vault</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    toast.info("Opening Invoices & SLA Commitments...");
+                  }}
+                  className="dash-dropdown-item"
+                >
+                  <CreditCard size={14} />
+                  <span>Billing & SLA Contract</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="dash-dropdown-item logout"
+                >
+                  <LogOut size={14} />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
