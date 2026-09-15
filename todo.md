@@ -40,3 +40,11 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Test TypeScript and build
 - [x] Verify with desktop and mobile screenshots
 - [x] Save checkpoint to origin
+
+## Webhook connection, full case study outcome previews, transitions & GitHub push
+- [x] Connect onboarding inquiry form to a mock webhook endpoint to simulate realistic HTTP submission, payload transmission, and success animation trigger
+- [x] Populate remaining case study cards and outcome dossiers with complete realistic preview metrics and before/intervention/after outcomes
+- [x] Add subtle smooth transition animations and keyframe crossfades to case-study hover reveals and outcome dossier switching
+- [x] Run type-check and production build to verify zero regressions
+- [x] Capture screenshots of the populated case study section and modal workflow
+- [x] Push changes to GitHub using gh CLI and create webdev checkpoint

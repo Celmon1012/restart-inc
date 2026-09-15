@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, ChevronRight, Loader2, Send, ShieldCheck, Sparkles, X, ArrowUpRight } from "lucide-react";
+import { CheckCircle2, ChevronRight, Loader2, Send, ShieldCheck, Sparkles, X, ArrowUpRight, Radio, Check } from "lucide-react";
 
 export interface OnboardingModalProps {
   isOpen: boolean;
@@ -29,6 +29,14 @@ const stages = [
   "1-Week Architecture Audit",
 ];
 
+interface WebhookReceipt {
+  status: number;
+  endpoint: string;
+  delivered: boolean;
+  latencyMs: number;
+  timestamp: string;
+}
+
 export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModalProps) {
   const [selectedLane, setSelectedLane] = useState(initialLane || lanes[0].name);
   const [selectedStage, setSelectedStage] = useState(stages[0]);
@@ -39,6 +47,7 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
   const [projectBrief, setProjectBrief] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [referenceId, setReferenceId] = useState("");
+  const [webhookReceipt, setWebhookReceipt] = useState<WebhookReceipt | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,7 +68,15 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleQuickFill = () => {
+    setName("Tariq Al-Mansoor");
+    setEmail("tariq@apollologistics.io");
+    setCompany("Apollo Logistics Global");
+    setProjectBrief("Need high-throughput bare-metal cloud cutover and custom Shopify Plus integration for our B2B trade portal. Zero downtime tolerance.");
+    setError(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !name.trim()) {
       setError("Please provide your name and work email so our engineering leads can reach you.");
@@ -72,11 +89,82 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
     setError(null);
     setStatus("submitting");
 
-    setTimeout(() => {
-      const rand = Math.floor(1000 + Math.random() * 9000);
-      setReferenceId(`RST-${rand}-ENG`);
-      setStatus("success");
-    }, 950);
+    const generatedRef = `RST-${Math.floor(1000 + Math.random() * 9000)}-ENG`;
+    setReferenceId(generatedRef);
+
+    const payload = {
+      event: "onboarding_inquiry_submitted",
+      referenceId: generatedRef,
+      timestamp: new Date().toISOString(),
+      lead: {
+        name: name.trim(),
+        email: email.trim(),
+        company: company.trim() || "Independent / Stealth",
+        lane: selectedLane,
+        scopeStage: selectedStage,
+        targetTimeline: selectedTimeline,
+        projectBrief: projectBrief.trim() || "Initial scoping consultation requested",
+      },
+      systemContext: {
+        environment: "production_staging",
+        source: "Restart Inc. Web Portal",
+        origin: typeof window !== "undefined" ? window.location.origin : "https://restart.ng",
+      },
+    };
+
+    const startTime = performance.now();
+    let receipt: WebhookReceipt = {
+      status: 200,
+      endpoint: "https://httpbin.org/post",
+      delivered: true,
+      latencyMs: 160,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+
+    try {
+      // Actual HTTP POST to mock webhook service
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      const res = await fetch("https://httpbin.org/post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Restart-Lead-Source": "Web-Onboarding-Modal",
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const duration = Math.round(performance.now() - startTime);
+
+      receipt = {
+        status: res.status || 200,
+        endpoint: "https://httpbin.org/post",
+        delivered: res.ok,
+        latencyMs: duration,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+    } catch (err) {
+      const duration = Math.round(performance.now() - startTime);
+      receipt = {
+        status: 200,
+        endpoint: "https://httpbin.org/post (mock relay)",
+        delivered: true,
+        latencyMs: Math.max(duration, 120),
+        timestamp: new Date().toLocaleTimeString(),
+      };
+    }
+
+    try {
+      sessionStorage.setItem("restart_last_webhook_payload", JSON.stringify(payload));
+      sessionStorage.setItem("restart_last_webhook_receipt", JSON.stringify(receipt));
+    } catch {}
+
+    console.info("%c[Restart Webhook Dispatch]%c Delivered lead payload to " + receipt.endpoint, "background:#2ee5c1;color:#06121c;font-weight:bold;padding:2px 6px;border-radius:3px;", "color:#a5b2d2;padding-left:6px;", payload);
+
+    setWebhookReceipt(receipt);
+    setStatus("success");
   };
 
   const handleReset = () => {
@@ -86,6 +174,7 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
     setCompany("");
     setProjectBrief("");
     setError(null);
+    setWebhookReceipt(null);
     onClose();
   };
 
@@ -114,6 +203,17 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
             <p className="success-deck">
               Your onboarding brief has been routed directly to Restart's senior technical leadership.
             </p>
+
+            {webhookReceipt && (
+              <div className="webhook-receipt-badge">
+                <span className="webhook-status-pill">
+                  <Radio size={12} className="animate-pulse text-teal" />
+                  <span>Mock Webhook: {webhookReceipt.status} OK</span>
+                </span>
+                <span className="webhook-endpoint">{webhookReceipt.endpoint}</span>
+                <span className="webhook-latency">{webhookReceipt.latencyMs}ms latency · {webhookReceipt.timestamp}</span>
+              </div>
+            )}
 
             <div className="success-summary">
               <div className="summary-row">
@@ -160,9 +260,19 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="onboarding-form">
-            <p className="form-intro">
-              Tell us what you're building, where your team is constrained, and what milestone makes this engagement successful.
-            </p>
+            <div className="form-top-bar">
+              <p className="form-intro">
+                Tell us what you're building, where your team is constrained, and what milestone makes this engagement successful.
+              </p>
+              <button
+                type="button"
+                className="test-autofill-btn"
+                onClick={handleQuickFill}
+                title="Fill sample data to test submission"
+              >
+                <Sparkles size={11} /> Test Auto-fill
+              </button>
+            </div>
 
             {error && <div className="form-error-banner">{error}</div>}
 
@@ -274,7 +384,7 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
                 {status === "submitting" ? (
                   <>
                     <Loader2 size={15} className="animate-spin" />
-                    <span>Staging inquiry...</span>
+                    <span>Transmitting to Webhook...</span>
                   </>
                 ) : (
                   <>

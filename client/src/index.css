@@ -167,6 +167,10 @@ button { font: inherit; }
 .onboarding-close:hover { color: #fff; border-color: rgba(46, 229, 193, .6); background: rgba(46, 229, 193, .08); }
 
 .form-intro { color: #9da9cf; font-size: 12px; line-height: 1.6; margin: 0 0 20px; }
+.form-top-bar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+.form-top-bar .form-intro { margin-bottom: 0; flex: 1; }
+.test-autofill-btn { display: inline-flex; align-items: center; gap: 5px; background: rgba(46, 229, 193, .08); border: 1px solid rgba(46, 229, 193, .35); border-radius: 4px; color: var(--teal); font-size: 9px; font-weight: 700; padding: 5px 9px; cursor: pointer; white-space: nowrap; transition: background .18s, transform .16s; }
+.test-autofill-btn:hover { background: rgba(46, 229, 193, .18); transform: translateY(-1px); }
 .form-error-banner { background: rgba(242, 106, 61, .12); border: 1px solid rgba(242, 106, 61, .4); color: #ffb499; padding: 10px 14px; border-radius: 6px; font-size: 11px; margin-bottom: 16px; }
 .form-section { margin-bottom: 18px; }
 .form-section-title { display: block; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #7f8eb8; margin-bottom: 8px; font-weight: 700; }
@@ -203,6 +207,11 @@ button { font: inherit; }
 .onboarding-success-state h3 { font-size: 24px; color: #f2f5ff; margin: 0 0 8px; letter-spacing: -.03em; }
 .success-deck { color: #9aa8d0; font-size: 12px; max-width: 440px; margin: 0 auto 22px; line-height: 1.6; }
 
+.webhook-receipt-badge { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 8px 14px; margin: 0 auto 20px; background: rgba(11, 23, 64, .7); border: 1px solid rgba(46, 229, 193, .35); border-radius: 6px; max-width: 520px; font-size: 10px; }
+.webhook-status-pill { display: inline-flex; align-items: center; gap: 6px; color: var(--teal); font-weight: 700; letter-spacing: .04em; }
+.webhook-endpoint { color: #a5b5dd; font-family: monospace; font-size: 9px; }
+.webhook-latency { color: #7d8db5; font-size: 9px; }
+
 .success-summary { background: rgba(12, 19, 56, .7); border: 1px solid rgba(88, 120, 214, .25); border-radius: 8px; padding: 14px 18px; margin-bottom: 22px; text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .summary-row { display: flex; flex-direction: column; gap: 3px; }
 .summary-row span { font-size: 8px; letter-spacing: .12em; color: #6e7da8; text-transform: uppercase; }
@@ -227,7 +236,7 @@ button { font: inherit; }
 
 .metrics-interactive-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; position: relative; z-index: 1; }
 .metric-stat-card { border: 1px solid rgba(85, 115, 203, .22); border-radius: 8px; background: rgba(11, 18, 52, .7); padding: 18px 16px; display: flex; flex-direction: column; cursor: pointer; transition: transform .22s var(--ease-out), border-color .22s ease-out, background .22s ease-out, box-shadow .22s ease-out; position: relative; outline: none; }
-.metric-stat-card:hover, .metric-stat-card:focus-visible { transform: translateY(-4px); border-color: rgba(46, 229, 193, .6); background: rgba(18, 29, 80, .85); box-shadow: 0 14px 35px rgba(0, 0, 0, .3); }
+.metric-stat-card:hover, .metric-stat-card:focus-visible { transform: translateY(-4px); border-color: rgba(46, 229, 193, .6); background: rgba(18, 29, 80, .85); box-shadow: 0 14px 35px rgba(0, 0, 0, .3), 0 0 18px rgba(46, 229, 193, .08); }
 .metric-stat-card.active { border-color: var(--teal); background: rgba(22, 36, 96, .9); box-shadow: 0 14px 40px rgba(46, 229, 193, .12), inset 0 0 0 1px var(--teal); }
 .metric-stat-card.teal .metric-stat { color: var(--teal); }
 .metric-stat-card.blue .metric-stat { color: var(--blue); }
@@ -243,8 +252,10 @@ button { font: inherit; }
 .metric-card-hover-cue { margin-top: auto; display: inline-flex; align-items: center; gap: 4px; color: #6f7fae; font-size: 8px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; transition: color .18s; }
 .metric-stat-card:hover .metric-card-hover-cue, .metric-stat-card.active .metric-card-hover-cue { color: var(--teal); }
 
-/* Active Outcome Dossier Panel */
-.active-outcome-dossier { border: 1px solid rgba(89, 122, 216, .35); border-radius: 8px; background: linear-gradient(160deg, rgba(14, 23, 67, .96), rgba(8, 14, 43, .98)); padding: 22px 24px; position: relative; z-index: 1; transition: border-color .24s, box-shadow .24s; }
+/* Active Outcome Dossier Panel with smooth transition reveal */
+.active-outcome-dossier { border: 1px solid rgba(89, 122, 216, .35); border-radius: 8px; background: linear-gradient(160deg, rgba(14, 23, 67, .96), rgba(8, 14, 43, .98)); padding: 22px 24px; position: relative; z-index: 1; transition: border-color .28s ease-out, box-shadow .28s ease-out, transform .28s var(--ease-out); }
+.active-outcome-dossier-anim { animation: dossier-reveal .3s var(--ease-out) both; }
+@keyframes dossier-reveal { 0% { opacity: .65; transform: translateY(6px); } 100% { opacity: 1; transform: translateY(0); } }
 .active-outcome-dossier.teal { border-color: rgba(46, 229, 193, .45); }
 .active-outcome-dossier.blue { border-color: rgba(111, 141, 255, .45); }
 .active-outcome-dossier.violet { border-color: rgba(169, 140, 255, .45); }
@@ -260,7 +271,8 @@ button { font: inherit; }
 .dossier-link:hover { background: rgba(46, 229, 193, .12); }
 
 .dossier-body-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 18px; }
-.dossier-column { background: rgba(10, 16, 48, .55); border: 1px solid rgba(88, 118, 210, .18); border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.dossier-column { background: rgba(10, 16, 48, .55); border: 1px solid rgba(88, 118, 210, .18); border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 8px; transition: transform .22s var(--ease-out), border-color .22s ease-out, background .22s ease-out; }
+.dossier-column:hover { transform: translateY(-2px); border-color: rgba(46, 229, 193, .38); background: rgba(14, 23, 68, .75); }
 .column-label { display: inline-flex; align-items: center; gap: 6px; font-size: 8px; letter-spacing: .1em; font-weight: 800; text-transform: uppercase; color: #7f90be; }
 .before-col .column-label { color: #e4917a; }
 .intervention-col .column-label { color: #8faaff; }
