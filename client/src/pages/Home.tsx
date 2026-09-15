@@ -1,8 +1,11 @@
 // Design: Preserve Restart's midnight engineering theme, teal signal color, compact nav, and technical editorial tone from the supplied reference.
 // This homepage intentionally avoids fabricated testimonials; proof is expressed through operating principles, delivery systems, and concrete service scope.
 import { useState, useEffect } from "react";
+import { Link } from "wouter";
 import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Cpu, Database, Gauge, Layers3, Menu, Network, Orbit, ShieldCheck, Sparkles, X, Zap, ExternalLink } from "lucide-react";
 import { OnboardingModal } from "@/components/OnboardingModal";
+import CaseStudyModal from "@/components/CaseStudyModal";
+import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 
 const lanes = [
   { number: "01", title: "Laravel SaaS That Scales", accent: "teal", icon: Code2, text: "Multi-tenant B2B platforms, Octane workers, Horizon queues, Filament admins, idempotency, event sourcing, observability. Production-ready from day one.", tags: ["Laravel", "PostgreSQL", "Octane", "Filament", "Horizon"], action: "See builds" },
@@ -63,6 +66,7 @@ export default function Home() {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [onboardingLane, setOnboardingLane] = useState<string | undefined>(undefined);
   const [activeSection, setActiveSection] = useState("top");
+  const [selectedCaseStudy, setSelectedCaseStudy] = useState<CaseStudy | null>(null);
 
   const openOnboarding = (lane?: string) => {
     setOnboardingLane(lane);
@@ -110,6 +114,15 @@ export default function Home() {
 
   return <div className="restart-home">
     <OnboardingModal isOpen={onboardingOpen} onClose={() => setOnboardingOpen(false)} initialLane={onboardingLane} />
+    <CaseStudyModal
+      isOpen={!!selectedCaseStudy}
+      onClose={() => setSelectedCaseStudy(null)}
+      caseStudy={selectedCaseStudy}
+      onDiscuss={(title) => {
+        setSelectedCaseStudy(null);
+        openOnboarding(title);
+      }}
+    />
 
     <header className="site-header">
       <a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")} aria-label="Restart home">
@@ -194,8 +207,15 @@ export default function Home() {
 
         {/* Case Study Cards */}
         <div className="case-study-grid">
-          {caseStudies.map((study, i) => (
-            <article className={`case-study-card ${study.tone}`} key={study.type}>
+          {caseStudiesData.slice(0, 3).map((study, i) => (
+            <article
+              className={`case-study-card ${study.tone} clickable-card`}
+              key={study.id}
+              onClick={() => setSelectedCaseStudy(study)}
+              tabIndex={0}
+              role="button"
+              aria-label={`View case study: ${study.title}`}
+            >
               <div className="case-study-top">
                 <SectionLabel tone={study.tone}>{study.type}</SectionLabel>
                 <span className="case-study-index">0{i + 1}</span>
@@ -220,18 +240,21 @@ export default function Home() {
                 ))}
               </div>
               <div className="case-card-actions">
-                {study.href ? (
-                  <a href={study.href} target="_blank" rel="noreferrer" className="case-link">
-                    Read published study <ExternalLink size={13} />
-                  </a>
-                ) : (
-                  <button className="case-link-btn" onClick={() => openOnboarding(`Case Inquiry: ${study.title}`)}>
-                    Inquire about this scope <ArrowUpRight size={13} />
-                  </button>
-                )}
+                <span className="case-link-btn">
+                  <span>Read Full Dossier</span>
+                  <ArrowUpRight size={13} />
+                </span>
               </div>
             </article>
           ))}
+        </div>
+
+        {/* View All Case Studies Button */}
+        <div className="view-all-cases-container">
+          <Link href="/case-studies" className="view-all-cases-button">
+            <span>View All Case Studies & Delivery Files</span>
+            <ArrowRight size={15} />
+          </Link>
         </div>
 
         <div className="case-study-note">

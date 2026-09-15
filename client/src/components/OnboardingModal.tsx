@@ -400,3 +400,5 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
     </div>
   );
 }
+
+export default OnboardingModal;

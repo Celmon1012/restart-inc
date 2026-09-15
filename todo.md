@@ -65,3 +65,17 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Clean up unused variables, icons, and CSS
 - [x] Validate with screenshots and build checks
 - [x] Save checkpoint and push to GitHub repository main
+
+## Fix Coolify Deployment Error
+- [x] Create nixpacks.toml specifying Node 22 and static output directory
+- [x] Update build script in package.json to copy public assets into dist root for Caddy SPA server
+- [x] Guard analytics script in client/index.html against missing deployment environment variables
+
+## Case Study Write-Up Modal & Portfolio Page
+- [x] Implement CaseStudyModal with detailed challenge, architecture, and outcomes write-ups
+- [x] Connect homepage case study cards to trigger write-up modal on click
+- [x] Add "View All Case Studies" button below the three cards in Home.tsx
+- [x] Create dedicated /case-studies portfolio page with category filtering and modal integration
+- [x] Configure routing in App.tsx for /case-studies
+- [x] Test TypeScript compilation, build, and verify desktop/mobile screenshots
+- [x] Save checkpoint and push updates directly to GitHub main branch
