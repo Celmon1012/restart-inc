@@ -198,3 +198,19 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Set discipline card description P text to minimum 18px (`font-size: 18px !important; line-height: 1.6;`) in index.css
 - [x] Verify desktop and mobile layout with screenshots
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Sitewide Button Scaling (Especially Desktop)
+- [x] Enlarge global `.button` sizing (padding from 11px 18px to 15px 30px, font from 12px to 15px)
+- [x] Enlarge `.header-cta` (padding from 8px 13px to 12px 22px, font from 11px to 14px)
+- [x] Enlarge `.hero-actions .button` (padding 17px 34px, font 16px)
+- [x] Enlarge `.lane-card .card-link` (padding 12px 22px, font 14px)
+- [x] Enlarge `.button.small` on offer rows (padding from 9px 12px to 12px 22px, font from 9px to 13px)
+- [x] Enlarge `.view-all-cases-btn` (padding from 12px 24px to 16px 32px, font from 12px to 15px)
+- [x] Enlarge `.submit-btn-full` on squeeze page and onboarding modal (padding to 18px, font to 16px)
+- [x] Verify layout, hover states, and responsive builds
+- [x] Save checkpoint and push directly to GitHub main branch
+
+## Offer Section Buttons Spacing
+- [x] Add margin-top/spacing (28px) above offer section "Get Started" buttons in index.css
+- [x] Verify desktop and mobile layout with screenshots
+- [x] Save checkpoint and push directly to GitHub main branch
