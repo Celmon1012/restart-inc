@@ -194,10 +194,6 @@ export default function Home() {
           <span>CASE STUDIES</span>
           <span className="nav-indicator" />
         </a>
-        <a href="#about" className={activeSection === "about" ? "active" : ""} onClick={(e) => handleScrollTo(e, "about")}>
-          <span>SAAS SYSTEMS</span>
-          <span className="nav-indicator" />
-        </a>
         <a href="#insights" className={activeSection === "insights" ? "active" : ""} onClick={(e) => handleScrollTo(e, "insights")}>
           <span>INSIGHTS</span>
           <span className="nav-indicator" />
@@ -226,14 +222,14 @@ export default function Home() {
             <SectionLabel>ENTERPRISE-GRADE CLOUD WITH 99.99% UPTIME GUARANTEE</SectionLabel>
             <h1>Build the system your growth<br /><span>cannot afford to outgrow.</span></h1>
             <p>Restart gives serious operators the senior engineering, automation, and production discipline to turn ambitious products into dependable growth systems.</p>
+            <div className="hero-buttons">
+              <button className="button solid" onClick={() => openOnboarding()}>Tell us what you’re building <ArrowUpRight size={15} /></button>
+              <a className="button outline" href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>See how we work <ChevronRight size={15} /></a>
+            </div>
             <div className="hero-proof-row">
               <span><Check size={13} /> Senior technical ownership</span>
               <span><Check size={13} /> Built for production</span>
               <span><Check size={13} /> Clear next steps</span>
-            </div>
-            <div className="hero-buttons">
-              <button className="button solid" onClick={() => openOnboarding()}>Tell us what you’re building <ArrowUpRight size={15} /></button>
-              <a className="button outline" href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>See how we work <ChevronRight size={15} /></a>
             </div>
           </div>
           <SignalPanel />

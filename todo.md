@@ -53,3 +53,9 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Inspect remote github/main branch
 - [x] Push current codebase directly to github main branch (adeusuf/restart-inc)
 - [x] Verify remote GitHub repository state
+
+## Hero proof row position and nav menu cleanup
+- [x] Move hero checkmark proof row below the action buttons
+- [x] Remove "SAAS SYSTEMS" nav link from header navigation
+- [x] Validate layout with desktop and mobile screenshots
+- [x] Save checkpoint and push update to GitHub repo main branch

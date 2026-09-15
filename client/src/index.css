@@ -110,6 +110,7 @@ button { font: inherit; }
 .hero-content { max-width: 720px; padding: 30px 0 45px; text-align: left; }
 .hero-content p { margin-left: 0; }
 .hero-buttons { justify-content: flex-start; }
+.hero-content .hero-proof-row { justify-content: flex-start; margin-top: 24px; }
 .signal-panel { position: relative; min-height: 438px; padding: 20px; overflow: hidden; border: 1px solid rgba(101, 133, 224, .34); border-radius: 10px; background: linear-gradient(145deg, rgba(17, 29, 79, .92), rgba(6, 12, 35, .96) 64%); box-shadow: 24px 28px 0 rgba(23, 37, 98, .22), 0 26px 70px rgba(0, 0, 0, .18); transform: rotate(1.5deg); transition: transform .32s var(--ease-out), border-color .25s ease-out, box-shadow .32s var(--ease-out); }
 .signal-panel::before { content: ""; position: absolute; inset: 0; background: linear-gradient(125deg, rgba(255,255,255,.08), transparent 24%, transparent 67%, rgba(46,229,193,.08)); pointer-events: none; }
 .signal-panel::after { content: ""; position: absolute; width: 260px; height: 260px; top: -115px; right: -95px; border: 1px solid rgba(46,229,193,.18); border-radius: 50%; box-shadow: 0 0 0 22px rgba(46,229,193,.03), 0 0 0 46px rgba(46,229,193,.02); }
@@ -141,6 +142,7 @@ button { font: inherit; }
   .hero-content { max-width: 760px; padding: 0; text-align: center; }
   .hero-content p { margin-left: auto; }
   .hero-buttons { justify-content: center; }
+  .hero-content .hero-proof-row { justify-content: center; }
   .signal-panel { width: min(100%, 460px); margin: 0 auto; transform: rotate(0); }
 }
 @media (max-width: 700px) {
