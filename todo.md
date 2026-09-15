@@ -168,3 +168,11 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Centralize footer CTA text, headline, description, and button cluster using dedicated centered flex styling in index.css
 - [x] Verify desktop and mobile layout with screenshots
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Typography & Integration Icons Scaling
+- [x] Load DM Sans font in client/index.html alongside Plus Jakarta Sans
+- [x] Update all paragraph (`p`) styles in index.css to use `font-family: "DM Sans", sans-serif;`
+- [x] Set all H3 headings to `font-size: 20px;` across all cards, modals, and sections
+- [x] Double the size of integration icons in Home.tsx and index.css (icon size from 18 to 36, enhanced padding and grid scaling)
+- [x] Verify desktop and mobile layout with screenshots
+- [x] Save checkpoint and push directly to GitHub main branch
