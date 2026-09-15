@@ -59,3 +59,9 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Remove "SAAS SYSTEMS" nav link from header navigation
 - [x] Validate layout with desktop and mobile screenshots
 - [x] Save checkpoint and push update to GitHub repo main branch
+
+## Remove VERIFIED OUTCOME ENGINE widget
+- [x] Remove the metrics dashboard and outcome dossier widget from the Case Studies section
+- [x] Clean up unused variables, icons, and CSS
+- [x] Validate with screenshots and build checks
+- [x] Save checkpoint and push to GitHub repository main

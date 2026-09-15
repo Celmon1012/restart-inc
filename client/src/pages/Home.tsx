@@ -1,7 +1,7 @@
 // Design: Preserve Restart's midnight engineering theme, teal signal color, compact nav, and technical editorial tone from the supplied reference.
 // This homepage intentionally avoids fabricated testimonials; proof is expressed through operating principles, delivery systems, and concrete service scope.
 import { useState, useEffect } from "react";
-import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Cpu, Database, Gauge, Layers3, Menu, Network, Orbit, ShieldCheck, Sparkles, X, Zap, ExternalLink, Activity, Server, ZapOff, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Cpu, Database, Gauge, Layers3, Menu, Network, Orbit, ShieldCheck, Sparkles, X, Zap, ExternalLink } from "lucide-react";
 import { OnboardingModal } from "@/components/OnboardingModal";
 
 const lanes = [
@@ -22,63 +22,6 @@ const caseStudies = [
   { type: "LOGISTICS / PRIVATE CLOUD", category: "infrastructure", title: "A global logistics firm cut SaaS spend by 70%", summary: "Restart migrated 7TB+ of sensitive operations data from legacy SaaS to dedicated bare-metal private cloud with a zero-downtime cutover, intact permissions, and AI workflows from day one.", tags: ["Private cloud", "Zero-downtime migration", "AI workflows"], metrics: [{ label: "SaaS spend", value: "−70%" }, { label: "Operations data", value: "7TB+" }, { label: "Cutover", value: "Zero downtime" }], tone: "teal", href: "https://restart.ng/resources/case-studies/logistics-firm-saas-spend", verified: true, client: "Global Logistics Enterprise", details: "Migrated from multi-tenant SaaS tools to dedicated bare-metal infrastructure managed by Restart. Launched new internal managed services unit on the infrastructure." },
   { type: "AI ENGINEERING / AGENTIC WORKFLOWS", category: "ai", title: "B2B SaaS platform cuts automated query latency to <150ms", summary: "Restart re-architected brittle OpenAI prompt chains into an asynchronous Anthropic MCP pipeline with hybrid pgvector search, automated deterministic eval suites, and strict token cost guardrails.", tags: ["Anthropic MCP", "pgvector Hybrid", "Automated Evals", "Cost Guardrails"], metrics: [{ label: "P99 Latency", value: "<150ms" }, { label: "Token Costs", value: "−48%" }, { label: "Eval Pass Rate", value: "99.4%" }], tone: "violet", href: null, verified: true, client: "Enterprise B2B Workflow SaaS", details: "Replaced unindexed embedding lookups and sequential API calls with background queue workers, localized semantic caching, and strict regression harnesses before each production release." },
   { type: "COMMERCE INFRASTRUCTURE / HIGH-VOLUME APPS", category: "commerce", title: "High-volume merchant automates custom B2B tiers with zero order drops", summary: "Restart engineered a private Shopify Plus app utilizing App Bridge, Remix, and resilient idempotent webhook consumers, absorbing 4,200 requests/min during flash events with automated dunning recovery.", tags: ["Shopify Plus", "App Bridge / Remix", "Idempotent Webhooks", "Dunning SLA"], metrics: [{ label: "Peak Ingestion", value: "4.2k req/min" }, { label: "Dunning Recovery", value: "+38%" }, { label: "Webhook SLA", value: "99.99%" }], tone: "amber", href: null, verified: true, client: "Global Omni-Channel Retailer", details: "Implemented asynchronous Kafka/Redis queue consumers with automated replay, eliminating rate-limiting throttling and ensuring financial data compliance under Nigeria NDPA & GDPR." },
-];
-
-const verifiedMetrics = [
-  {
-    id: "spend",
-    category: "infrastructure",
-    stat: "−70%",
-    label: "Ongoing SaaS Spend",
-    subtext: "Logistics Private Cloud Migration",
-    tone: "teal",
-    client: "Global Logistics Enterprise",
-    before: "Expiring legacy SaaS vendor license, $3M+/yr escalating usage costs, unpausable international supply chain operations.",
-    intervention: "Executed accelerated, zero-downtime migration of 7TB+ sensitive data to a dedicated bare-metal private cloud with automated user permission preservation.",
-    outcome: "Cut ongoing SaaS spend by 70%, eliminated vendor lock-in, maintained continuous logistics uptime, and launched a new client-owned managed services business unit.",
-    verifiedUrl: "https://restart.ng/resources/case-studies/logistics-firm-saas-spend",
-    provenance: "Verified Public Case Study (restart.ng)",
-  },
-  {
-    id: "cutover",
-    category: "infrastructure",
-    stat: "7TB+",
-    label: "Zero-Downtime Data Cutover",
-    subtext: "Mission-Critical Operations Data",
-    tone: "blue",
-    client: "Active Supply Chain Systems",
-    before: "7TB+ historical logistics data across fragmented relational schemas, expiring licenses, and zero tolerance for supply-chain shipment interruption.",
-    intervention: "Engineered parallel replication channels with live idempotency checks, clean user permission preservation, and coordinated off-peak DNS cutover.",
-    outcome: "100% data integrity with zero downtime, no dropped transactions, and seamless immediate onboarding for operations teams.",
-    verifiedUrl: "https://restart.ng/resources/case-studies/logistics-firm-saas-spend",
-    provenance: "Verified Zero-Downtime Record",
-  },
-  {
-    id: "uptime",
-    category: "infrastructure",
-    stat: "99.99%",
-    label: "Production Uptime Guarantee",
-    subtext: "Enterprise-Grade Cloud Target",
-    tone: "violet",
-    client: "Multi-Tenant B2B Operators",
-    before: "Intermittent outages during queue ingestion spikes, opacity into background worker crashes, and missing failover automations.",
-    intervention: "Deployed Octane in-memory workers, Redis/Horizon queue management, multi-zone health probes, and automated failure isolation.",
-    outcome: "Proven 99.99% uptime availability backed by real-time observability dashboards and senior on-call escalation protocols.",
-    provenance: "Standard Operating SLA",
-  },
-  {
-    id: "latency",
-    category: "ai",
-    stat: "<150ms",
-    label: "P99 Response & Tool Latency",
-    subtext: "Indexed pgvector & Octane Pipelines",
-    tone: "amber",
-    client: "AI Search & Automation Workflows",
-    before: "Unindexed embeddings causing 2.4s RAG search stalls, unmanaged token budgets, and unpredictable external model timeouts.",
-    intervention: "Implemented hybrid semantic/lexical search on pgvector, localized cache tiers, strict cost token guardrails, and async agentic pipelines.",
-    outcome: "Sub-150ms retrieval latencies across high-volume operator queries with measurable cost ceilings and deterministic accuracy.",
-    provenance: "Architecture Performance Benchmark",
-  },
 ];
 
 const faqs = [
@@ -120,10 +63,6 @@ export default function Home() {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [onboardingLane, setOnboardingLane] = useState<string | undefined>(undefined);
   const [activeSection, setActiveSection] = useState("top");
-  const [hoveredMetricId, setHoveredMetricId] = useState<string>("spend");
-  const [filterCategory, setFilterCategory] = useState<string>("all");
-
-  const activeMetric = verifiedMetrics.find((m) => m.id === hoveredMetricId) || verifiedMetrics[0];
 
   const openOnboarding = (lane?: string) => {
     setOnboardingLane(lane);
@@ -250,100 +189,7 @@ export default function Home() {
         <div className="section-intro centered">
           <SectionLabel>CASE STUDIES / PROOF SYSTEM</SectionLabel>
           <h2>Show the work.<br /><span>Prove the difference.</span></h2>
-          <p>Trust gets stronger when clients can see the constraint, the intervention, and the verified result. Explore verified client outcomes and live performance metrics below.</p>
-        </div>
-
-        {/* Dynamic Metric Grid with Hover Reveal */}
-        <div className="metrics-dashboard">
-          <div className="metrics-dashboard-head">
-            <div className="metrics-head-title">
-              <Activity size={16} className="text-teal" />
-              <span>VERIFIED OUTCOME ENGINE</span>
-            </div>
-            <div className="metrics-hint">
-              <span>Hover or click any metric to inspect the full before/after dossier</span>
-            </div>
-          </div>
-
-          <div className="metrics-interactive-grid">
-            {verifiedMetrics.map((m) => {
-              const isSelected = m.id === activeMetric.id;
-              return (
-                <div
-                  key={m.id}
-                  className={`metric-stat-card ${m.tone} ${isSelected ? "active" : ""}`}
-                  onMouseEnter={() => setHoveredMetricId(m.id)}
-                  onClick={() => setHoveredMetricId(m.id)}
-                  tabIndex={0}
-                  role="button"
-                  aria-pressed={isSelected}
-                >
-                  <div className="metric-card-top">
-                    <span className="metric-stat">{m.stat}</span>
-                    <span className="metric-pulse-dot" />
-                  </div>
-                  <strong>{m.label}</strong>
-                  <small>{m.subtext}</small>
-                  <div className="metric-card-hover-cue">
-                    <span>{isSelected ? "Active Dossier" : "Hover to Inspect"}</span>
-                    <ChevronRight size={12} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Dynamic Active Outcome Dossier Panel */}
-          <div key={activeMetric.id} className={`active-outcome-dossier ${activeMetric.tone} active-outcome-dossier-anim`}>
-            <div className="dossier-header">
-              <div className="dossier-client">
-                <span className="dossier-kicker">INSPECTING OUTCOME DOSSIER</span>
-                <h3>{activeMetric.label} · <span className="stat-highlight">{activeMetric.stat}</span></h3>
-                <span className="dossier-client-tag">CLIENT: {activeMetric.client}</span>
-              </div>
-              <div className="dossier-provenance">
-                <CheckCircle2 size={14} className="text-teal" />
-                <span>{activeMetric.provenance}</span>
-                {activeMetric.verifiedUrl && (
-                  <a href={activeMetric.verifiedUrl} target="_blank" rel="noreferrer" className="dossier-link">
-                    <span>Read case study</span>
-                    <ExternalLink size={12} />
-                  </a>
-                )}
-              </div>
-            </div>
-
-            <div className="dossier-body-grid">
-              <div className="dossier-column before-col">
-                <div className="column-label">
-                  <ZapOff size={13} />
-                  <span>BEFORE · BASELINE CONSTRAINT</span>
-                </div>
-                <p>{activeMetric.before}</p>
-              </div>
-              <div className="dossier-column intervention-col">
-                <div className="column-label">
-                  <Server size={13} />
-                  <span>RESTART ENGINEERING INTERVENTION</span>
-                </div>
-                <p>{activeMetric.intervention}</p>
-              </div>
-              <div className="dossier-column outcome-col">
-                <div className="column-label">
-                  <CheckCircle2 size={13} />
-                  <span>AFTER · VERIFIED RESULT</span>
-                </div>
-                <p>{activeMetric.outcome}</p>
-              </div>
-            </div>
-
-            <div className="dossier-footer">
-              <span>Need a similar architecture or migration?</span>
-              <button className="button outline small" onClick={() => openOnboarding(`Inquiry: ${activeMetric.label}`)}>
-                Discuss this system <ArrowUpRight size={13} />
-              </button>
-            </div>
-          </div>
+          <p>Trust gets stronger when clients can see the constraint, the intervention, and the verified result. Explore recent production delivery files below.</p>
         </div>
 
         {/* Case Study Cards */}
