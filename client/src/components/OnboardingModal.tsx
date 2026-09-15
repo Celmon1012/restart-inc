@@ -272,7 +272,7 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
               >
                 {premiumTiers.map((tier) => (
                   <option key={tier.id} value={tier.name}>
-                    [{tier.badge}] {tier.name} — {tier.tag}
+                    {tier.name}
                   </option>
                 ))}
               </select>

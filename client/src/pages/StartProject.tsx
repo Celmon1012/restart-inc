@@ -3,12 +3,12 @@ import { Link } from "wouter";
 import { ArrowLeft, ArrowUpRight, Check, CheckCircle2, ChevronRight, Cpu, Database, Loader2, Network, Radio, Send, Server, ShieldCheck, Sparkles, Zap } from "lucide-react";
 
 export const premiumTiers = [
-  { id: "cloud", name: "Enterprise Private Cloud & Zero-Downtime Migration", badge: "FLAGSHIP INFRASTRUCTURE", tag: "Bare-Metal / 99.99% SLA / NDPA & GDPR Compliant" },
-  { id: "ai", name: "Custom AI & Agentic Systems Engineering", badge: "INTELLIGENCE TIER", tag: "Anthropic Claude MCP / pgvector Hybrid / Evals Harness" },
-  { id: "shopify", name: "Shopify Plus & High-Volume Commerce Engine", badge: "ENTERPRISE COMMERCE", tag: "Private Apps / App Bridge / Idempotent Webhook Queues" },
-  { id: "saas", name: "Laravel SaaS Architecture & Octane Scale", badge: "CORE SAAS", tag: "Multi-Tenant Isolation / Octane / Swoole / Queue Sharding" },
-  { id: "architecture", name: "Fractional CTO & Executive Architecture Review", badge: "EXECUTIVE ADVISORY", tag: "1-Week Deep Audit / Risk & Cost Profiling / Remediation" },
-  { id: "turnkey", name: "Full-Spectrum Turnkey Systems Pod (MVP to Scale)", badge: "TURNKEY DELIVERY", tag: "Dedicated Senior Engineering Pod / Architecture to Launch" },
+  { id: "cloud", name: "Enterprise Cloud & Migration (99.99% SLA)", tag: "Bare-Metal / 99.99% SLA" },
+  { id: "ai", name: "Custom AI & Agentic Systems (MCP & RAG)", tag: "Claude MCP / Evals" },
+  { id: "shopify", name: "Shopify Plus Commerce Core", tag: "Private Apps / Queues" },
+  { id: "saas", name: "Laravel SaaS & Octane Scale", tag: "Multi-Tenant / Octane" },
+  { id: "architecture", name: "Fractional CTO & Architecture Audit", tag: "1-Week Audit & Roadmap" },
+  { id: "turnkey", name: "Dedicated Growth Engineering Pod", tag: "Turnkey Senior Team" },
 ];
 
 export const budgetRanges = [
@@ -64,7 +64,6 @@ export default function StartProject() {
           (t) =>
             t.name.toLowerCase().includes(query) ||
             t.tag.toLowerCase().includes(query) ||
-            t.badge.toLowerCase().includes(query) ||
             query.includes(t.id) ||
             (query.includes("saas") && t.id === "saas") ||
             (query.includes("cloud") && t.id === "cloud") ||
@@ -180,7 +179,7 @@ export default function StartProject() {
           {/* Left Column: Authority, Value Proposition & Track Record */}
           <div className="squeeze-pitch">
             <span className="section-label teal">START A PROJECT WITH RESTART</span>
-            <h1>Build the system your growth<br /><span>cannot afford to outgrow.</span></h1>
+            <h1>Build the system your business<br /><span>cannot outgrow.</span></h1>
             <p className="squeeze-subheading">
               No junior hand-offs, no agency theater, no tech-debt traps. You work directly with senior systems architects who scope precisely, protect continuous production uptime, and build reliable software.
             </p>
@@ -349,7 +348,7 @@ export default function StartProject() {
                   >
                     {premiumTiers.map((tier) => (
                       <option key={tier.id} value={tier.name}>
-                        [{tier.badge}] {tier.name} — {tier.tag}
+                        {tier.name}
                       </option>
                     ))}
                   </select>

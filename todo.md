@@ -176,3 +176,13 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Double the size of integration icons in Home.tsx and index.css (icon size from 18 to 36, enhanced padding and grid scaling)
 - [x] Verify desktop and mobile layout with screenshots
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Heading, Glow Effect, Card Buttons & Dropdown Brevity Updates
+- [x] Update Four Disciplines heading in Home.tsx to "Let's work together!"
+- [x] Increase H3 headings by 2px (from 20px to 22px) sitewide in index.css
+- [x] Add subtle scale-up animation and soft white glow effect on hover for integration icon tiles
+- [x] Enlarge discipline card CTA buttons ("See builds", etc.) with button-like padding, border, and larger font
+- [x] Update headline in /start-project to "Build the system your business cannot outgrow."
+- [x] Rewrite service tier dropdown options with brevity in StartProject.tsx and OnboardingModal.tsx
+- [x] Verify layout, hover states, and responsive builds
+- [x] Save checkpoint and push directly to GitHub main branch
