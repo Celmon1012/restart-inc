@@ -235,3 +235,11 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Remove the stat proof banner (-70% SaaS Spend, 7TB+, <150ms, 99.99%)
 - [x] Verify with screenshots on desktop and mobile
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Typography & 50/50 Column Layout Refinements
+- [x] Set `homepage .hero-content p` to `font-size: 17px !important;` in index.css
+- [x] Set `/start-project .squeeze-pitch h1` to `font-size: 50px !important;`
+- [x] Set `/start-project .squeeze-grid` columns to 50% each (`grid-template-columns: 1fr 1fr;` / `repeat(2, 1fr)`)
+- [x] Set `.squeeze-back-link` font size to `14px !important;`
+- [x] Verify with screenshots on desktop and mobile
+- [x] Save checkpoint and push directly to GitHub main branch
