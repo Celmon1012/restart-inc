@@ -186,3 +186,8 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Rewrite service tier dropdown options with brevity in StartProject.tsx and OnboardingModal.tsx
 - [x] Verify layout, hover states, and responsive builds
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Visual Editor Typography Refinement
+- [x] Verify visual editor changes for discipline card H3 titles (fontSize 24px, fontWeight 600)
+- [x] Clean up accidental parent/sibling inline style leakage and resolve TypeScript build errors
+- [x] Verify production build and save checkpoint
