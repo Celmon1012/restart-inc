@@ -316,28 +316,18 @@ export default function StartProject() {
 
                 {/* Premium Service Tiers */}
                 <div className="form-group">
-                  <label className="form-label-bold">Select Premium Service Tier *</label>
-                  <div className="premium-tier-selector">
-                    {premiumTiers.map((tier) => {
-                      const isSelected = selectedTier === tier.name;
-                      return (
-                        <div
-                          key={tier.id}
-                          className={`premium-tier-card ${isSelected ? "selected" : ""}`}
-                          onClick={() => setSelectedTier(tier.name)}
-                          role="button"
-                          tabIndex={0}
-                        >
-                          <div className="tier-card-head">
-                            <span className="tier-badge">{tier.badge}</span>
-                            <span className="tier-radio-dot" />
-                          </div>
-                          <strong>{tier.name}</strong>
-                          <small>{tier.tag}</small>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <label>Select Premium Service Tier *</label>
+                  <select
+                    value={selectedTier}
+                    onChange={(e) => setSelectedTier(e.target.value)}
+                    className="form-select"
+                  >
+                    {premiumTiers.map((tier) => (
+                      <option key={tier.id} value={tier.name}>
+                        [{tier.badge}] {tier.name} — {tier.tag}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Budget Range & Project Stage Dropdowns */}
@@ -424,28 +414,28 @@ export default function StartProject() {
 
                 {error && <div className="form-error-banner">{error}</div>}
 
-                <div className="form-footer">
-                  <div className="form-reassurance">
-                    <ShieldCheck size={14} className="text-teal" />
-                    <span>Confidential. Reviewed directly by senior engineering leadership.</span>
-                  </div>
+                <div className="form-footer-stacked">
                   <button
                     type="submit"
                     disabled={status === "submitting"}
-                    className="button solid submit-btn"
+                    className="button solid submit-btn-full"
                   >
                     {status === "submitting" ? (
                       <>
                         <Loader2 size={15} className="animate-spin" />
-                        <span>Transmitting Inquiry...</span>
+                        <span>Transmitting Project Enquiry...</span>
                       </>
                     ) : (
                       <>
-                        <span>Submit Project Inquiry</span>
+                        <span>Submit Project Enquiry</span>
                         <ArrowUpRight size={15} />
                       </>
                     )}
                   </button>
+                  <div className="form-confidentiality-note">
+                    <ShieldCheck size={14} className="text-teal" />
+                    <span>Confidential. Reviewed directly by senior engineering leadership.</span>
+                  </div>
                 </div>
               </form>
             )}

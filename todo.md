@@ -101,3 +101,12 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Verify legibility and contrast across desktop and mobile
 - [x] Run typecheck and production build
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Service Tier Dropdown, Button Layout & Hero Copy Update
+- [x] Refactor Service Tier in inquiry form (StartProject.tsx and OnboardingModal.tsx) as a clean dropdown selector
+- [x] Make "Submit Project Enquiry" button full width
+- [x] Move "Confidential. Reviewed directly by senior engineering leadership." beneath the full-width submit button
+- [x] Update Hero H1 to "Build for what’s next." (with brand highlight on "what’s next.")
+- [x] Update Hero description to: "Restart Inc. gives serious operators the engineering expertise, automation, and production discipline to move bold product ideas faster— into reliable & scalable systems with confidence."
+- [x] Run typecheck, build, and verify screenshots
+- [x] Save checkpoint and push to GitHub main branch

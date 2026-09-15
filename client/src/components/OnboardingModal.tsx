@@ -263,24 +263,19 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
 
             {error && <div className="form-error-banner">{error}</div>}
 
-            <div className="form-section">
-              <label className="form-section-title">Select Premium Service Tier *</label>
-              <div className="lane-select-grid">
+            <div className="form-group">
+              <label>Select Premium Service Tier *</label>
+              <select
+                value={selectedLane}
+                onChange={(e) => setSelectedLane(e.target.value)}
+                className="form-select"
+              >
                 {premiumTiers.map((tier) => (
-                  <button
-                    type="button"
-                    key={tier.id}
-                    className={`lane-option ${selectedLane === tier.name ? "selected" : ""}`}
-                    onClick={() => setSelectedLane(tier.name)}
-                  >
-                    <div className="tier-badge-line">
-                      <span className="tier-pill-badge">{tier.badge}</span>
-                    </div>
-                    <strong>{tier.name}</strong>
-                    <small>{tier.tag}</small>
-                  </button>
+                  <option key={tier.id} value={tier.name}>
+                    [{tier.badge}] {tier.name} — {tier.tag}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
 
             <div className="form-row-two">
@@ -375,28 +370,28 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
               />
             </div>
 
-            <div className="form-footer">
-              <div className="form-reassurance">
-                <ShieldCheck size={15} />
-                <span>Direct review by senior engineers. Confidential and non-binding.</span>
-              </div>
+            <div className="form-footer-stacked">
               <button
                 type="submit"
                 disabled={status === "submitting"}
-                className="button solid submit-btn"
+                className="button solid submit-btn-full"
               >
                 {status === "submitting" ? (
                   <>
                     <Loader2 size={15} className="animate-spin" />
-                    <span>Transmitting to Webhook...</span>
+                    <span>Transmitting Project Enquiry...</span>
                   </>
                 ) : (
                   <>
-                    <span>Submit Onboarding Inquiry</span>
+                    <span>Submit Project Enquiry</span>
                     <ArrowUpRight size={15} />
                   </>
                 )}
               </button>
+              <div className="form-confidentiality-note">
+                <ShieldCheck size={14} className="text-teal" />
+                <span>Confidential. Reviewed directly by senior engineering leadership.</span>
+              </div>
             </div>
           </form>
         )}
