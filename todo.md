@@ -144,3 +144,10 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Ensure the H2 text is solid white (no teal span)
 - [x] Verify build and screenshots
 - [x] Save checkpoint and push directly to GitHub main branch
+
+## Copy Updates: Site Description & Disciplines Subtitle
+- [x] Update hero description in Home.tsx: "Restart Inc. is a technology and engineering firm that helps ambitious operators turn complex workflows and product ideas into reliable, scalable systems."
+- [x] Update meta description in client/index.html to match
+- [x] Update disciplines subtitle in Home.tsx: "We provide the expertise, infrastructure, and production discipline to move bold product ideas faster"
+- [x] Verify build and screenshots
+- [x] Save checkpoint and push directly to GitHub main branch
