@@ -110,3 +110,7 @@ The live page confirms the same current language: “Engineering Growth Systems 
 - [x] Update Hero description to: "Restart Inc. gives serious operators the engineering expertise, automation, and production discipline to move bold product ideas faster— into reliable & scalable systems with confidence."
 - [x] Run typecheck, build, and verify screenshots
 - [x] Save checkpoint and push to GitHub main branch
+
+## Refined Hero Copy Update
+- [x] Update hero description in Home.tsx to: "Restart Inc. gives serious operators the engineering expertise, automation, and production discipline to move bold product ideas faster—and turn them into reliable systems that scale with confidence."
+- [x] Verify build, screenshot, save checkpoint, and push to GitHub main branch

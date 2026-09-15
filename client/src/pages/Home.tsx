@@ -173,7 +173,7 @@ export default function Home() {
           <div className="hero-content">
             <SectionLabel>ENTERPRISE-GRADE CLOUD WITH 99.99% UPTIME GUARANTEE</SectionLabel>
             <h1>Build for <span>what’s next.</span></h1>
-            <p>Restart Inc. gives serious operators the engineering expertise, automation, and production discipline to move bold product ideas faster— into reliable &amp; scalable systems with confidence.</p>
+            <p>Restart Inc. gives serious operators the engineering expertise, automation, and production discipline to move bold product ideas faster—and turn them into reliable systems that scale with confidence.</p>
             <div className="hero-buttons">
               <button className="button solid" onClick={() => openOnboarding()}>Tell us what you’re building <ArrowUpRight size={15} /></button>
               <a className="button outline" href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>See how we work <ChevronRight size={15} /></a>
