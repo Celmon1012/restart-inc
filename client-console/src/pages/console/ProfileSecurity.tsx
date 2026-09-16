@@ -17,10 +17,17 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ProfileSecurity() {
-  const [fullName, setFullName] = useState("Ademola Usuf");
-  const [email, setEmail] = useState("operator@acme-logistics.internal");
+  const { user } = useAuth();
+  const isGoogleAccount = user?.app_metadata?.provider === "google";
+  const [fullName, setFullName] = useState(
+    (user?.user_metadata?.full_name as string | undefined) ||
+      (user?.user_metadata?.name as string | undefined) ||
+      ""
+  );
+  const [email, setEmail] = useState(user?.email || "");
   const [role, setRole] = useState("Lead Systems Operator & Project Administrator");
   const [emergencyPhone, setEmergencyPhone] = useState("+1 (555) 019-2834");
   const [mfaEnabled, setMfaEnabled] = useState(true);
@@ -89,15 +96,20 @@ export default function ProfileSecurity() {
                 </div>
 
                 <div className="form-group">
-                  <label>Authorized Work Email (SSO Bound)</label>
+                  <label>Authorized Work Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="console-input"
+                    disabled={isGoogleAccount}
                     required
                   />
-                  <span className="input-hint">Bound to Okta SAML enterprise directory · Auto-synced</span>
+                  <span className="input-hint">
+                    {isGoogleAccount
+                      ? "Bound to Google Sign-In · Auto-synced"
+                      : "Managed via Supabase Auth"}
+                  </span>
                 </div>
 
                 <div className="form-group">
@@ -222,7 +234,9 @@ export default function ProfileSecurity() {
                     <span className="session-tag current">THIS DEVICE</span>
                   </div>
                   <span className="session-meta">Ashburn, Virginia, US · IP: 198.51.100.42</span>
-                  <span className="session-time">Active now · Signed in via Okta SAML</span>
+                  <span className="session-time">
+                    Active now · Signed in via {isGoogleAccount ? "Google" : "Email & Password"}
+                  </span>
                 </div>
               </div>
 

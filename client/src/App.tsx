@@ -8,13 +8,7 @@ import Home from "./pages/Home";
 import CaseStudies from "./pages/CaseStudies";
 import Insights from "./pages/Insights";
 import StartProject from "./pages/StartProject";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
-import ProfileSecurity from "./pages/console/ProfileSecurity";
-import ConsoleSettings from "./pages/console/ConsoleSettings";
-import ApiKeyVault from "./pages/console/ApiKeyVault";
-import BillingSla from "./pages/console/BillingSla";
 
 function Router() {
   return (
@@ -24,12 +18,6 @@ function Router() {
       <Route path="/insights" component={Insights} />
       <Route path="/start-project" component={StartProject} />
       <Route path="/onboarding" component={StartProject} />
-      <Route path="/login" component={Login} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/console/profile" component={ProfileSecurity} />
-      <Route path="/console/settings" component={ConsoleSettings} />
-      <Route path="/console/keys" component={ApiKeyVault} />
-      <Route path="/console/billing" component={BillingSla} />
       <Route component={NotFound} />
     </Switch>
   );

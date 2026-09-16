@@ -1,0 +1,12 @@
+[variables]
+NIXPACKS_SPA_OUTPUT_DIR = "dist"
+NIXPACKS_NODE_VERSION = "22"
+
+[phases.setup]
+nixPkgs = ["nodejs_22", "pnpm-10_x", "curl", "wget"]
+
+[phases.build]
+cmds = ["pnpm run build"]
+
+[start]
+cmd = "exec caddy run --config /assets/Caddyfile --adapter caddyfile 2>&1"

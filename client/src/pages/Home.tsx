@@ -2,6 +2,7 @@
 // This homepage intentionally avoids fabricated testimonials; proof is expressed through operating principles, delivery systems, and concrete service scope.
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { CONSOLE_URL } from "@/lib/site";
 import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Cpu, Database, Gauge, Layers3, Menu, Network, Orbit, ShieldCheck, Sparkles, X, Zap, ExternalLink } from "lucide-react";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import CaseStudyModal from "@/components/CaseStudyModal";
@@ -150,12 +151,12 @@ export default function Home() {
           <span className="nav-indicator" />
         </a>
           <div className="mobile-nav-actions">
-            <Link href="/login">Console Login</Link>
+<a href={CONSOLE_URL}>Console Login</a>
             <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
           </div>
         </nav>
         <div className="header-actions">
-          <Link href="/login" className="login-link">Console Login</Link>
+<a href={CONSOLE_URL} className="login-link">Console Login</a>
           <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
         <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X size={18} /> : <Menu size={18} />}

@@ -836,6 +836,41 @@ button { font: inherit; }
   border-color: rgba(46, 229, 193, 0.4);
   color: #fff;
 }
+.login-google-btn {
+  width: 100%;
+  padding: 13px 20px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #1a1f2b;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.login-google-btn:hover:not(:disabled) {
+  background: #eef1f6;
+}
+.login-google-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.auth-loading-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #04080d;
+  color: #78849b;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
 .login-card-footer {
   margin-top: 24px;
   padding-top: 18px;

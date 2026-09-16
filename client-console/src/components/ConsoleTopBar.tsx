@@ -15,6 +15,7 @@ import {
   Building2
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ConsoleTopBarProps {
   onRefresh?: () => void;
@@ -29,6 +30,13 @@ const workspaces = [
 
 export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBarProps) {
   const [location, setLocation] = useLocation();
+  const { user, signOut } = useAuth();
+  const displayName =
+    (user?.user_metadata?.full_name as string | undefined) ||
+    (user?.user_metadata?.name as string | undefined) ||
+    user?.email?.split("@")[0] ||
+    "Operator";
+  const displayEmail = user?.email || "";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [activeWorkspace, setActiveWorkspace] = useState(workspaces[0]);
@@ -55,7 +63,8 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
     toast.success(`Switched to workspace: ${workspace.name}`);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut();
     toast.success("Signed out of console session");
     setLocation("/login");
   };
@@ -157,8 +166,8 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
           {userMenuOpen && (
             <div className="dash-dropdown-menu">
               <div className="dash-dropdown-header">
-                <span className="dropdown-user-name">Ademola Usuf</span>
-                <span className="dropdown-user-email">operator@acme-logistics.internal</span>
+                <span className="dropdown-user-name">{displayName}</span>
+                <span className="dropdown-user-email">{displayEmail}</span>
               </div>
 
               <Link
