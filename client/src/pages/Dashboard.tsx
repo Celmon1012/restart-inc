@@ -88,16 +88,16 @@ export default function Dashboard() {
     setTimeout(() => setCopiedKey(null), 1800);
   };
 
-  const handleRestartCoolify = () => {
+  const handleRestartApp = () => {
     setRestartingApp(true);
-    toast.info("Restart signal dispatched to Coolify node cp.restart.ng");
+    toast.info("Restart signal dispatched to node cp.restart.ng");
     setTimeout(() => {
       setRestartingApp(false);
       toast.success("Container restarted: acme-checkout-v2 is healthy on worker-04");
     }, 1200);
   };
 
-  const handleDeployCoolify = () => {
+  const handleDeployApp = () => {
     setDeployingApp(true);
     toast.info("Triggered zero-downtime deploy hook for git rev 9f4e21a");
     setTimeout(() => {
@@ -186,14 +186,14 @@ export default function Dashboard() {
             onClick={() => setActiveTab("systems")}
           >
             <Server size={14} />
-            <span>Active Production Systems (3)</span>
+            <span>Active Systems (3)</span>
           </button>
           <button
             className={`dash-tab-btn ${activeTab === "hosting" ? "active" : ""}`}
             onClick={() => setActiveTab("hosting")}
           >
             <Boxes size={14} />
-            <span>App Hosting (Coolify)</span>
+            <span>App Hosting</span>
             <span className="tab-pill-badge">Managed</span>
           </button>
           <button
@@ -286,38 +286,38 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Tab: App Hosting (Coolify) */}
+        {/* Tab: App Hosting */}
         {activeTab === "hosting" && (
           <div className="dash-hosting-view">
             {/* Notice banner for App Hosting integration */}
             <div className="hosting-welcome-banner">
               <div className="banner-badge">
                 <Boxes size={13} className="text-teal" />
-                <span>MANAGED COOLIFY INSTANCE · CP.RESTART.NG</span>
+                <span>MANAGED HOSTING · CP.RESTART.NG</span>
               </div>
               <div className="banner-content">
                 <div>
                   <h3>Active Managed Application: <code>acme-logistics-checkout</code></h3>
                   <p>
-                    Single-tenant container cluster deployed via Restart Coolify infrastructure with automated rollbacks,
+                    Single-tenant container cluster deployed on Restart's managed infrastructure with automated rollbacks,
                     encrypted secrets, and zero-downtime deployment pipelines.
                   </p>
                 </div>
                 <div className="banner-actions">
                   <button
-                    onClick={handleRestartCoolify}
+                    onClick={handleRestartApp}
                     disabled={restartingApp}
                     className="hosting-btn secondary"
-                    title="Restart container via Coolify API"
+                    title="Restart container"
                   >
                     <RotateCw size={13} className={restartingApp ? "spin" : ""} />
                     <span>{restartingApp ? "Restarting..." : "Restart"}</span>
                   </button>
                   <button
-                    onClick={handleDeployCoolify}
+                    onClick={handleDeployApp}
                     disabled={deployingApp}
                     className="hosting-btn primary"
-                    title="Trigger immediate deploy via Coolify webhook hook"
+                    title="Trigger immediate deploy"
                   >
                     <Play size={13} />
                     <span>{deployingApp ? "Deploying..." : "Redeploy Now"}</span>
@@ -370,7 +370,7 @@ export default function Dashboard() {
                       </span>
                     </div>
                     <div className="app-meta-item">
-                      <span className="meta-k">Coolify UUID</span>
+                      <span className="meta-k">Instance UUID</span>
                       <span className="meta-v mono">app-c84d9f10-91a2-4a0e-bc21</span>
                     </div>
                     <div className="app-meta-item">
@@ -412,7 +412,7 @@ export default function Dashboard() {
                     <div className="health-stat">
                       <span className="h-label">WEBHOOK DISPATCH</span>
                       <span className="h-value text-teal">Instant</span>
-                      <span className="h-sub">Subscribed to Coolify team events</span>
+                      <span className="h-sub">Subscribed to deployment webhook events</span>
                     </div>
                   </div>
                 </div>
@@ -440,7 +440,7 @@ export default function Dashboard() {
                               DATABASE_URL: true,
                               SHOPIFY_API_SECRET: true,
                               ANTHROPIC_API_KEY: true,
-                              COOLIFY_WEBHOOK_SECRET: true
+                              DEPLOY_WEBHOOK_SECRET: true
                             }
                       );
                     }}
@@ -468,7 +468,7 @@ export default function Dashboard() {
                         { name: "DATABASE_URL", type: "SECRET", raw: "postgresql://acme_user:p99_sec_k891a@db.restart.ng:5432/acme_prod", isSecret: true },
                         { name: "SHOPIFY_API_SECRET", type: "SECRET", raw: "shpss_91ba8e20f92419a77c01bba29e", isSecret: true },
                         { name: "ANTHROPIC_API_KEY", type: "SECRET", raw: "sk-ant-api03-918ba01c89f2a99182bf9102", isSecret: true },
-                        { name: "COOLIFY_WEBHOOK_SECRET", type: "SECRET", raw: "whsec_0918ba72ef910a992bc", isSecret: true }
+                        { name: "DEPLOY_WEBHOOK_SECRET", type: "SECRET", raw: "whsec_0918ba72ef910a992bc", isSecret: true }
                       ].map((item) => {
                         const isShown = showSecrets[item.name];
                         const displayVal = item.isSecret && !isShown ? "••••••••••••••••••••••••••••••••" : item.raw;
