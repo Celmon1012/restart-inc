@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowUpRight, Check, CheckCircle2, ChevronRight, Cpu, Databa
 export const premiumTiers = [
   { id: "cloud", name: "Enterprise Cloud & Migration (99.99% SLA)", tag: "Bare-Metal / 99.99% SLA" },
   { id: "ai", name: "Custom AI & Agentic Systems (MCP & RAG)", tag: "Claude MCP / Evals" },
-  { id: "shopify", name: "Shopify Plus Commerce Core", tag: "Private Apps / Queues" },
+  { id: "medusa", name: "Medusa Commerce Core", tag: "Custom Storefronts / Workflows" },
   { id: "saas", name: "Laravel SaaS & Octane Scale", tag: "Multi-Tenant / Octane" },
   { id: "architecture", name: "Fractional CTO & Architecture Audit", tag: "1-Week Audit & Roadmap" },
   { id: "turnkey", name: "Dedicated Growth Engineering Pod", tag: "Turnkey Senior Team" },
@@ -67,7 +67,8 @@ export default function StartProject() {
             query.includes(t.id) ||
             (query.includes("saas") && t.id === "saas") ||
             (query.includes("cloud") && t.id === "cloud") ||
-            (query.includes("shopify") && t.id === "shopify") ||
+            (query.includes("medusa") && t.id === "medusa") ||
+            (query.includes("commerce") && t.id === "medusa") ||
             (query.includes("ai") && t.id === "ai") ||
             (query.includes("audit") && t.id === "architecture")
         );

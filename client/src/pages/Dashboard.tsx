@@ -267,7 +267,7 @@ export default function Dashboard() {
               </div>
               <div className="system-info">
                 <div className="system-title-row">
-                  <h3>High-Volume Shopify Plus Event Consumer</h3>
+                  <h3>High-Volume Medusa Commerce Event Consumer</h3>
                   <span className="system-badge">COMMERCE INFRASTRUCTURE</span>
                   <span className="system-version">v1.8.6</span>
                 </div>
@@ -611,7 +611,7 @@ export default function Dashboard() {
             </div>
             <div className="terminal-body">
               <p><span className="t-time">[14:52:01.034]</span> <span className="t-ok">INFO</span> Cluster healthcheck complete. 12/12 worker nodes responding (0.8ms average heartbeat).</p>
-              <p><span className="t-time">[14:52:15.221]</span> <span className="t-ok">INFO</span> Shopify webhook burst: 4,120 orders dispatched to idempotent queue cluster.</p>
+              <p><span className="t-time">[14:52:15.221]</span> <span className="t-ok">INFO</span> Medusa webhook burst: 4,120 orders dispatched to idempotent queue cluster.</p>
               <p><span className="t-time">[14:52:15.480]</span> <span className="t-ok">INFO</span> Queue backlog resolved in 259ms. Zero dropped jobs recorded.</p>
               <p><span className="t-time">[14:52:30.892]</span> <span className="t-info">SYSTEM</span> pgvector index compaction triggered. Background vacuum finished cleanly.</p>
               <p><span className="t-time">[14:52:44.102]</span> <span className="t-ok">INFO</span> Anthropic MCP agent pipeline eval score: 99.4% pass across 420 deterministic test cases.</p>

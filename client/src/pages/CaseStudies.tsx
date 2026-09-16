@@ -194,7 +194,7 @@ export default function CaseStudies() {
             <div className="footer-col">
               <strong>DELIVERY LANES</strong>
               <span>Laravel SaaS</span>
-              <span>Shopify Plus Apps</span>
+              <span>Medusa Commerce</span>
               <span>AI Engineering</span>
               <span>Architecture Leadership</span>
             </div>

@@ -54,7 +54,7 @@ export function OnboardingModal({ isOpen, onClose, initialLane }: OnboardingModa
     setCompany("Apollo Logistics Global");
     setSelectedLane(premiumTiers[0].name);
     setSelectedBudget(budgetRanges[1]);
-    setProjectBrief("Need high-throughput bare-metal cloud cutover and custom Shopify Plus integration for our B2B trade portal. Zero downtime tolerance.");
+    setProjectBrief("Need high-throughput bare-metal cloud cutover and a custom Medusa commerce build for our B2B trade portal. Zero downtime tolerance.");
     setError(null);
   };
 

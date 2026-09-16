@@ -84,8 +84,8 @@ export const caseStudiesData: CaseStudy[] = [
     category: "commerce",
     title: "High-volume merchant automates custom B2B tiers with zero order drops",
     client: "Global Omni-Channel Retailer",
-    summary: "Restart engineered a private Shopify Plus app utilizing App Bridge, Remix, and resilient idempotent webhook consumers, absorbing 4,200 requests/min during flash events with automated dunning recovery.",
-    tags: ["Shopify Plus", "App Bridge / Remix", "Idempotent Webhooks", "Dunning SLA"],
+    summary: "Restart engineered a custom Medusa commerce platform with an admin dashboard, Next.js storefront, and resilient idempotent webhook consumers, absorbing 4,200 requests/min during flash events with automated dunning recovery.",
+    tags: ["Medusa", "Next.js / Admin API", "Idempotent Webhooks", "Dunning SLA"],
     metrics: [
       { label: "Peak Ingestion", value: "4.2k req/min" },
       { label: "Dunning Recovery", value: "+38%" },
@@ -95,15 +95,15 @@ export const caseStudiesData: CaseStudy[] = [
     href: null,
     verified: true,
     details: "Implemented asynchronous Kafka/Redis queue consumers with automated replay, eliminating rate-limiting throttling and ensuring financial data compliance under Nigeria NDPA & GDPR.",
-    challenge: "An omni-channel retail brand with rapid international expansion was crashing their Shopify Plus storefront during high-traffic drops. Their custom wholesale tier pricing rules were calculating synchronously on checkout page loads, leading to rate limit throttling, abandoned shopping carts, and missed enterprise replenishment orders.",
-    solution: "Restart architected a hardened private Shopify Plus application using Remix and App Bridge with decoupled backend processing. We built an asynchronous Kafka/Redis webhook pipeline that pre-computes custom wholesale price matrices, stores customer tier entitlement tokens in edge caches, and handles payment failure retries with automated intelligent dunning sequences.",
+    challenge: "An omni-channel retail brand with rapid international expansion was crashing their commerce storefront during high-traffic drops. Their custom wholesale tier pricing rules were calculating synchronously on checkout page loads, leading to rate limit throttling, abandoned shopping carts, and missed enterprise replenishment orders.",
+    solution: "Restart architected a hardened custom commerce platform on Medusa with a Next.js storefront and decoupled backend processing. We built an asynchronous Kafka/Redis webhook pipeline that pre-computes custom wholesale price matrices, stores customer tier entitlement tokens in edge caches, and handles payment failure retries with automated intelligent dunning sequences.",
     results: [
       "Handled 4,200 requests/minute during Black Friday flash sale peak with 100% order processing reliability",
       "38% improvement in failed transaction recovery through automated intelligent dunning workflows",
       "99.99% webhook ingestion SLA achieved with automated dead-letter queues and replay capabilities",
       "Wholesale tier price calculation latency reduced to zero milliseconds at checkout time"
     ],
-    stack: ["Shopify Plus API", "Remix / React", "App Bridge 3.0", "Kafka / Redis Streams", "PostgreSQL", "Tailwind CSS"]
+    stack: ["Medusa Admin API", "Next.js / React", "Medusa Admin UI", "Kafka / Redis Streams", "PostgreSQL", "Tailwind CSS"]
   },
   {
     id: "laravel-multi-tenant-saas",
