@@ -16,8 +16,10 @@ import {
   Database
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ConsoleSettings() {
+  const { user } = useAuth();
   const [telemetryInterval, setTelemetryInterval] = useState("5000");
   const [logRetentionDays, setLogRetentionDays] = useState("90");
   const [alertSeverity, setAlertSeverity] = useState("p1-only");
@@ -184,7 +186,7 @@ export default function ConsoleSettings() {
                       <div className="chan-icon"><Mail size={14} className="text-teal" /></div>
                       <div>
                         <h4>Email Notification Broadcast</h4>
-                        <p className="text-[12px] text-[#78849b]">operator@acme-logistics.internal</p>
+                        <p className="text-[12px] text-[#78849b]">{user?.email}</p>
                       </div>
                     </div>
                     <button
