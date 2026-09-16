@@ -52,13 +52,17 @@ interface WorkspaceRow {
   coolify_project_uuid: string;
 }
 
-async function getUserId(jwt: string): Promise<string | null> {
+async function getUser(jwt: string): Promise<{ id: string; isAdmin: boolean } | null> {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: { Authorization: `Bearer ${jwt}`, apikey: SUPABASE_ANON_KEY },
   });
   if (!res.ok) return null;
   const user = await res.json();
-  return user?.id ?? null;
+  if (!user?.id) return null;
+  // app_metadata, not user_metadata -- only settable via the service-role
+  // Admin API, never via the user's own auth.updateUser() call, so a client
+  // account can never grant itself this by editing its own profile.
+  return { id: user.id, isAdmin: Boolean(user.app_metadata?.is_admin) };
 }
 
 // Runs as the caller's own JWT, not service_role -- console.workspace_members'
@@ -81,6 +85,24 @@ async function getMyWorkspaces(jwt: string): Promise<WorkspaceRow[]> {
   }
   const rows: Array<{ workspaces: WorkspaceRow | null }> = await res.json();
   return rows.map((r) => r.workspaces).filter((w): w is WorkspaceRow => Boolean(w));
+}
+
+// Admin path: console.workspaces' RLS policy lets an is_admin account read
+// every row directly, no membership join needed. Still runs as the
+// caller's own JWT -- the admin bypass lives in the RLS policy itself
+// (console.is_admin()), not in this function trusting a client-asserted flag.
+async function getAllWorkspaces(jwt: string): Promise<WorkspaceRow[]> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/workspaces?select=id,name,tier_label,coolify_project_uuid`, {
+    headers: {
+      Authorization: `Bearer ${jwt}`,
+      apikey: SUPABASE_ANON_KEY,
+      "Accept-Profile": "console",
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`workspace lookup -> ${res.status}`);
+  }
+  return res.json();
 }
 
 async function coolifyFetch(path: string) {
@@ -194,12 +216,12 @@ Deno.serve(async (req) => {
   if (!authHeader) return json({ error: "Unauthorized" }, 401);
   const jwt = authHeader.replace(/^Bearer\s+/i, "");
 
-  const userId = await getUserId(jwt);
-  if (!userId) return json({ error: "Unauthorized" }, 401);
+  const caller = await getUser(jwt);
+  if (!caller) return json({ error: "Unauthorized" }, 401);
 
   let workspaces: WorkspaceRow[];
   try {
-    workspaces = await getMyWorkspaces(jwt);
+    workspaces = caller.isAdmin ? await getAllWorkspaces(jwt) : await getMyWorkspaces(jwt);
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
   }
