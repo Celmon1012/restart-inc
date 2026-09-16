@@ -22,9 +22,9 @@ interface ConsoleTopBarProps {
 }
 
 const workspaces = [
-  { name: "Acme Global Logistics", pod: "Pod #04 · Senior Dedicated" },
-  { name: "Lubcon International", pod: "Pod #02 · Standard" },
-  { name: "Breadmaker Systems", pod: "Pod #07 · Senior Dedicated" },
+  { name: "Acme Global Logistics", pod: "Project #04 · Senior Dedicated" },
+  { name: "Lubcon International", pod: "Project #02 · Standard" },
+  { name: "Breadmaker Systems", pod: "Project #07 · Senior Dedicated" },
 ];
 
 export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBarProps) {
@@ -95,7 +95,7 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
             <div className="dash-dropdown-menu">
               <div className="dash-dropdown-header">
                 <span className="dropdown-user-name">Switch Workspace</span>
-                <span className="dropdown-user-email">Pods you have access to</span>
+                <span className="dropdown-user-email">Projects you have access to</span>
               </div>
 
               {workspaces.map((workspace) => (

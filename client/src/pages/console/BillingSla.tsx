@@ -66,11 +66,11 @@ export default function BillingSla() {
           <div className="sla-tier-info">
             <div className="sla-badge">
               <Shield size={14} className="text-teal" />
-              <span>ACTIVE ENTERPRISE RETAINER · POD #04 SENIOR DEDICATED</span>
+              <span>ACTIVE ENTERPRISE RETAINER · PROJECT #04 SENIOR DEDICATED</span>
             </div>
-            <h2>Enterprise Dedicated Systems Pod</h2>
+            <h2>Enterprise Dedicated Systems Project</h2>
             <p>
-              Dedicated senior architectural pod providing 24/7 proactive telemetry monitoring, bare-metal infrastructure
+              Dedicated senior architectural project providing 24/7 proactive telemetry monitoring, bare-metal infrastructure
               management, Anthropic MCP agentic pipelines, and zero-downtime cutovers.
             </p>
             <div className="sla-pills-row">
@@ -81,7 +81,7 @@ export default function BillingSla() {
           </div>
 
           <div className="sla-billing-box">
-            <span className="b-label">MONTHLY POD RETAINER</span>
+            <span className="b-label">MONTHLY PROJECT RETAINER</span>
             <div className="b-price">
               <span className="currency">$</span>
               <span className="val">24,500</span>

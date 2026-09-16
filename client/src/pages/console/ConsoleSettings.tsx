@@ -34,7 +34,7 @@ export default function ConsoleSettings() {
     setIsSaving(true);
     setTimeout(() => {
       setIsSaving(false);
-      toast.success("Console preferences saved to cluster pod configuration");
+      toast.success("Console preferences saved to cluster project configuration");
     }, 600);
   };
 
@@ -63,7 +63,7 @@ export default function ConsoleSettings() {
           <div className="dash-header-meta">
             <div className="meta-box">
               <span className="meta-title">CONFIG TARGET</span>
-              <span className="meta-val text-teal">POD #04 DEDICATED</span>
+              <span className="meta-val text-teal">PROJECT #04 DEDICATED</span>
             </div>
             <div className="meta-box">
               <span className="meta-title">NODE LATENCY</span>
@@ -235,16 +235,16 @@ export default function ConsoleSettings() {
                 </div>
               </div>
 
-              {/* Pod Specific Metadata */}
+              {/* Project Specific Metadata */}
               <div className="console-card mt-6">
                 <div className="card-top-header">
-                  <span className="card-kicker">ASSIGNED POD ROUTING</span>
+                  <span className="card-kicker">ASSIGNED PROJECT ROUTING</span>
                   <span className="meta-tag">COMMITTED INFRASTRUCTURE</span>
                 </div>
                 <div className="pod-meta-table">
                   <div className="pod-row">
-                    <span className="pod-k">Assigned Pod:</span>
-                    <span className="pod-v font-bold text-white">Pod #04 · Senior Dedicated</span>
+                    <span className="pod-k">Assigned Project:</span>
+                    <span className="pod-v font-bold text-white">Project #04 · Senior Dedicated</span>
                   </div>
                   <div className="pod-row">
                     <span className="pod-k">Lead Architect:</span>

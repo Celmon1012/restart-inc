@@ -199,7 +199,7 @@ export default function ApiKeyVault() {
                   >
                     <option value="READ_WRITE">Full Read/Write (Cluster API)</option>
                     <option value="INGESTION_ONLY">Ingestion Only (Telemetry & Webhooks)</option>
-                    <option value="ADMIN">Pod Admin (Deployment Hooks & Restart)</option>
+                    <option value="ADMIN">Project Admin (Deployment Hooks & Restart)</option>
                   </select>
                 </div>
               </div>
@@ -317,7 +317,7 @@ export default function ApiKeyVault() {
 curl -X POST https://api.restart.ng/v1/telemetry/ingest \\
   -H "Authorization: Bearer rst_live_4a91••••••••••••••••" \\
   -H "Content-Type: application/json" \\
-  -d '{"event": "queue_heartbeat", "pod": "04", "status": "nominal"}'`}
+  -d '{"event": "queue_heartbeat", "project": "04", "status": "nominal"}'`}
             </pre>
           </div>
         </div>

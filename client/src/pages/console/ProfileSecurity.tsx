@@ -21,7 +21,7 @@ import { toast } from "sonner";
 export default function ProfileSecurity() {
   const [fullName, setFullName] = useState("Ademola Usuf");
   const [email, setEmail] = useState("operator@acme-logistics.internal");
-  const [role, setRole] = useState("Lead Systems Operator & Pod Administrator");
+  const [role, setRole] = useState("Lead Systems Operator & Project Administrator");
   const [emergencyPhone, setEmergencyPhone] = useState("+1 (555) 019-2834");
   const [mfaEnabled, setMfaEnabled] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -73,7 +73,7 @@ export default function ProfileSecurity() {
             <div className="console-card">
               <div className="card-top-header">
                 <span className="card-kicker">OPERATOR DETAILS</span>
-                <span className="badge-teal">POD #04 ADMIN</span>
+                <span className="badge-teal">PROJECT #04 ADMIN</span>
               </div>
 
               <form onSubmit={handleSaveProfile} className="console-form">
