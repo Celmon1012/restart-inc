@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { CONSOLE_URL } from "@/lib/site";
 import { ArrowRight, ArrowUpRight, Check, ChevronRight, ShieldCheck, Menu, X, ExternalLink } from "lucide-react";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import CaseStudyModal from "@/components/CaseStudyModal";
@@ -63,12 +64,12 @@ export default function CaseStudies() {
             <span className="nav-indicator" />
           </Link>
           <div className="mobile-nav-actions">
-            <Link href="/login">Client Login</Link>
+            <a href={CONSOLE_URL}>Client Login</a>
             <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
           </div>
         </nav>
         <div className="header-actions">
-          <Link href="/login" className="login-link">Client Login</Link>
+          <a href={CONSOLE_URL} className="login-link">Client Login</a>
           <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
           <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <X size={18} /> : <Menu size={18} />}
