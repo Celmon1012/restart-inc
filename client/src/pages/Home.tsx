@@ -180,13 +180,9 @@ export default function Home() {
           </div>
           <SignalPanel />
         </div>
-        <div className="scroll-note">
-          <span>SCROLL TO EXPLORE</span>
-          <span className="scroll-line" />
-        </div>
       </section>
 
-      <section className="trust-strip" id="platform"><span className="trust-kicker">TOOLS, TEAMS, AND ECOSYSTEMS WE WORK ACROSS</span><div className="logo-row"><span><i className="logo-shape shape-1" />Segment</span><span><i className="logo-shape shape-2" />Sisyphus</span><span><i className="logo-shape shape-3" />Polymath</span><span><i className="logo-shape shape-4" />Luminous</span><span><i className="logo-shape shape-5" />Alt+Shift</span><span><i className="logo-shape shape-6" />FeatherDev</span><span><i className="logo-shape shape-7" />Lightbox</span></div></section>
+      <section className="trust-strip" id="platform"><span className="trust-kicker">TOOLS, TEAMS, AND ECOSYSTEMS WE WORK ACROSS</span><div className="logo-row"><span><img src="/logos/logo-segment.png" alt="Segment" style={{ height: 22, width: "auto" }} /></span><span><img src="/logos/logo-sisyphus.png" alt="Sisyphus" style={{ height: 22, width: "auto" }} /></span><span><img src="/logos/logo-polymath.png" alt="Polymath" style={{ height: 22, width: "auto" }} /></span><span><img src="/logos/logo-luminous.png" alt="Luminous" style={{ height: 22, width: "auto" }} /></span><span><img src="/logos/logo-altshift.png" alt="Alt+Shift" style={{ height: 22, width: "auto" }} /></span><span><img src="/logos/logo-featherdev.png" alt="FeatherDev" style={{ height: 22, width: "auto" }} /></span><span><img src="/logos/logo-lightbox.png" alt="Lightbox" style={{ height: 22, width: "auto" }} /></span></div></section>
 
       <section className="lanes-section container" id="solutions">
         <div className="section-intro centered">
