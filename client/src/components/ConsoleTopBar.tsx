@@ -9,7 +9,8 @@ import {
   CreditCard,
   Key,
   LogOut,
-  Shield
+  Shield,
+  Bell
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,6 +22,7 @@ interface ConsoleTopBarProps {
 export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBarProps) {
   const [location, setLocation] = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(3);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,10 +66,17 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
       </div>
 
       <div className="dash-top-right">
-        <div className="dash-status-pill">
-          <span className="pulse-dot" />
-          <span>3 SYSTEMS LIVE · 99.994% UPTIME</span>
-        </div>
+        <button
+          onClick={() => {
+            setUnreadCount(0);
+            toast.info("No new notifications");
+          }}
+          className="dash-icon-btn dash-notif-btn"
+          title="Notifications"
+        >
+          <Bell size={15} />
+          {unreadCount > 0 && <span className="dash-notif-badge">{unreadCount}</span>}
+        </button>
 
         <button
           onClick={handleRefreshClick}

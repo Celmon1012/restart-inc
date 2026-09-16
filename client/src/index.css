@@ -913,26 +913,6 @@ button { font: inherit; }
   color: #727a8c;
   font-size: 11px;
 }
-.dash-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: var(--teal);
-  background: rgba(46, 229, 193, 0.06);
-  border: 1px solid rgba(46, 229, 193, 0.26);
-  border-radius: 24px;
-  padding: 6px 15px;
-}
-.pulse-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--teal);
-  box-shadow: 0 0 10px var(--teal);
-}
 .dash-icon-btn {
   width: 34px;
   height: 34px;
@@ -944,6 +924,23 @@ button { font: inherit; }
   place-items: center;
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
+}
+.dash-notif-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--teal);
+  color: #04080d;
+  font-size: 9px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 2px #030304;
 }
 .dash-icon-btn:hover {
   background: rgba(255, 255, 255, 0.08);
@@ -2251,9 +2248,6 @@ button { font: inherit; }
   }
   .system-actions {
     align-self: flex-start;
-  }
-  .dash-top-right .dash-status-pill {
-    display: none;
   }
   .dash-top-bar {
     padding: 0 16px;

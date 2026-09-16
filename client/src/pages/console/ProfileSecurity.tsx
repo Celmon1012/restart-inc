@@ -62,18 +62,8 @@ export default function ProfileSecurity() {
         <div className="dash-header-row">
           <div>
             <span className="dash-kicker">IDENTITY, SESSIONS & CREDENTIAL SECURITY</span>
-            <h1>Operator Profile & Security</h1>
-            <p>Manage authenticated operator identity, hardware MFA tokens, SSH keys, and active cluster sessions.</p>
-          </div>
-          <div className="dash-header-meta">
-            <div className="meta-box">
-              <span className="meta-title">SECURITY STATUS</span>
-              <span className="meta-val text-teal">HARDENED</span>
-            </div>
-            <div className="meta-box">
-              <span className="meta-title">SESSION ENCRYPTION</span>
-              <span className="meta-val text-white">TLS 1.3 / ECDSA</span>
-            </div>
+            <h1>Profile & Security</h1>
+            <p>Manage authenticated operator identity, two-factor authentication, SSH keys, and active cluster sessions.</p>
           </div>
         </div>
 
@@ -188,14 +178,14 @@ export default function ProfileSecurity() {
 
               <div className="policy-toggle-row">
                 <div>
-                  <h4>Hardware Token MFA Enforcement</h4>
-                  <p>Require WebAuthn or FIDO2 hardware touch before accessing audit streams or rotating production keys.</p>
+                  <h4>Two-Factor Authentication (2FA) Enforcement</h4>
+                  <p>Require a time-based authenticator app code before accessing audit streams or rotating production keys.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => {
                     setMfaEnabled(!mfaEnabled);
-                    toast.info(mfaEnabled ? "MFA relaxed to password-only" : "Hardware MFA strictly enforced");
+                    toast.info(mfaEnabled ? "2FA relaxed to password-only" : "2FA strictly enforced via authenticator app");
                   }}
                   className={`toggle-switch ${mfaEnabled ? "on" : "off"}`}
                   aria-pressed={mfaEnabled}
