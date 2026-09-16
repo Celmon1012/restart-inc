@@ -21,7 +21,6 @@ export interface DedicatedServer {
   uuid: string;
   name: string;
   ip: string;
-  region: string | null;
   isReachable: boolean;
   cpus: number | null;
   memoryGb: number | null;

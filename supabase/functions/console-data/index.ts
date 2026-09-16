@@ -1,12 +1,22 @@
 // Console workspace data proxy.
 //
-// The console SPA can never hold a Coolify API token — that token can see
+// The console SPA can never hold a Coolify API token -- that token can see
 // and control every client's server, not just the caller's. This function
 // is the only thing that holds it: it verifies the caller's Supabase
 // session, looks up which workspace(s) they're a member of (console schema,
-// not "public" — this instance is shared with other restart-inc apps), and
+// not "public" -- this instance is shared with other restart-inc apps), and
 // only then calls Coolify server-side, scoped to that one workspace's
 // project.
+//
+// Deliberately zero external imports (no @supabase/supabase-js). This
+// self-hosted edge runtime downloads npm/esm.sh dependencies fresh on every
+// cold start with no bundling/caching, which hit Deno's wall-clock limit
+// and killed the isolate before it ever ran. Talking to GoTrue/PostgREST
+// directly over plain fetch() avoids that entirely -- and as a side
+// benefit, the workspace lookup below runs as the CALLER's own JWT against
+// RLS-protected PostgREST, not a service-role query with a manual filter,
+// so Postgres itself enforces the one thing that must never be wrong: a
+// user only ever seeing their own workspaces.
 //
 // GET /functions/v1/console-data              -> workspace list + first workspace's live data
 // GET /functions/v1/console-data?workspace_id= -> workspace list + that workspace's live data
@@ -17,10 +27,8 @@
 // dedicated server. If that ever stops being true for some workspace, this
 // needs to resolve environments/servers per-resource instead of assuming one.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const COOLIFY_API_URL = (Deno.env.get("COOLIFY_API_URL") ?? "https://cp.restart.ng").replace(/\/$/, "");
 const COOLIFY_API_TOKEN = Deno.env.get("COOLIFY_API_TOKEN")!;
 
@@ -42,6 +50,37 @@ interface WorkspaceRow {
   name: string;
   tier_label: string | null;
   coolify_project_uuid: string;
+}
+
+async function getUserId(jwt: string): Promise<string | null> {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { Authorization: `Bearer ${jwt}`, apikey: SUPABASE_ANON_KEY },
+  });
+  if (!res.ok) return null;
+  const user = await res.json();
+  return user?.id ?? null;
+}
+
+// Runs as the caller's own JWT, not service_role -- console.workspace_members'
+// RLS policy ("user_id = auth.uid()") is what actually scopes this, not the
+// app code. Never widen this to a service-role call without keeping an
+// equivalent explicit filter.
+async function getMyWorkspaces(jwt: string): Promise<WorkspaceRow[]> {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/workspace_members?select=workspaces(id,name,tier_label,coolify_project_uuid)`,
+    {
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        apikey: SUPABASE_ANON_KEY,
+        "Accept-Profile": "console",
+      },
+    }
+  );
+  if (!res.ok) {
+    throw new Error(`workspace lookup -> ${res.status}`);
+  }
+  const rows: Array<{ workspaces: WorkspaceRow | null }> = await res.json();
+  return rows.map((r) => r.workspaces).filter((w): w is WorkspaceRow => Boolean(w));
 }
 
 async function coolifyFetch(path: string) {
@@ -135,14 +174,10 @@ async function fetchWorkspaceLiveData(coolifyProjectUuid: string) {
           ? Math.round(full.server_metadata.memory_bytes / 1024 / 1024 / 1024)
           : null,
         dockerVersion: full.settings?.docker_version ?? null,
-        // Coolify has no concept of physical region/datacenter — if you
-        // want one shown, it has to come from restart-inc's own records,
-        // not this call.
-        region: null,
       };
     } catch {
       // Server detail is a nice-to-have; resource list still stands without it.
-      server = { uuid: serverRef.uuid, name: serverRef.name, ip: serverRef.ip, region: null };
+      server = { uuid: serverRef.uuid, name: serverRef.name, ip: serverRef.ip };
     }
   }
 
@@ -157,30 +192,24 @@ Deno.serve(async (req) => {
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return json({ error: "Unauthorized" }, 401);
-
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
   const jwt = authHeader.replace(/^Bearer\s+/i, "");
-  const { data: userData, error: userErr } = await admin.auth.getUser(jwt);
-  if (userErr || !userData?.user) return json({ error: "Unauthorized" }, 401);
 
-  const { data: memberships, error: memErr } = await admin
-    .schema("console")
-    .from("workspace_members")
-    .select("workspaces:workspace_id (id, name, tier_label, coolify_project_uuid)")
-    .eq("user_id", userData.user.id);
+  const userId = await getUserId(jwt);
+  if (!userId) return json({ error: "Unauthorized" }, 401);
 
-  if (memErr) return json({ error: memErr.message }, 500);
-
-  const workspaces: WorkspaceRow[] = (memberships ?? [])
-    .map((m: any) => m.workspaces)
-    .filter(Boolean);
+  let workspaces: WorkspaceRow[];
+  try {
+    workspaces = await getMyWorkspaces(jwt);
+  } catch (err) {
+    return json({ error: (err as Error).message }, 500);
+  }
 
   if (workspaces.length === 0) return json({ workspaces: [], active: null });
 
   const requestedId = new URL(req.url).searchParams.get("workspace_id");
-  // Never trust a client-supplied workspace_id beyond checking it's one of
-  // THIS caller's own memberships above — that check is the entire security
-  // boundary between clients.
+  // Belt-and-suspenders: getMyWorkspaces() already only returns rows RLS
+  // allows this caller to see, but never trust a client-supplied id beyond
+  // checking it's actually in that already-scoped list.
   const target = requestedId ? workspaces.find((w) => w.id === requestedId) : workspaces[0];
   if (!target) return json({ error: "Not a member of that workspace" }, 403);
 
