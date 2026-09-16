@@ -68,7 +68,7 @@ function resourceSubtitle(resource: Resource): string {
   if (resource.kind === "database") {
     return `${resource.databaseType} · ${resource.isPublic ? "Publicly reachable" : "Private network only"}`;
   }
-  return `${resource.serviceType} service`;
+  return resource.serviceType ? `${resource.serviceType} service` : "Custom service";
 }
 
 export default function Dashboard() {

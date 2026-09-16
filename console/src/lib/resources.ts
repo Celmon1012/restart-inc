@@ -50,7 +50,7 @@ export interface DatabaseResource extends BaseResource {
 
 export interface ServiceResource extends BaseResource {
   kind: "service";
-  serviceType: string;
+  serviceType: string | null;
 }
 
 export type Resource = ApplicationResource | DatabaseResource | ServiceResource;
