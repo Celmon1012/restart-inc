@@ -1,19 +1,21 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ArrowRight, Eye, EyeOff, Github, Lock, Mail, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Github, Lock, Mail, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { MARKETING_URL } from "@/lib/site";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { signInWithPassword, signInWithOAuth } = useAuth();
+  const { signInWithPassword, signInWithOAuth, requestPasswordReset } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [resetSent, setResetSent] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +32,22 @@ export default function Login() {
       return;
     }
     setLocation("/dashboard");
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setErrorMessage("Enter your email above first, then click Forgot Password");
+      return;
+    }
+    setSendingReset(true);
+    setErrorMessage("");
+    const { error } = await requestPasswordReset(email);
+    setSendingReset(false);
+    if (error) {
+      setErrorMessage(error);
+      return;
+    }
+    setResetSent(true);
   };
 
   const handleOAuthLogin = async (provider: "google" | "github") => {
@@ -71,6 +89,13 @@ export default function Login() {
           <div className="login-error-banner">
             <AlertCircle size={15} />
             <span>{errorMessage}</span>
+          </div>
+        )}
+
+        {resetSent && (
+          <div className="login-error-banner" style={{ borderColor: "rgba(46,229,193,.3)", background: "rgba(46,229,193,.06)" }}>
+            <CheckCircle2 size={15} className="text-teal" />
+            <span>Check your inbox for a link to set your password.</span>
           </div>
         )}
 
@@ -125,9 +150,15 @@ export default function Login() {
           <div className="simple-field-group">
             <div className="simple-label-row">
               <label htmlFor="login-password">Password</label>
-              <a href="#reset" onClick={(e) => { e.preventDefault(); alert("Password reset instructions will be sent to your email."); }} className="simple-forgot-link">
-                Forgot Password?
-              </a>
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={sendingReset}
+                className="simple-forgot-link"
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+              >
+                {sendingReset ? "Sending…" : "Forgot Password?"}
+              </button>
             </div>
             <div className="simple-input-wrap">
               <Lock size={15} className="simple-input-icon" />

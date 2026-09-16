@@ -9,6 +9,7 @@ interface AuthContextType {
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithOAuth: (provider: "google" | "github") => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,6 +48,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  // Doubles as the "set your first password" flow for invited users — an
+  // invite and a password reset both land the recipient on /reset-password
+  // with a fresh session and no usable password yet, so one page and one
+  // request path covers both cases.
+  const requestPasswordReset = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { error: error ? error.message : null };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -56,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithPassword,
         signInWithOAuth,
         signOut,
+        requestPasswordReset,
       }}
     >
       {children}
