@@ -193,7 +193,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab("hosting")}
           >
             <Boxes size={14} />
-            <span>App Hosting</span>
+            <span>Infrastructure</span>
             <span className="tab-pill-badge">Managed</span>
           </button>
           <button
@@ -286,10 +286,10 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Tab: App Hosting */}
+        {/* Tab: Infrastructure */}
         {activeTab === "hosting" && (
           <div className="dash-hosting-view">
-            {/* Notice banner for App Hosting integration */}
+            {/* Notice banner for infrastructure hosting */}
             <div className="hosting-welcome-banner">
               <div className="banner-badge">
                 <Boxes size={13} className="text-teal" />
