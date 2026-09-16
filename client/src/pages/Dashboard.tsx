@@ -124,8 +124,8 @@ export default function Dashboard() {
         {/* Console Header Banner */}
         <div className="dash-header-row">
           <div>
-            <span className="dash-kicker">INFRASTRUCTURE TELEMETRY & DELIVERY HUD</span>
-            <h1>Production Systems Overview</h1>
+            <span className="dash-kicker">DASHBOARD</span>
+            <h1>Systems Overview</h1>
             <p>Real-time health, SLA monitoring, and active engineering deliverables.</p>
           </div>
           <div className="dash-header-meta">

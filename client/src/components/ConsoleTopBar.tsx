@@ -56,7 +56,7 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
           <span>RESTART<span className="logo-dot">.</span></span>
         </Link>
         <Link href="/dashboard" className="dash-tag">
-          <span>OPERATOR CONSOLE</span>
+          <span>CONSOLE</span>
         </Link>
         <div className="dash-org-badge">
           <span className="org-dot" />
