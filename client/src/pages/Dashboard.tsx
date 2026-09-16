@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
+import { ConsoleTopBar } from "@/components/ConsoleTopBar";
 import {
   Activity,
   Shield,
@@ -117,118 +118,7 @@ export default function Dashboard() {
 
   return (
     <div className="dash-shell">
-      {/* Obsidian Console Top Navigation */}
-      <header className="dash-top-bar">
-        <div className="dash-top-left">
-          <Link href="/" className="site-logo">
-            <span className="restart-mark" />
-            <span>RESTART<span className="logo-dot">.</span></span>
-          </Link>
-          <div className="dash-tag">
-            <span>OPERATOR CONSOLE</span>
-          </div>
-          <div className="dash-org-badge">
-            <span className="org-dot" />
-            <span className="org-name">Acme Global Logistics</span>
-            <span className="org-pod">Pod #04 · Senior Dedicated</span>
-          </div>
-        </div>
-
-        <div className="dash-top-right">
-          <div className="dash-status-pill">
-            <span className="pulse-dot" />
-            <span>3 SYSTEMS LIVE · 99.994% UPTIME</span>
-          </div>
-
-          <button onClick={handleRefresh} className={`dash-icon-btn ${isRefreshing ? "spin" : ""}`} title="Refresh Telemetry">
-            <RefreshCw size={15} />
-          </button>
-
-          <Link href="/start-project" className="dash-action-btn">
-            <span>Start a Project</span>
-            <ArrowUpRight size={14} />
-          </Link>
-
-          {/* User Profile Avatar with Obsidian Dropdown */}
-          <div className="dash-user-menu-wrapper" ref={userMenuRef}>
-            <button
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className={`dash-user-trigger ${userMenuOpen ? "active" : ""}`}
-              title="Account & Settings"
-              aria-expanded={userMenuOpen}
-            >
-              <div className="dash-user-avatar">
-                <User size={14} />
-              </div>
-              <ChevronDown size={12} className={`dash-user-chevron ${userMenuOpen ? "rotate" : ""}`} />
-            </button>
-
-            {userMenuOpen && (
-              <div className="dash-dropdown-menu">
-                <div className="dash-dropdown-header">
-                  <span className="dropdown-user-name">Ademola Usuf</span>
-                  <span className="dropdown-user-email">operator@acme-logistics.internal</span>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    toast.info("Opening Operator Profile & Key Details...");
-                  }}
-                  className="dash-dropdown-item"
-                >
-                  <User size={14} />
-                  <span>Profile & Security</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    toast.info("Navigating to Pod & Infrastructure Settings...");
-                  }}
-                  className="dash-dropdown-item"
-                >
-                  <Settings size={14} />
-                  <span>Console Settings</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    toast.info("Loading API Key Vault...");
-                  }}
-                  className="dash-dropdown-item"
-                >
-                  <Key size={14} />
-                  <span>API & Key Vault</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    toast.info("Opening Invoices & SLA Commitments...");
-                  }}
-                  className="dash-dropdown-item"
-                >
-                  <CreditCard size={14} />
-                  <span>Billing & SLA Contract</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    handleLogout();
-                  }}
-                  className="dash-dropdown-item logout"
-                >
-                  <LogOut size={14} />
-                  <span>Sign Out</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      <ConsoleTopBar onRefresh={handleRefresh} isRefreshing={isRefreshing} />
 
       <main className="dash-main container">
         {/* Console Header Banner */}
