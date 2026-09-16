@@ -19,3 +19,10 @@ export const supabase = createClient(
   supabaseAnonKey || "placeholder-anon-key",
   { auth: { storage: cookieStorage } }
 );
+
+// Console domain tables (workspaces, workspace_members, ...) live in the
+// "console" schema, not "public" — this instance is shared with other
+// restart-inc apps. Scoped per query rather than via `createClient`'s
+// `db.schema` option, since setting that globally previously broke
+// `supabase.auth.*` (see the console_workspaces migration for why).
+export const consoleSchema = () => supabase.schema("console");

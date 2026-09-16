@@ -6,20 +6,32 @@ const CONSOLE_VERSION = import.meta.env.VITE_CONSOLE_VERSION || "dev";
 
 export function ConsoleFooter() {
   const { activeWorkspace } = useWorkspace();
-  const { server } = activeWorkspace;
+  const server = activeWorkspace?.server ?? null;
 
   return (
     <footer className="dash-footer">
       <div className="dash-footer-inner container">
         <div className="dash-footer-status">
-          <span className={`dash-footer-dot ${server.isReachable ? "ok" : "down"}`} />
-          <span>{server.isReachable ? "All systems operational" : "Dedicated server unreachable"}</span>
-          <span className="dash-footer-sep">·</span>
-          <span className="font-mono">{activeWorkspace.name}</span>
-          <span className="dash-footer-sep">·</span>
-          <span className="font-mono">{server.ip}</span>
-          <span className="dash-footer-sep hide-sm">·</span>
-          <span className="hide-sm">{server.region}</span>
+          <span className={`dash-footer-dot ${server?.isReachable ? "ok" : "down"}`} />
+          <span>
+            {!activeWorkspace
+              ? "No workspace assigned"
+              : server?.isReachable
+                ? "All systems operational"
+                : "Dedicated server unreachable"}
+          </span>
+          {activeWorkspace && (
+            <>
+              <span className="dash-footer-sep">·</span>
+              <span className="font-mono">{activeWorkspace.name}</span>
+            </>
+          )}
+          {server && (
+            <>
+              <span className="dash-footer-sep">·</span>
+              <span className="font-mono">{server.ip}</span>
+            </>
+          )}
         </div>
 
         <nav className="dash-footer-links" aria-label="Console footer">

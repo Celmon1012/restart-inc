@@ -73,9 +73,9 @@ function resourceSubtitle(resource: Resource): string {
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
-  const { activeWorkspace } = useWorkspace();
-  const resources = getResources(activeWorkspace);
-  const primaryApp = getPrimaryApplication(activeWorkspace);
+  const { activeWorkspace, loading: workspaceLoading, error: workspaceError } = useWorkspace();
+  const resources = activeWorkspace ? getResources(activeWorkspace) : [];
+  const primaryApp = activeWorkspace ? getPrimaryApplication(activeWorkspace) : undefined;
   const [activeTab, setActiveTab] = useState<"systems" | "hosting" | "sprints" | "logs">("systems");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -158,6 +158,16 @@ export default function Dashboard() {
       <ConsoleTopBar onRefresh={handleRefresh} isRefreshing={isRefreshing} />
 
       <main className="dash-main container">
+        {workspaceLoading && !activeWorkspace ? (
+          <div className="dash-empty-state">Loading your workspace…</div>
+        ) : workspaceError ? (
+          <div className="dash-empty-state">Couldn't load workspace data: {workspaceError}</div>
+        ) : !activeWorkspace ? (
+          <div className="dash-empty-state">
+            No workspace has been assigned to your account yet. Contact Restart Inc to get set up.
+          </div>
+        ) : (
+          <>
         {/* Console Header Banner */}
         <div className="dash-header-row">
           <div>
@@ -273,8 +283,7 @@ export default function Dashboard() {
                     </div>
                     <p>{resourceSubtitle(resource)}</p>
                     <div className="system-metrics-inline">
-                      <span>Server: <strong>{activeWorkspace.server.name}</strong></span>
-                      <span>Region: <strong>{activeWorkspace.server.region}</strong></span>
+                      <span>Server: <strong>{activeWorkspace.server?.name ?? "—"}</strong></span>
                     </div>
                   </div>
                   <div className="system-actions">
@@ -300,8 +309,8 @@ export default function Dashboard() {
                   <h3>Active Managed Application: <code>{primaryApp?.name ?? "none deployed"}</code></h3>
                   <p>
                     Single-tenant container cluster deployed on {activeWorkspace.name}'s dedicated server (
-                    {activeWorkspace.server.name}) with automated rollbacks, encrypted secrets, and zero-downtime
-                    deployment pipelines.
+                    {activeWorkspace.server?.name ?? "not yet assigned"}) with automated rollbacks, encrypted
+                    secrets, and zero-downtime deployment pipelines.
                   </p>
                 </div>
                 <div className="banner-actions">
@@ -356,29 +365,26 @@ export default function Dashboard() {
                   <div className="card-top-header">
                     <span className="card-kicker">DEDICATED SERVER</span>
                     <span className="status-live-pill">
-                      <span className={`status-dot-active ${activeWorkspace.server.isReachable ? "" : "down"}`} />
-                      {activeWorkspace.server.isReachable ? "REACHABLE" : "UNREACHABLE"}
+                      <span className={`status-dot-active ${activeWorkspace.server?.isReachable ? "" : "down"}`} />
+                      {activeWorkspace.server ? (activeWorkspace.server.isReachable ? "REACHABLE" : "UNREACHABLE") : "NOT ASSIGNED"}
                     </span>
                   </div>
                   <div className="app-meta-list">
                     <div className="app-meta-item">
                       <span className="meta-k">Server Name / IP</span>
-                      <span className="meta-v mono">{activeWorkspace.server.name} · {activeWorkspace.server.ip}</span>
-                    </div>
-                    <div className="app-meta-item">
-                      <span className="meta-k">Region</span>
-                      <span className="meta-v">{activeWorkspace.server.region}</span>
+                      <span className="meta-v mono">
+                        {activeWorkspace.server ? `${activeWorkspace.server.name} · ${activeWorkspace.server.ip}` : "—"}
+                      </span>
                     </div>
                     <div className="app-meta-item">
                       <span className="meta-k">Capacity</span>
                       <span className="meta-v">
-                        {activeWorkspace.server.cpus} vCPU · {activeWorkspace.server.memoryGb} GB RAM ·{" "}
-                        {activeWorkspace.server.diskGb} GB disk
+                        {activeWorkspace.server?.cpus ?? "—"} vCPU · {activeWorkspace.server?.memoryGb ?? "—"} GB RAM
                       </span>
                     </div>
                     <div className="app-meta-item">
                       <span className="meta-k">Docker Engine</span>
-                      <span className="meta-v mono">{activeWorkspace.server.dockerVersion}</span>
+                      <span className="meta-v mono">{activeWorkspace.server?.dockerVersion ?? "—"}</span>
                     </div>
                     <div className="app-meta-item">
                       <span className="meta-k">Resources Deployed</span>
@@ -403,15 +409,14 @@ export default function Dashboard() {
                     <div className="app-meta-item">
                       <span className="meta-k">FQDN / Public URL</span>
                       <span className="meta-v">
-                        <a
-                          href={`https://${primaryApp?.fqdn ?? ""}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="link-fqdn"
-                        >
-                          https://{primaryApp?.fqdn ?? "not deployed"}
-                          <ArrowUpRight size={13} />
-                        </a>
+                        {primaryApp?.fqdn ? (
+                          <a href={`https://${primaryApp.fqdn}`} target="_blank" rel="noreferrer" className="link-fqdn">
+                            https://{primaryApp.fqdn}
+                            <ArrowUpRight size={13} />
+                          </a>
+                        ) : (
+                          "not deployed"
+                        )}
                       </span>
                     </div>
                     <div className="app-meta-item">
@@ -421,12 +426,12 @@ export default function Dashboard() {
                     <div className="app-meta-item">
                       <span className="meta-k">Source</span>
                       <span className="meta-v mono">
-                        {primaryApp?.gitRepository}@{primaryApp?.gitBranch} ({primaryApp?.gitCommitSha})
+                        {primaryApp ? `${primaryApp.gitRepository}@${primaryApp.gitBranch} (${primaryApp.gitCommitSha})` : "—"}
                       </span>
                     </div>
                     <div className="app-meta-item">
                       <span className="meta-k">Build Pack</span>
-                      <span className="meta-v">{primaryApp?.buildPack}</span>
+                      <span className="meta-v">{primaryApp?.buildPack ?? "—"}</span>
                     </div>
                     <div className="app-meta-item">
                       <span className="meta-k">SSL / TLS Certificate</span>
@@ -666,6 +671,8 @@ export default function Dashboard() {
               <p><span className="t-time">[14:53:18.904]</span> <span className="t-ok">INFO</span> Uptime SLA counter: 99.994% rolling 30-day compliance maintained.</p>
             </div>
           </div>
+        )}
+          </>
         )}
       </main>
 

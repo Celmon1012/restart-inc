@@ -53,7 +53,7 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSwitchWorkspace = (workspace: (typeof workspaces)[number]) => {
+  const handleSwitchWorkspace = (workspace: { id: string; name: string }) => {
     setActiveWorkspaceId(workspace.id);
     setWorkspaceMenuOpen(false);
     toast.success(`Switched to workspace: ${workspace.name}`);
@@ -90,9 +90,9 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
             title="Switch workspace"
             aria-expanded={workspaceMenuOpen}
           >
-            <span className={`org-dot ${activeWorkspace.server.isReachable ? "" : "down"}`} />
-            <span className="org-name">{activeWorkspace.name}</span>
-            <span className="org-pod">{activeWorkspace.tier}</span>
+            <span className={`org-dot ${activeWorkspace?.server?.isReachable ? "" : "down"}`} />
+            <span className="org-name">{activeWorkspace?.name ?? "Loading…"}</span>
+            {activeWorkspace?.tier && <span className="org-pod">{activeWorkspace.tier}</span>}
             <ChevronDown size={12} className={`dash-user-chevron ${workspaceMenuOpen ? "rotate" : ""}`} />
           </button>
 
@@ -103,20 +103,24 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
                 <span className="dropdown-user-email">Projects you have access to</span>
               </div>
 
+              {workspaces.length === 0 && (
+                <div className="dash-dropdown-item" style={{ cursor: "default" }}>
+                  <span>No workspaces assigned yet</span>
+                </div>
+              )}
+
               {workspaces.map((workspace) => (
                 <button
                   key={workspace.id}
                   onClick={() => handleSwitchWorkspace(workspace)}
-                  className={`dash-dropdown-item workspace-dropdown-item ${activeWorkspace.id === workspace.id ? "active-link" : ""}`}
+                  className={`dash-dropdown-item workspace-dropdown-item ${activeWorkspace?.id === workspace.id ? "active-link" : ""}`}
                 >
                   <Building2 size={14} />
                   <span className="workspace-dropdown-item-text">
                     <span>{workspace.name}</span>
-                    <span className="workspace-dropdown-item-server font-mono">
-                      {workspace.server.name} · {workspace.server.ip}
-                    </span>
+                    {workspace.tier && <span className="workspace-dropdown-item-server">{workspace.tier}</span>}
                   </span>
-                  {activeWorkspace.id === workspace.id && <Check size={13} className="dash-workspace-check" />}
+                  {activeWorkspace?.id === workspace.id && <Check size={13} className="dash-workspace-check" />}
                 </button>
               ))}
             </div>
