@@ -21,6 +21,16 @@ const offers = [
   { kicker: "ARCHITECTURE AUDIT", duration: "1 Week", title: "Find the constraint before you scale into it.", text: "A senior review of your code, schema, infrastructure, deployment model, cost curve, and technical risk — followed by a practical plan for what to do next.", tags: ["One-week technical deep dive", "Risk, cost, and reliability report", "Prioritized 12-week remediation plan", "Optional pair-programming follow-up"], visual: "gauge", cta: "Book an architecture audit" },
 ];
 
+const logos = [
+  { src: "/logos/logo-segment.png", alt: "Segment" },
+  { src: "/logos/logo-sisyphus.png", alt: "Sisyphus" },
+  { src: "/logos/logo-polymath.png", alt: "Polymath" },
+  { src: "/logos/logo-luminous.png", alt: "Luminous" },
+  { src: "/logos/logo-altshift.png", alt: "Alt+Shift" },
+  { src: "/logos/logo-featherdev.png", alt: "FeatherDev" },
+  { src: "/logos/logo-lightbox.png", alt: "Lightbox" },
+];
+
 const faqs = [
   ["Are you available right now?", "We work with a limited number of active engagements so senior technical ownership remains real. Send us what you are building and the constraint you are facing; we will tell you quickly whether the timing and fit make sense."],
   ["What should the first email actually say?", "Send the short version: what you are building, what is not working, where the risk sits, and what decision you need to make next. A rough outline is enough."],
@@ -144,6 +154,10 @@ export default function Home() {
           <span>INSIGHTS</span>
           <span className="nav-indicator" />
         </a>
+        <a href="#about" className={activeSection === "about" ? "active" : ""} onClick={(e) => handleScrollTo(e, "about")}>
+          <span>ABOUT</span>
+          <span className="nav-indicator" />
+        </a>
           <div className="mobile-nav-actions">
             <Link href="/login">Client Login</Link>
             <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
@@ -182,7 +196,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="trust-strip" id="platform"><span className="trust-kicker">TOOLS, TEAMS, AND ECOSYSTEMS WE WORK ACROSS</span><div className="logo-row"><span><img src="/logos/logo-segment.png" alt="Segment" style={{ height: 22, width: "auto" }} /></span><span><img src="/logos/logo-sisyphus.png" alt="Sisyphus" style={{ height: 22, width: "auto" }} /></span><span><img src="/logos/logo-polymath.png" alt="Polymath" style={{ height: 22, width: "auto" }} /></span><span><img src="/logos/logo-luminous.png" alt="Luminous" style={{ height: 22, width: "auto" }} /></span><span><img src="/logos/logo-altshift.png" alt="Alt+Shift" style={{ height: 22, width: "auto" }} /></span><span><img src="/logos/logo-featherdev.png" alt="FeatherDev" style={{ height: 22, width: "auto" }} /></span><span><img src="/logos/logo-lightbox.png" alt="Lightbox" style={{ height: 22, width: "auto" }} /></span></div></section>
+      <section className="trust-strip" id="platform"><span className="trust-kicker">TOOLS, TEAMS, AND ECOSYSTEMS WE WORK ACROSS</span><div className="logo-row"><div className="logo-track">{[...logos, ...logos].map((logo, i) => <span key={`${logo.alt}-${i}`}><img src={logo.src} alt={logo.alt} style={{ height: 40, width: "auto" }} /></span>)}</div></div></section>
 
       <section className="lanes-section container" id="solutions">
         <div className="section-intro centered">
