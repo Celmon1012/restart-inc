@@ -1459,6 +1459,7 @@ button { font: inherit; }
   padding: 16px;
   max-width: 220px;
 }
+.mfa-qr-box img,
 .mfa-qr-box svg {
   width: 100%;
   height: auto;

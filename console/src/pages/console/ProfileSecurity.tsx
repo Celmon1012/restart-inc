@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ConsoleTopBar } from "@/components/ConsoleTopBar";
 import { ConsoleFooter } from "@/components/ConsoleFooter";
-import { Shield, ShieldCheck, ShieldOff, ChevronLeft, Smartphone, LogOut } from "lucide-react";
+import { Shield, ShieldOff, ChevronLeft, Smartphone, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -23,6 +23,8 @@ export default function ProfileSecurity() {
       ""
   );
   const [email, setEmail] = useState(user?.email || "");
+  const [role, setRole] = useState((user?.user_metadata?.role as string | undefined) || "");
+  const [phone, setPhone] = useState((user?.user_metadata?.phone as string | undefined) || "");
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [newPassword, setNewPassword] = useState("");
@@ -59,7 +61,9 @@ export default function ProfileSecurity() {
     e.preventDefault();
     setSavingProfile(true);
     try {
-      const updates: { data: Record<string, string>; email?: string } = { data: { full_name: fullName } };
+      const updates: { data: Record<string, string>; email?: string } = {
+        data: { full_name: fullName, role, phone },
+      };
       if (!isGoogleAccount && email !== user?.email) {
         updates.email = email;
       }
@@ -161,6 +165,20 @@ export default function ProfileSecurity() {
     }
   };
 
+  // The toggle is the single control for the whole flow: off -> on starts
+  // enrollment (QR appears below, still unverified until the code is
+  // confirmed); on -> off disables the existing verified factor.
+  const handleToggleMfa = () => {
+    if (mfaBusy || !mfaSupported) return;
+    if (verifiedFactor) {
+      handleRemoveFactor(verifiedFactor.id);
+    } else if (enrolling) {
+      handleCancelEnroll();
+    } else {
+      handleStartEnroll();
+    }
+  };
+
   const handleTerminateOthers = async () => {
     setTerminatingOthers(true);
     try {
@@ -175,6 +193,7 @@ export default function ProfileSecurity() {
   };
 
   const verifiedFactor = factors.find((f) => f.status === "verified");
+  const mfaOn = Boolean(verifiedFactor) || Boolean(enrolling);
 
   return (
     <div className="dash-shell">
@@ -236,6 +255,28 @@ export default function ProfileSecurity() {
                       ? "Bound to Google Sign-In — change it in your Google account instead."
                       : "Changing this sends a confirmation link to the new address."}
                   </span>
+                </div>
+
+                <div className="form-group">
+                  <label>Role & Responsibilities</label>
+                  <input
+                    type="text"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className="console-input"
+                    placeholder="e.g. Lead Systems Operator"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Phone</label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="console-input"
+                    placeholder="+1 555 000 0000"
+                  />
                 </div>
 
                 <button type="submit" disabled={savingProfile} className="console-btn-primary">
@@ -303,67 +344,62 @@ export default function ProfileSecurity() {
                     <p>Ask an administrator to enable TOTP in the Supabase Auth settings.</p>
                   </div>
                 </div>
-              ) : verifiedFactor ? (
-                <div className="policy-info-box">
-                  <div className="info-icon text-teal">
-                    <ShieldCheck size={16} />
-                  </div>
-                  <div>
-                    <strong>2FA is enabled</strong>
-                    <p>An authenticator app code is required at sign-in.</p>
-                  </div>
-                  <button
-                    onClick={() => handleRemoveFactor(verifiedFactor.id)}
-                    disabled={mfaBusy}
-                    className="console-btn-danger"
-                    style={{ marginLeft: "auto" }}
-                  >
-                    Disable
-                  </button>
-                </div>
-              ) : enrolling ? (
-                <form onSubmit={handleVerifyEnroll} className="console-form">
-                  <p className="key-desc">Scan this with your authenticator app, then enter the 6-digit code.</p>
-                  <div
-                    className="mfa-qr-box"
-                    dangerouslySetInnerHTML={{ __html: enrolling.qrCode }}
-                  />
-                  <div className="form-group">
-                    <label>Can't scan it? Enter this key manually</label>
-                    <p className="key-fingerprint mono">{enrolling.secret}</p>
-                  </div>
-                  <div className="form-group">
-                    <label>6-digit code</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={verifyCode}
-                      onChange={(e) => setVerifyCode(e.target.value)}
-                      className="console-input"
-                      placeholder="000000"
-                      maxLength={6}
-                      required
-                    />
-                  </div>
-                  <div style={{ display: "flex", gap: "10px" }}>
-                    <button type="submit" disabled={mfaBusy} className="console-btn-primary">
-                      {mfaBusy ? "Verifying..." : "Verify & Enable"}
-                    </button>
-                    <button type="button" onClick={handleCancelEnroll} className="console-btn-danger">
-                      Cancel
-                    </button>
-                  </div>
-                </form>
               ) : (
-                <div className="policy-toggle-row">
-                  <div>
-                    <h4>Two-factor authentication is off</h4>
-                    <p>Add an authenticator app for a second sign-in step.</p>
+                <>
+                  <div className="policy-toggle-row">
+                    <div>
+                      <h4>Two-Factor Authentication (2FA)</h4>
+                      <p>
+                        {verifiedFactor
+                          ? "An authenticator app code is required at sign-in."
+                          : "Require a time-based authenticator app code at sign-in."}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleMfa}
+                      disabled={mfaBusy}
+                      className={`toggle-switch ${mfaOn ? "on" : "off"}`}
+                      aria-pressed={mfaOn}
+                    >
+                      <span className="toggle-thumb" />
+                    </button>
                   </div>
-                  <button onClick={handleStartEnroll} disabled={mfaBusy} className="console-btn-primary">
-                    Enable 2FA
-                  </button>
-                </div>
+
+                  {enrolling && (
+                    <form onSubmit={handleVerifyEnroll} className="console-form mt-4 pt-4 border-t border-white/5">
+                      <p className="key-desc">Scan this with your authenticator app, then enter the 6-digit code.</p>
+                      <div className="mfa-qr-box">
+                        <img src={enrolling.qrCode} alt="2FA QR code" />
+                      </div>
+                      <div className="form-group">
+                        <label>Can't scan it? Enter this key manually</label>
+                        <p className="key-fingerprint mono">{enrolling.secret}</p>
+                      </div>
+                      <div className="form-group">
+                        <label>6-digit code</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={verifyCode}
+                          onChange={(e) => setVerifyCode(e.target.value)}
+                          className="console-input"
+                          placeholder="000000"
+                          maxLength={6}
+                          required
+                        />
+                      </div>
+                      <div style={{ display: "flex", gap: "10px" }}>
+                        <button type="submit" disabled={mfaBusy} className="console-btn-primary">
+                          {mfaBusy ? "Verifying..." : "Verify & Enable"}
+                        </button>
+                        <button type="button" onClick={handleCancelEnroll} className="console-btn-danger">
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </>
               )}
             </div>
 
