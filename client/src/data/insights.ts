@@ -1,4 +1,4 @@
-import { Code2, Database, Network, LucideIcon } from "lucide-react";
+import { Code2, Database, Network, Gauge, Zap, Layers3, LucideIcon } from "lucide-react";
 
 export interface Insight {
   id: string;
@@ -33,5 +33,29 @@ export const insightsData: Insight[] = [
     title: "When to extend the existing system — and when to redraw the boundary.",
     icon: Network,
     image: "image-three",
+  },
+  {
+    id: "observability-is-a-habit-not-a-dashboard",
+    category: "engineering",
+    kicker: "ENGINEERING",
+    title: "Observability isn't a dashboard — it's a habit your team practices daily.",
+    icon: Gauge,
+    image: "image-two",
+  },
+  {
+    id: "webhooks-fail-quietly-design-for-it",
+    category: "operations",
+    kicker: "OPERATIONS",
+    title: "Webhooks fail quietly. Design your systems to notice when they do.",
+    icon: Zap,
+    image: "image-three",
+  },
+  {
+    id: "multi-tenant-by-default",
+    category: "architecture",
+    kicker: "ARCHITECTURE",
+    title: "Multi-tenant by default: the decision that is expensive to reverse later.",
+    icon: Layers3,
+    image: "image-one",
   },
 ];

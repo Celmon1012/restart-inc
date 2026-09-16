@@ -36,7 +36,7 @@ export default function BillingSla() {
         <div className="console-breadcrumb">
           <Link href="/dashboard" className="breadcrumb-back">
             <ChevronLeft size={14} />
-            <span>Back to Systems HUD</span>
+            <span>Back to Dashboard</span>
           </Link>
           <span className="breadcrumb-sep">/</span>
           <span className="breadcrumb-current">Billing & SLA Contract</span>

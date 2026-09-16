@@ -54,12 +54,12 @@ export default function Insights() {
             <span className="nav-indicator" />
           </Link>
           <div className="mobile-nav-actions">
-            <a href={CONSOLE_URL}>Client Login</a>
+<a href={CONSOLE_URL}>Console Login</a>
             <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
           </div>
         </nav>
         <div className="header-actions">
-          <a href={CONSOLE_URL} className="login-link">Client Login</a>
+<a href={CONSOLE_URL} className="login-link">Console Login</a>
           <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
           <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <X size={18} /> : <Menu size={18} />}
