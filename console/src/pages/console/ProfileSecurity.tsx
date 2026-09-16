@@ -1,62 +1,186 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ConsoleTopBar } from "@/components/ConsoleTopBar";
 import { ConsoleFooter } from "@/components/ConsoleFooter";
-import {
-  Shield,
-  User,
-  Key,
-  Smartphone,
-  Lock,
-  CheckCircle2,
-  Clock,
-  Laptop,
-  Globe,
-  ChevronLeft,
-  Copy,
-  Check,
-  AlertTriangle
-} from "lucide-react";
+import { Shield, ShieldCheck, ShieldOff, ChevronLeft, Smartphone, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
+
+interface TotpFactor {
+  id: string;
+  status: "verified" | "unverified";
+  friendly_name?: string | null;
+}
 
 export default function ProfileSecurity() {
   const { user } = useAuth();
   const isGoogleAccount = user?.app_metadata?.provider === "google";
+
   const [fullName, setFullName] = useState(
     (user?.user_metadata?.full_name as string | undefined) ||
       (user?.user_metadata?.name as string | undefined) ||
       ""
   );
   const [email, setEmail] = useState(user?.email || "");
-  const [role, setRole] = useState("Lead Systems Operator & Project Administrator");
-  const [emergencyPhone, setEmergencyPhone] = useState("+1 (555) 019-2834");
-  const [mfaEnabled, setMfaEnabled] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [copiedKey, setCopiedKey] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  const [factors, setFactors] = useState<TotpFactor[]>([]);
+  const [loadingFactors, setLoadingFactors] = useState(true);
+  const [mfaSupported, setMfaSupported] = useState(true);
+  const [enrolling, setEnrolling] = useState<{ factorId: string; qrCode: string; secret: string } | null>(null);
+  const [verifyCode, setVerifyCode] = useState("");
+  const [mfaBusy, setMfaBusy] = useState(false);
+
+  const [terminatingOthers, setTerminatingOthers] = useState(false);
+
+  const loadFactors = async () => {
+    setLoadingFactors(true);
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    if (error) {
+      // A GoTrue instance with MFA disabled errors here rather than
+      // returning an empty list — treat that as "not supported", not a bug.
+      setMfaSupported(false);
+    } else {
+      setFactors((data?.totp as TotpFactor[]) ?? []);
+    }
+    setLoadingFactors(false);
+  };
+
+  useEffect(() => {
+    loadFactors();
+  }, []);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      toast.success("Profile security configuration updated successfully");
-    }, 600);
+    setSavingProfile(true);
+    try {
+      const updates: { data: Record<string, string>; email?: string } = { data: { full_name: fullName } };
+      if (!isGoogleAccount && email !== user?.email) {
+        updates.email = email;
+      }
+      const { error } = await supabase.auth.updateUser(updates);
+      if (error) throw error;
+      toast.success(
+        updates.email
+          ? "Profile updated. Check your inbox to confirm the new email address."
+          : "Profile updated."
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update profile");
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
-  const handleCopyFp = () => {
-    navigator.clipboard?.writeText("SHA256:7b92f91a8e20f92419a77c01bba29e84d9f1091a24a0ebc21");
-    setCopiedKey(true);
-    toast.success("Public SSH key fingerprint copied");
-    setTimeout(() => setCopiedKey(false), 1800);
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords don't match");
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success("Password updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update password");
+    } finally {
+      setSavingPassword(false);
+    }
   };
+
+  const handleStartEnroll = async () => {
+    setMfaBusy(true);
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp" });
+      if (error) throw error;
+      setEnrolling({
+        factorId: data.id,
+        qrCode: data.totp.qr_code,
+        secret: data.totp.secret,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't start 2FA enrollment");
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const handleVerifyEnroll = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!enrolling) return;
+    setMfaBusy(true);
+    try {
+      const { error } = await supabase.auth.mfa.challengeAndVerify({
+        factorId: enrolling.factorId,
+        code: verifyCode,
+      });
+      if (error) throw error;
+      toast.success("2FA enabled");
+      setEnrolling(null);
+      setVerifyCode("");
+      await loadFactors();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Invalid code");
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const handleCancelEnroll = async () => {
+    if (enrolling) {
+      await supabase.auth.mfa.unenroll({ factorId: enrolling.factorId });
+    }
+    setEnrolling(null);
+    setVerifyCode("");
+  };
+
+  const handleRemoveFactor = async (factorId: string) => {
+    setMfaBusy(true);
+    try {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId });
+      if (error) throw error;
+      toast.success("2FA disabled");
+      await loadFactors();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to disable 2FA");
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const handleTerminateOthers = async () => {
+    setTerminatingOthers(true);
+    try {
+      const { error } = await supabase.auth.signOut({ scope: "others" });
+      if (error) throw error;
+      toast.success("Signed out of all other sessions");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to sign out other sessions");
+    } finally {
+      setTerminatingOthers(false);
+    }
+  };
+
+  const verifiedFactor = factors.find((f) => f.status === "verified");
 
   return (
     <div className="dash-shell">
       <ConsoleTopBar />
 
       <main className="dash-main container">
-        {/* Breadcrumb Back Link */}
         <div className="console-breadcrumb">
           <Link href="/dashboard" className="breadcrumb-back">
             <ChevronLeft size={14} />
@@ -66,27 +190,25 @@ export default function ProfileSecurity() {
           <span className="breadcrumb-current">Profile & Security</span>
         </div>
 
-        {/* Header Row */}
         <div className="dash-header-row">
           <div>
-            <span className="dash-kicker">IDENTITY, SESSIONS & CREDENTIAL SECURITY</span>
+            <span className="dash-kicker">IDENTITY & CREDENTIAL SECURITY</span>
             <h1>Profile & Security</h1>
-            <p>Manage authenticated operator identity, two-factor authentication, SSH keys, and active cluster sessions.</p>
+            <p>Manage your account identity, password, and two-factor authentication.</p>
           </div>
         </div>
 
         <div className="console-grid-layout">
-          {/* Left Column: Personal Information & Credentials */}
+          {/* Left Column: Identity & Password */}
           <div className="console-col">
             <div className="console-card">
               <div className="card-top-header">
-                <span className="card-kicker">OPERATOR DETAILS</span>
-                <span className="badge-teal">PROJECT #04 ADMIN</span>
+                <span className="card-kicker">ACCOUNT DETAILS</span>
               </div>
 
               <form onSubmit={handleSaveProfile} className="console-form">
                 <div className="form-group">
-                  <label>Full Legal Name / Operator Handle</label>
+                  <label>Full Name</label>
                   <input
                     type="text"
                     value={fullName}
@@ -94,10 +216,13 @@ export default function ProfileSecurity() {
                     className="console-input"
                     required
                   />
+                  {isGoogleAccount && (
+                    <span className="input-hint">Google may resync this from your profile on next sign-in.</span>
+                  )}
                 </div>
 
                 <div className="form-group">
-                  <label>Authorized Work Email</label>
+                  <label>Email</label>
                   <input
                     type="email"
                     value={email}
@@ -108,165 +233,173 @@ export default function ProfileSecurity() {
                   />
                   <span className="input-hint">
                     {isGoogleAccount
-                      ? "Bound to Google Sign-In · Auto-synced"
-                      : "Managed via Supabase Auth"}
+                      ? "Bound to Google Sign-In — change it in your Google account instead."
+                      : "Changing this sends a confirmation link to the new address."}
                   </span>
                 </div>
 
-                <div className="form-group">
-                  <label>Primary Role & Responsibilities</label>
-                  <input
-                    type="text"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="console-input"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Urgent Incident Pager Phone (SMS / Signal)</label>
-                  <input
-                    type="tel"
-                    value={emergencyPhone}
-                    onChange={(e) => setEmergencyPhone(e.target.value)}
-                    className="console-input"
-                  />
-                  <span className="input-hint">Used strictly for P1/P2 catastrophic outages</span>
-                </div>
-
-                <button type="submit" disabled={isSaving} className="console-btn-primary">
-                  {isSaving ? "Saving..." : "Save Identity Changes"}
+                <button type="submit" disabled={savingProfile} className="console-btn-primary">
+                  {savingProfile ? "Saving..." : "Save Changes"}
                 </button>
               </form>
             </div>
 
-            {/* SSH & Hardware Key Vault */}
             <div className="console-card mt-6">
               <div className="card-top-header">
-                <span className="card-kicker">PUBLIC KEY & HARDWARE TOKENS</span>
-                <span className="status-live-pill">
-                  <span className="status-dot-active" />
-                  1 HARDWARE KEY ATTACHED
-                </span>
+                <span className="card-kicker">PASSWORD</span>
               </div>
 
-              <div className="key-item-box">
-                <div className="key-item-header">
-                  <div className="key-name-block">
-                    <Key size={14} className="text-teal" />
-                    <span className="key-title">YubiKey 5C NFC · Hardware FIDO2</span>
-                  </div>
-                  <span className="key-badge">ACTIVE MFA</span>
+              <form onSubmit={handleChangePassword} className="console-form">
+                <div className="form-group">
+                  <label>New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="console-input"
+                    placeholder="At least 8 characters"
+                    required
+                  />
                 </div>
-                <p className="key-desc">Configured for zero-trust challenge verification on sensitive cluster operations.</p>
-                <div className="key-meta-line">
-                  <span>Added on Aug 14, 2026</span>
-                  <span>Last challenged 2h ago</span>
+                <div className="form-group">
+                  <label>Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="console-input"
+                    required
+                  />
                 </div>
-              </div>
-
-              <div className="key-item-box mt-3">
-                <div className="key-item-header">
-                  <div className="key-name-block">
-                    <Lock size={14} className="text-teal" />
-                    <span className="key-title">ed25519-sk Cluster Operator Key</span>
-                  </div>
-                  <button onClick={handleCopyFp} className="key-copy-btn">
-                    {copiedKey ? <Check size={12} className="text-teal" /> : <Copy size={12} />}
-                    <span>{copiedKey ? "Copied" : "Copy Fingerprint"}</span>
-                  </button>
-                </div>
-                <p className="key-fingerprint mono">SHA256:7b92f91a8e20f92419a77c01bba29e84d9f1091a24a0ebc21</p>
-              </div>
+                <button type="submit" disabled={savingPassword} className="console-btn-primary">
+                  {savingPassword ? "Updating..." : "Update Password"}
+                </button>
+                {isGoogleAccount && (
+                  <span className="input-hint">
+                    Setting a password lets you also sign in with email, in addition to Google.
+                  </span>
+                )}
+              </form>
             </div>
           </div>
 
-          {/* Right Column: Multi-Factor & Active Sessions */}
+          {/* Right Column: 2FA & Sessions */}
           <div className="console-col">
             <div className="console-card">
               <div className="card-top-header">
-                <span className="card-kicker">AUTHENTICATION POLICIES</span>
+                <span className="card-kicker">TWO-FACTOR AUTHENTICATION</span>
                 <Shield size={16} className="text-teal" />
               </div>
 
-              <div className="policy-toggle-row">
-                <div>
-                  <h4>Two-Factor Authentication (2FA) Enforcement</h4>
-                  <p>Require a time-based authenticator app code before accessing audit streams or rotating production keys.</p>
+              {loadingFactors ? (
+                <p className="key-desc">Checking status…</p>
+              ) : !mfaSupported ? (
+                <div className="policy-info-box">
+                  <div className="info-icon">
+                    <ShieldOff size={16} />
+                  </div>
+                  <div>
+                    <strong>2FA isn't enabled on this instance</strong>
+                    <p>Ask an administrator to enable TOTP in the Supabase Auth settings.</p>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMfaEnabled(!mfaEnabled);
-                    toast.info(mfaEnabled ? "2FA relaxed to password-only" : "2FA strictly enforced via authenticator app");
-                  }}
-                  className={`toggle-switch ${mfaEnabled ? "on" : "off"}`}
-                  aria-pressed={mfaEnabled}
-                >
-                  <span className="toggle-thumb" />
-                </button>
-              </div>
-
-              <div className="policy-info-box mt-4">
-                <div className="info-icon text-teal">
-                  <CheckCircle2 size={16} />
+              ) : verifiedFactor ? (
+                <div className="policy-info-box">
+                  <div className="info-icon text-teal">
+                    <ShieldCheck size={16} />
+                  </div>
+                  <div>
+                    <strong>2FA is enabled</strong>
+                    <p>An authenticator app code is required at sign-in.</p>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveFactor(verifiedFactor.id)}
+                    disabled={mfaBusy}
+                    className="console-btn-danger"
+                    style={{ marginLeft: "auto" }}
+                  >
+                    Disable
+                  </button>
                 </div>
-                <div>
-                  <strong>Strict Session IP Pinning Enabled</strong>
-                  <p>Tokens will automatically invalidate if active IP subnet shifts unexpectedly.</p>
+              ) : enrolling ? (
+                <form onSubmit={handleVerifyEnroll} className="console-form">
+                  <p className="key-desc">Scan this with your authenticator app, then enter the 6-digit code.</p>
+                  <div
+                    className="mfa-qr-box"
+                    dangerouslySetInnerHTML={{ __html: enrolling.qrCode }}
+                  />
+                  <div className="form-group">
+                    <label>Can't scan it? Enter this key manually</label>
+                    <p className="key-fingerprint mono">{enrolling.secret}</p>
+                  </div>
+                  <div className="form-group">
+                    <label>6-digit code</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={verifyCode}
+                      onChange={(e) => setVerifyCode(e.target.value)}
+                      className="console-input"
+                      placeholder="000000"
+                      maxLength={6}
+                      required
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button type="submit" disabled={mfaBusy} className="console-btn-primary">
+                      {mfaBusy ? "Verifying..." : "Verify & Enable"}
+                    </button>
+                    <button type="button" onClick={handleCancelEnroll} className="console-btn-danger">
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="policy-toggle-row">
+                  <div>
+                    <h4>Two-factor authentication is off</h4>
+                    <p>Add an authenticator app for a second sign-in step.</p>
+                  </div>
+                  <button onClick={handleStartEnroll} disabled={mfaBusy} className="console-btn-primary">
+                    Enable 2FA
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Active Sessions List */}
             <div className="console-card mt-6">
               <div className="card-top-header">
-                <span className="card-kicker">ACTIVE SESSIONS & CLUSTERS</span>
-                <span className="meta-tag">2 ACTIVE NOW</span>
+                <span className="card-kicker">THIS ACCOUNT</span>
               </div>
 
               <div className="session-item">
                 <div className="session-icon">
-                  <Laptop size={16} className="text-teal" />
+                  <Smartphone size={16} className="text-teal" />
                 </div>
                 <div className="session-details">
                   <div className="session-title">
-                    <strong>Chrome on macOS Sequoia</strong>
-                    <span className="session-tag current">THIS DEVICE</span>
+                    <strong>{user?.email}</strong>
+                    <span className="session-tag current">
+                      {isGoogleAccount ? "Google" : "Email & Password"}
+                    </span>
                   </div>
-                  <span className="session-meta">Ashburn, Virginia, US · IP: 198.51.100.42</span>
+                  <span className="session-meta">
+                    Account created {user?.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}
+                  </span>
                   <span className="session-time">
-                    Active now · Signed in via {isGoogleAccount ? "Google" : "Email & Password"}
+                    Last sign-in {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : "—"}
                   </span>
                 </div>
               </div>
 
-              <div className="session-item mt-3">
-                <div className="session-icon">
-                  <Smartphone size={16} className="text-blue" />
-                </div>
-                <div className="session-details">
-                  <div className="session-title">
-                    <strong>Restart Incident Pager App (iOS 19)</strong>
-                    <span className="session-tag">VERIFIED</span>
-                  </div>
-                  <span className="session-meta">Lagos, Nigeria · IP: 102.89.23.118</span>
-                  <span className="session-time">Active 42m ago · Push alert listener</span>
-                </div>
-                <button
-                  onClick={() => toast.info("Revoked mobile session token")}
-                  className="session-revoke-btn"
-                >
-                  Revoke
-                </button>
-              </div>
-
               <div className="mt-5 pt-4 border-t border-white/5">
                 <button
-                  onClick={() => toast.success("All other active sessions revoked")}
+                  onClick={handleTerminateOthers}
+                  disabled={terminatingOthers}
                   className="console-btn-danger w-full"
                 >
-                  Terminate All Other Active Sessions
+                  <LogOut size={13} />
+                  <span>{terminatingOthers ? "Signing out..." : "Sign Out Everywhere Else"}</span>
                 </button>
               </div>
             </div>

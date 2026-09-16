@@ -1451,6 +1451,20 @@ button { font: inherit; }
   margin: 0;
 }
 
+.mfa-qr-box {
+  display: flex;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 16px;
+  max-width: 220px;
+}
+.mfa-qr-box svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 .session-item {
   display: flex;
   align-items: flex-start;
