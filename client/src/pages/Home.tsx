@@ -22,16 +22,6 @@ const offers = [
   { kicker: "ARCHITECTURE AUDIT", duration: "1 Week", title: "Find the constraint before you scale into it.", text: "A senior review of your code, schema, infrastructure, deployment model, cost curve, and technical risk — followed by a practical plan for what to do next.", tags: ["One-week technical deep dive", "Risk, cost, and reliability report", "Prioritized 12-week remediation plan", "Optional pair-programming follow-up"], visual: "gauge", cta: "Book an architecture audit" },
 ];
 
-const logos = [
-  { src: "/logos/logo-segment.png", alt: "Segment" },
-  { src: "/logos/logo-sisyphus.png", alt: "Sisyphus" },
-  { src: "/logos/logo-polymath.png", alt: "Polymath" },
-  { src: "/logos/logo-luminous.png", alt: "Luminous" },
-  { src: "/logos/logo-altshift.png", alt: "Alt+Shift" },
-  { src: "/logos/logo-featherdev.png", alt: "FeatherDev" },
-  { src: "/logos/logo-lightbox.png", alt: "Lightbox" },
-];
-
 const faqs = [
   ["Are you available right now?", "We work with a limited number of active engagements so senior technical ownership remains real. Send us what you are building and the constraint you are facing; we will tell you quickly whether the timing and fit make sense."],
   ["What should the first email actually say?", "Send the short version: what you are building, what is not working, where the risk sits, and what decision you need to make next. A rough outline is enough."],
@@ -197,7 +187,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="trust-strip" id="platform"><span className="trust-kicker">TOOLS, TEAMS, AND ECOSYSTEMS WE WORK ACROSS</span><div className="logo-row"><div className="logo-track">{[...logos, ...logos].map((logo, i) => <span key={`${logo.alt}-${i}`}><img src={logo.src} alt={logo.alt} style={{ height: 40, width: "auto" }} /></span>)}</div></div></section>
+      <div id="platform" />
 
       <section className="lanes-section container" id="solutions">
         <div className="section-intro centered">
@@ -300,8 +290,6 @@ export default function Home() {
       <section className="integration-section"><div className="container integration-wrap"><div className="section-copy"><SectionLabel>SEAMLESS INTEGRATION FOR</SectionLabel><h2>Make the work lighter <span>—not more connected for its own sake.</span></h2><p>Your tools should reduce friction, not create another system to manage. Restart connects the product, platform, automation, and operational surfaces that keep your business moving.</p></div><div className="integration-wall">{[Zap, Database, Network, Orbit, Layers3, ShieldCheck, BrainCircuit, Gauge, Sparkles, Code2, CircleCheck, CpuIcon].map((Icon, i) => <div key={i} className={`integration-icon icon-${i % 5}`}><Icon size={40} /></div>)}</div></div></section>
 
       <section className="saas-section" id="about"><div className="container saas-wrap"><div className="saas-copy"><SectionLabel>PLATFORM</SectionLabel><h2>Turn operational friction into <span>technical leverage.</span></h2><p>Restart combines architecture, automation, and product thinking to turn messy operational work into a system your team can understand, improve, and rely on.</p><div className="saas-points"><div><strong>See the system clearly.</strong><span>Map the workflows, constraints, dependencies, and costs that are shaping the business.</span></div><div><strong>Remove the repeatable friction.</strong><span>Automate the work that slows good teams down and build interfaces around the decisions that matter.</span></div><div><strong>Create capacity for the next stage.</strong><span>Build a foundation that supports growth without forcing a full rewrite every time the business changes direction.</span></div></div></div><div className="saas-art"><div className="art-grid" /><div className="art-ring ring-a" /><div className="art-ring ring-b" /><div className="art-label"><Sparkles size={14} />SYSTEMS / 01</div></div></div></section>
-
-      <section className="use-cases-section container"><div className="section-intro centered"><SectionLabel>OPERATING MODEL</SectionLabel><h2>The decisions that usually get stuck<br /><span>between strategy and shipping.</span></h2><p>Restart creates a clear path through the moments where product ambition meets technical consequence.</p></div><div className="use-cases-grid"><div><Zap size={20} /><strong>Launch an MVP without building a trap.</strong><p>Start with the right boundaries, data model, and operating assumptions — not a pile of features that becomes expensive to unwind.</p></div><div><Gauge size={20} /><strong>Find the constraint before it finds you.</strong><p>Review the stack, schema, infrastructure, and cost curve before growth turns a technical compromise into an operating problem.</p></div><div><BrainCircuit size={20} /><strong>Put AI into production responsibly.</strong><p>Make the feature useful, observable, testable, and safe to evolve after the demo is over.</p></div></div></section>
 
       <section className="proof-section"><div className="container"><div className="section-intro centered"><SectionLabel>WHY RESTART</SectionLabel><h2>Senior judgment. Clear scope.<br /><span>Systems that keep working.</span></h2><p>Restart keeps the engagement model simple: experienced technical ownership, visible decisions, and delivery that leaves your team stronger after launch.</p></div><div className="proof-grid"><div><CircleCheck size={18} /><strong>Senior by default.</strong><p>The people shaping the system stay close to the work — from the first conversation to production.</p></div><div><ShieldCheck size={18} /><strong>Production-minded from the beginning.</strong><p>Observability, deployment, security, performance, and cost are not cleanup tasks. They are part of the build.</p></div><div><Layers3 size={18} /><strong>Clear enough to act on.</strong><p>Time-boxed engagements turn uncertainty into a decision, a deliverable, or a practical next step.</p></div><div><Network size={18} /><strong>Built for continuity.</strong><p>We leave your team with the context, documentation, and operating confidence to extend the system without us.</p></div></div></div></section>
 
