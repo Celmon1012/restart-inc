@@ -898,6 +898,24 @@ button { font: inherit; }
   border-radius: 24px;
   padding: 5px 15px;
   font-size: 12px;
+  font-family: inherit;
+  color: inherit;
+  transition: all 0.2s;
+}
+.dash-org-badge.clickable {
+  cursor: pointer;
+}
+.dash-org-badge.clickable:hover,
+.dash-org-badge.clickable.active {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(46, 229, 193, 0.4);
+}
+.dash-workspace-menu-wrapper {
+  position: relative;
+}
+.dash-workspace-check {
+  margin-left: auto;
+  color: var(--teal);
 }
 .org-dot {
   width: 6px;
@@ -957,8 +975,8 @@ button { font: inherit; }
 .dash-action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 8px;
+  padding: 11px 22px;
   border-radius: 6px;
   background: var(--teal);
   color: #04080d;
