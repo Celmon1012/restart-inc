@@ -150,12 +150,12 @@ export default function Home() {
           <span className="nav-indicator" />
         </a>
           <div className="mobile-nav-actions">
-            <Link href="/login">Client Login</Link>
+            <Link href="/login">Console Login</Link>
             <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
           </div>
         </nav>
         <div className="header-actions">
-          <Link href="/login" className="login-link">Client Login</Link>
+          <Link href="/login" className="login-link">Console Login</Link>
           <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
         <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X size={18} /> : <Menu size={18} />}
