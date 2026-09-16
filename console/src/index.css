@@ -613,10 +613,24 @@ button { font: inherit; }
   align-items: center;
   gap: 8px;
 }
-.simple-login-page {
+.simple-login-shell {
   min-height: 100vh;
   background: #000;
   color: #f2f6ff;
+  display: flex;
+  flex-direction: column;
+}
+.simple-login-topbar {
+  height: 72px;
+  width: min(1320px, calc(100% - 48px));
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.simple-login-page {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;

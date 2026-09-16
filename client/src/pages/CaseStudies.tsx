@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { ArrowRight, ArrowUpRight, Check, ChevronRight, ShieldCheck, Menu, X, ExternalLink } from "lucide-react";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import CaseStudyModal from "@/components/CaseStudyModal";
@@ -13,6 +14,9 @@ export default function CaseStudies() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [menuOpen, setMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
+  const session = useAuthSession();
+  const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
+  const consoleLabel = session ? "Dashboard" : "Console Login";
 
   const categories = [
     { id: "all", label: "All Deliveries", count: caseStudiesData.length },
@@ -64,12 +68,12 @@ export default function CaseStudies() {
             <span className="nav-indicator" />
           </Link>
           <div className="mobile-nav-actions">
-<a href={CONSOLE_URL}>Console Login</a>
+<a href={consoleHref}>{consoleLabel}</a>
             <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
           </div>
         </nav>
         <div className="header-actions">
-<a href={CONSOLE_URL} className="login-link">Console Login</a>
+<a href={consoleHref} className="login-link">{consoleLabel}</a>
           <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
           <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <X size={18} /> : <Menu size={18} />}

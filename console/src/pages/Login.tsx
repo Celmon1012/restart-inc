@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowRight, Eye, EyeOff, Github, Lock, Mail, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Github, Lock, Mail, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { MARKETING_URL } from "@/lib/site";
@@ -44,7 +44,18 @@ export default function Login() {
   };
 
   return (
-    <div className="simple-login-page">
+    <div className="simple-login-shell">
+      <header className="simple-login-topbar">
+        <a href={MARKETING_URL} className="site-logo" aria-label="Restart home">
+          <span className="restart-mark" aria-hidden="true"><span /></span>
+          <span>RESTART<span className="logo-dot">.</span></span>
+        </a>
+        <a href={MARKETING_URL} className="squeeze-back-link">
+          <ArrowLeft size={14} /> Back to Site
+        </a>
+      </header>
+
+      <div className="simple-login-page">
       <div className="simple-login-card">
         <h1>Welcome back</h1>
         <p className="simple-login-subtitle">Enter your credentials to access your console.</p>
@@ -155,6 +166,7 @@ export default function Login() {
         <p className="simple-login-footer">
           Don't have an account? <a href={`${MARKETING_URL}/start-project`}>Request Access</a>
         </p>
+      </div>
       </div>
     </div>
   );

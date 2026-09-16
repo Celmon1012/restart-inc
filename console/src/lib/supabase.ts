@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { cookieStorage } from "./cookieStorage";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -15,5 +16,6 @@ if (!isSupabaseConfigured) {
 // the whole app (including public marketing pages) before auth is configured.
 export const supabase = createClient(
   supabaseUrl || "https://placeholder.supabase.co",
-  supabaseAnonKey || "placeholder-anon-key"
+  supabaseAnonKey || "placeholder-anon-key",
+  { auth: { storage: cookieStorage } }
 );
