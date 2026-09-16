@@ -174,37 +174,7 @@ export default function CaseStudies() {
       </main>
 
       {/* Footer */}
-      <footer className="site-footer container">
-        <div className="footer-top">
-          <div className="footer-brand">
-            <div className="footer-logo">
-              <span className="restart-mark" aria-hidden="true"><span /></span>
-              <strong>RESTART<span>.</span></strong>
-            </div>
-            <p>Engineering growth systems for serious operators.</p>
-          </div>
-          <div className="footer-links">
-            <div className="footer-col">
-              <strong>NAVIGATION</strong>
-              <Link href="/">Home</Link>
-              <Link href="/case-studies">All Case Studies</Link>
-              <Link href="/#solutions">Four Lanes</Link>
-              <Link href="/#work">Productized Offers</Link>
-            </div>
-            <div className="footer-col">
-              <strong>DELIVERY LANES</strong>
-              <span>Laravel SaaS</span>
-              <span>Medusa Commerce</span>
-              <span>AI Engineering</span>
-              <span>Architecture Leadership</span>
-            </div>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span>
-          <a href="#top" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Back to top ↑</a>
-        </div>
-      </footer>
+      <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><span className="restart-mark" aria-hidden="true"><span /></span><span>RESTART<span className="logo-dot">.</span></span></Link><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><Link href="/#platform">Platform</Link><Link href="/#solutions">Solutions</Link><Link href="/#case-studies">Case Studies</Link><Link href="/#insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/#about">About</Link><Link href="/start-project">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
 
       {/* Case Study Detail Modal */}
       <CaseStudyModal
