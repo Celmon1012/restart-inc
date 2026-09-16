@@ -8,17 +8,17 @@ import CaseStudyModal from "@/components/CaseStudyModal";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 
 const lanes = [
-  { number: "01", title: "Laravel SaaS That Scales", accent: "teal", icon: Code2, text: "Multi-tenant B2B platforms, Octane workers, Horizon queues, Filament admins, idempotency, event sourcing, observability. Production-ready from day one.", tags: ["Laravel", "PostgreSQL", "Octane", "Filament", "Horizon"], action: "See builds" },
-  { number: "02", title: "Shopify Plus Apps", accent: "blue", icon: Layers3, text: "Public + private apps, App Bridge admin UI, GraphQL Admin & Catalog API, billing, webhooks, protected customer data, Shopify Functions, agentic commerce.", tags: ["Remix", "GraphQL Admin", "App Bridge", "Polaris", "Functions"], action: "See apps" },
-  { number: "03", title: "AI Engineering", accent: "violet", icon: BrainCircuit, text: "Anthropic Claude + MCP servers, OpenAI SDK, RAG on pgvector, agentic workflows, evaluation harnesses. Pragmatic AI that ships, not vibes.", tags: ["Claude API", "MCP", "RAG", "pgvector", "Evals"], action: "Read the posts" },
-  { number: "04", title: "Architecture & Leadership", accent: "amber", icon: Network, text: "Tech lead, fractional CTO, architecture reviews, hiring, mentorship. Senior engineers in a shipping mindset, not a tech-debt spiral.", tags: ["Clean Arch", "DDD", "TDD", "Audits", "Mentorship"], action: "Talk to us" },
+  { number: "01", title: "Build a SaaS platform your team can operate.", accent: "teal", icon: Code2, text: "Multi-tenant B2B platforms designed around clear boundaries, resilient jobs, secure access, observable workflows, and the operational detail that makes production sustainable.", tags: ["Laravel", "PostgreSQL", "Octane", "Filament", "Horizon", "Observability"], action: "Explore SaaS builds" },
+  { number: "02", title: "Make commerce operations work harder.", accent: "blue", icon: Layers3, text: "Public and private Shopify Plus apps built for embedded admin, billing, protected data, resilient webhooks, and the realities of high-volume commerce.", tags: ["Remix", "GraphQL Admin", "App Bridge", "Polaris", "Shopify Functions"], action: "Explore commerce builds" },
+  { number: "03", title: "Put AI where it can earn trust.", accent: "violet", icon: BrainCircuit, text: "We turn models, retrieval, tools, and agents into useful product capabilities — with evaluation, observability, and cost controls built in from the start.", tags: ["Claude API", "MCP", "RAG", "pgvector", "Evaluation harnesses"], action: "Explore AI engineering" },
+  { number: "04", title: "Bring senior judgment to the decisions that matter.", accent: "amber", icon: Network, text: "Architecture reviews, fractional technical leadership, hiring support, and hands-on mentorship for teams that need a clearer path from complexity to execution.", tags: ["Architecture reviews", "Domain modeling", "Testing strategy", "Technical leadership", "Mentorship"], action: "Talk to an engineer" },
 ];
 
 const offers = [
-  { kicker: "MVP BUILD", duration: "4–12 Weeks", title: "From whiteboard to production.", text: "A focused path from a sharp idea to a system your team can operate with confidence.", tags: ["Architecture & schema design", "Auth + RBAC + tenancy", "Stripe / Paddle billing", "CI/CD + zero-downtime deploy"], visual: "code" },
-  { kicker: "AI INTEGRATION SPRINT", duration: "2–4 Weeks", title: "Add real AI to an existing product.", text: "Claude, MCP, RAG, and agents with evals—not a demo, a feature your customers can trust.", tags: ["Claude API + tool use", "MCP server build", "RAG on pgvector + hybrid search", "Eval harness + cost guardrails"], visual: "calendar" },
-  { kicker: "SHOPIFY PLUS APP", duration: "Scoped build", title: "Commerce infrastructure that earns its keep.", text: "Public or private apps built for embedded admin, billing, webhooks, APIs, and real operating constraints.", tags: ["Embedded admin (App Bridge)", "Billing + dunning + analytics", "Catalog / Orders / Customer APIs", "Protected customer data review"], visual: "shopify" },
-  { kicker: "ARCHITECTURE AUDIT", duration: "1 Week", title: "A senior set of eyes before you scale.", text: "Code, schema, infra, deployment, and risk reviewed with a clear path from signal to action.", tags: ["1-week deep audit", "Risk + cost report", "12-week remediation plan", "Optional pair-programming follow-up"], visual: "gauge" },
+  { kicker: "MVP BUILD", duration: "4–12 Weeks", title: "From a sharp idea to a system that can ship.", text: "A focused build path for founders and operators who need the right boundaries, architecture, and production foundation before momentum turns into rework.", tags: ["Architecture and schema design", "Authentication, roles, permissions, and tenancy", "Billing through Stripe or Paddle", "CI/CD and zero-downtime deployment", "Observability and production handoff"], visual: "code", cta: "Start an MVP build" },
+  { kicker: "AI INTEGRATION SPRINT", duration: "2–4 Weeks", title: "Add AI your customers can rely on.", text: "A focused sprint to turn a promising AI concept into a useful, observable product feature — with evaluation, tool use, retrieval, and cost controls included.", tags: ["Claude or OpenAI API integration", "MCP server and tool-use implementation", "Hybrid retrieval with pgvector", "Evaluation harness and regression checks", "Cost and latency guardrails"], visual: "calendar", cta: "Scope an AI sprint" },
+  { kicker: "SHOPIFY PLUS APP", duration: "Scoped build", title: "Build commerce infrastructure that earns its keep.", text: "Public or private apps engineered for embedded administration, billing, APIs, webhooks, protected data, and the operating constraints of serious commerce teams.", tags: ["Embedded admin with App Bridge", "Billing, dunning, and analytics", "Catalog, order, and customer APIs", "Idempotent webhook processing", "Protected customer data review"], visual: "shopify", cta: "Scope a commerce build" },
+  { kicker: "ARCHITECTURE AUDIT", duration: "1 Week", title: "Find the constraint before you scale into it.", text: "A senior review of your code, schema, infrastructure, deployment model, cost curve, and technical risk — followed by a practical plan for what to do next.", tags: ["One-week technical deep dive", "Risk, cost, and reliability report", "Prioritized 12-week remediation plan", "Optional pair-programming follow-up"], visual: "gauge", cta: "Book an architecture audit" },
 ];
 
 const caseStudies = [
@@ -28,12 +28,12 @@ const caseStudies = [
 ];
 
 const faqs = [
-  ["Are you available right now?", "We take on a limited number of focused engagements at a time. Send a short note with what you are building, where it is stuck, and the decision you need to make next."],
-  ["What should the first email actually say?", "A useful first email has three things: the business context, the technical constraint, and the outcome that would make the engagement worthwhile. No polished brief required."],
-  ["What happens after I book the intro call?", "We use the first conversation to understand the operating context, surface risks, and decide whether a focused audit, sprint, or build is the right first step."],
-  ["Will you take an equity-only project?", "We generally work on paid, clearly scoped engagements. If there is an unusual strategic fit, we can discuss the structure openly before either side commits."],
-  ["Can I see code samples?", "The best proof is usually a conversation about how a system was shaped, tested, deployed, and maintained. We can share relevant examples where client confidentiality allows."],
-  ["What about rates, contracts, and time zones?", "We scope around outcomes, agree the working cadence up front, and make the commercial structure clear before work starts. Remote collaboration is normal for us."],
+  ["Are you available right now?", "We work with a limited number of active engagements so senior technical ownership remains real. Send us what you are building and the constraint you are facing; we will tell you quickly whether the timing and fit make sense."],
+  ["What should the first email actually say?", "Send the short version: what you are building, what is not working, where the risk sits, and what decision you need to make next. A rough outline is enough."],
+  ["What happens after I book the intro call?", "We review the context before the call, use the conversation to clarify the system and the constraint, then recommend the smallest useful next step — whether that is a build, sprint, audit, or no engagement yet."],
+  ["Will you take an equity-only project?", "Our default model is paid, scoped delivery. If there is a strong strategic fit, we can discuss alternatives, but we do not use equity-only work as the standard engagement model."],
+  ["Can I see code samples?", "We can share relevant examples, architecture patterns, delivery files, and case-study detail where confidentiality allows. The most useful proof is usually how the system performs under its real constraints."],
+  ["What about rates, contracts, and time zones?", "We scope work around a defined outcome, timeline, and delivery model before starting. We will make the commercial structure and working cadence clear during the first conversation."],
 ];
 
 function LogoMark() {
@@ -127,7 +127,7 @@ export default function Home() {
     <header className="site-header">
       <a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")} aria-label="Restart home">
         <LogoMark />
-        <span>RESTART<span className="logo-dot">.</span></span>
+        <span>RESTART INC<span className="logo-dot">.</span></span>
       </a>
       <nav className={menuOpen ? "open" : ""}>
         <a href="#platform" className={activeSection === "platform" ? "active" : ""} onClick={(e) => handleScrollTo(e, "platform")}>
@@ -139,24 +139,24 @@ export default function Home() {
           <span className="nav-indicator" />
         </a>
         <a href="#work" className={activeSection === "work" ? "active" : ""} onClick={(e) => handleScrollTo(e, "work")}>
-          <span>OFFERS</span>
+          <span>WAYS TO ENGAGE</span>
           <span className="nav-indicator" />
         </a>
         <a href="#case-studies" className={activeSection === "case-studies" ? "active" : ""} onClick={(e) => handleScrollTo(e, "case-studies")}>
-          <span>CASE STUDIES</span>
+          <span>PROOF</span>
           <span className="nav-indicator" />
         </a>
         <a href="#insights" className={activeSection === "insights" ? "active" : ""} onClick={(e) => handleScrollTo(e, "insights")}>
-          <span>INSIGHTS</span>
+          <span>FIELD NOTES</span>
           <span className="nav-indicator" />
         </a>
           <div className="mobile-nav-actions">
-            <Link href="/login">Log In</Link>
+            <Link href="/login">Client Login</Link>
             <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
           </div>
         </nav>
         <div className="header-actions">
-          <Link href="/login" className="login-link">Log In</Link>
+          <Link href="/login" className="login-link">Client Login</Link>
           <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
         <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X size={18} /> : <Menu size={18} />}
@@ -171,7 +171,7 @@ export default function Home() {
         <div className="hero-grid-lines" />
         <div className="hero-shell">
           <div className="hero-content">
-            <SectionLabel>ENTERPRISE-GRADE CLOUD WITH 99.99% UPTIME GUARANTEE</SectionLabel>
+            <SectionLabel>ENGINEERING GROWTH SYSTEMS / TECHNICAL OWNERSHIP</SectionLabel>
             <h1>Build for <span>what’s next.</span></h1>
             <p>Restart Inc. is a technology and engineering firm that helps ambitious operators turn complex workflows and product ideas into reliable, scalable systems.</p>
             <div className="hero-buttons">
@@ -192,13 +192,13 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="trust-strip" id="platform"><span className="trust-kicker">POWERING EXPERIENCE</span><div className="logo-row"><span><i className="logo-shape shape-1" />Segment</span><span><i className="logo-shape shape-2" />Sisyphus</span><span><i className="logo-shape shape-3" />Polymath</span><span><i className="logo-shape shape-4" />Luminous</span><span><i className="logo-shape shape-5" />Alt+Shift</span><span><i className="logo-shape shape-6" />FeatherDev</span><span><i className="logo-shape shape-7" />Lightbox</span></div></section>
+      <section className="trust-strip" id="platform"><span className="trust-kicker">TOOLS, TEAMS, AND ECOSYSTEMS WE WORK ACROSS</span><div className="logo-row"><span><i className="logo-shape shape-1" />Segment</span><span><i className="logo-shape shape-2" />Sisyphus</span><span><i className="logo-shape shape-3" />Polymath</span><span><i className="logo-shape shape-4" />Luminous</span><span><i className="logo-shape shape-5" />Alt+Shift</span><span><i className="logo-shape shape-6" />FeatherDev</span><span><i className="logo-shape shape-7" />Lightbox</span></div></section>
 
       <section className="lanes-section container" id="solutions">
         <div className="section-intro centered">
           <SectionLabel>FOUR DISCIPLINES</SectionLabel>
           <h2>Let's build together!</h2>
-          <p>We provide the expertise, infrastructure, and production discipline to move bold product ideas faster</p>
+          <p>Restart brings architecture, automation, product engineering, and production discipline together so bold ideas can move from decision to delivery without becoming a technical liability.</p>
         </div>
         <div className="lane-grid">
           {lanes.map((lane) => {
@@ -225,13 +225,13 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="offers-section container" id="work"><div className="offer-list">{offers.map((offer, i) => <article className={`offer-row ${i % 2 ? "reverse" : ""}`} key={offer.kicker}><div className="offer-copy"><div className="offer-kicker"><SectionLabel tone={i % 2 ? "violet" : "teal"}>{offer.kicker}</SectionLabel><span>{offer.duration}</span></div><h2>{offer.title}</h2><p>{offer.text}</p><Link href={`/start-project?tier=${encodeURIComponent(offer.kicker)}`} className="button outline small">Get Started <ArrowUpRight size={14} /></Link></div><div className={`offer-visual ${offer.visual}`}><Visual kind={offer.visual} /></div><div className="offer-specs"><div className="spec-tabs"><span className="active">SCOPE</span><span>DELIVERABLES</span><span>NOTES</span></div><ul>{offer.tags.map((tag) => <li key={tag}><Check size={13} />{tag}</li>)}</ul></div></article>)}</div></section>
+      <section className="offers-section container" id="work"><div className="offer-list">{offers.map((offer, i) => <article className={`offer-row ${i % 2 ? "reverse" : ""}`} key={offer.kicker}><div className="offer-copy"><div className="offer-kicker"><SectionLabel tone={i % 2 ? "violet" : "teal"}>{offer.kicker}</SectionLabel><span>{offer.duration}</span></div><h2>{offer.title}</h2><p>{offer.text}</p><Link href={`/start-project?tier=${encodeURIComponent(offer.kicker)}`} className="button outline small">{offer.cta} <ArrowUpRight size={14} /></Link></div><div className={`offer-visual ${offer.visual}`}><Visual kind={offer.visual} /></div><div className="offer-specs"><div className="spec-tabs"><span className="active">SCOPE</span><span>DELIVERABLES</span><span>NOTES</span></div><ul>{offer.tags.map((tag) => <li key={tag}><Check size={13} />{tag}</li>)}</ul></div></article>)}</div></section>
 
       <section className="case-studies-section container" id="case-studies">
         <div className="section-intro centered">
           <SectionLabel>CASE STUDIES / PROOF SYSTEM</SectionLabel>
-          <h2>Show the work.<br /><span>Prove the difference.</span></h2>
-          <p>Trust gets stronger when clients can see the constraint, the intervention, and the verified result. Explore recent production delivery files below.</p>
+          <h2>Show the constraint.<br /><span>Prove the change.</span></h2>
+          <p>The strongest technical work is measurable. See the starting condition, the intervention, and the production result behind selected Restart engagements.</p>
         </div>
 
         {/* Case Study Cards */}
@@ -281,35 +281,35 @@ export default function Home() {
         {/* View All Case Studies Button */}
         <div className="view-all-cases-container">
           <Link href="/case-studies" className="view-all-cases-button">
-            <span>View All Case Studies & Delivery Files</span>
+            <span>View all case studies and delivery files</span>
             <ArrowRight size={15} />
           </Link>
         </div>
 
         <div className="case-study-note">
           <ShieldCheck size={16} />
-          <span>Verified data sourced directly from published technical case files on restart.ng. Custom outcome metrics available during architecture review.</span>
+          <span>Verified outcomes are sourced from published technical case files. Additional project metrics are available during architecture review.</span>
         </div>
       </section>
 
-      <section className="integration-section"><div className="container integration-wrap"><div className="section-copy"><SectionLabel>SEAMLESS INTEGRATION FOR</SectionLabel><h2>Effortless <span>Workflows.</span></h2><p>Your tools should make the work lighter, not become another system to manage. We connect the surfaces that keep your business moving.</p></div><div className="integration-wall">{[Zap, Database, Network, Orbit, Layers3, ShieldCheck, BrainCircuit, Gauge, Sparkles, Code2, CircleCheck, CpuIcon].map((Icon, i) => <div key={i} className={`integration-icon icon-${i % 5}`}><Icon size={40} /></div>)}</div></div></section>
+      <section className="integration-section"><div className="container integration-wrap"><div className="section-copy"><SectionLabel>SEAMLESS INTEGRATION FOR</SectionLabel><h2>Make the work lighter <span>—not more connected for its own sake.</span></h2><p>Your tools should reduce friction, not create another system to manage. Restart connects the product, platform, automation, and operational surfaces that keep your business moving.</p></div><div className="integration-wall">{[Zap, Database, Network, Orbit, Layers3, ShieldCheck, BrainCircuit, Gauge, Sparkles, Code2, CircleCheck, CpuIcon].map((Icon, i) => <div key={i} className={`integration-icon icon-${i % 5}`}><Icon size={40} /></div>)}</div></div></section>
 
-      <section className="saas-section" id="about"><div className="container saas-wrap"><div className="saas-copy"><SectionLabel>PLATFORM</SectionLabel><h2>Transform Your Business With <span>Intuitive SaaS Solutions.</span></h2><p>We bring the architecture, automation, and product thinking to turn messy operational work into a system your team can rely on.</p><div className="saas-points"><div><strong>Build Smarter, Scale Faster</strong><span>Practical systems for the work behind the work.</span></div><div><strong>Seamless Integration</strong><span>Connect the tools you already trust.</span></div><div><strong>Designed to Empower Your Vision</strong><span>Technical leverage without the theatre.</span></div></div></div><div className="saas-art"><div className="art-grid" /><div className="art-ring ring-a" /><div className="art-ring ring-b" /><div className="art-label"><Sparkles size={14} />SYSTEMS / 01</div></div></div></section>
+      <section className="saas-section" id="about"><div className="container saas-wrap"><div className="saas-copy"><SectionLabel>PLATFORM</SectionLabel><h2>Turn operational friction into <span>technical leverage.</span></h2><p>Restart combines architecture, automation, and product thinking to turn messy operational work into a system your team can understand, improve, and rely on.</p><div className="saas-points"><div><strong>See the system clearly.</strong><span>Map the workflows, constraints, dependencies, and costs that are shaping the business.</span></div><div><strong>Remove the repeatable friction.</strong><span>Automate the work that slows good teams down and build interfaces around the decisions that matter.</span></div><div><strong>Create capacity for the next stage.</strong><span>Build a foundation that supports growth without forcing a full rewrite every time the business changes direction.</span></div></div></div><div className="saas-art"><div className="art-grid" /><div className="art-ring ring-a" /><div className="art-ring ring-b" /><div className="art-label"><Sparkles size={14} />SYSTEMS / 01</div></div></div></section>
 
-      <section className="use-cases-section container"><div className="section-intro centered"><SectionLabel>OPERATING MODEL</SectionLabel><h2>Practical Use Cases That Drive<br /><span>Results.</span></h2><p>Clear paths for the decisions that usually get stuck between strategy and shipping.</p></div><div className="use-cases-grid"><div><Zap size={20} /><strong>Launch an MVP without building a trap</strong><p>Start with the right boundary lines, not a pile of features.</p></div><div><Gauge size={20} /><strong>Find the bottleneck before it finds you</strong><p>Audit the stack, the schema, and the cost curve before scale.</p></div><div><BrainCircuit size={20} /><strong>Put AI into production responsibly</strong><p>Make the feature useful, observable, and safe to evolve.</p></div></div></section>
+      <section className="use-cases-section container"><div className="section-intro centered"><SectionLabel>OPERATING MODEL</SectionLabel><h2>The decisions that usually get stuck<br /><span>between strategy and shipping.</span></h2><p>Restart creates a clear path through the moments where product ambition meets technical consequence.</p></div><div className="use-cases-grid"><div><Zap size={20} /><strong>Launch an MVP without building a trap.</strong><p>Start with the right boundaries, data model, and operating assumptions — not a pile of features that becomes expensive to unwind.</p></div><div><Gauge size={20} /><strong>Find the constraint before it finds you.</strong><p>Review the stack, schema, infrastructure, and cost curve before growth turns a technical compromise into an operating problem.</p></div><div><BrainCircuit size={20} /><strong>Put AI into production responsibly.</strong><p>Make the feature useful, observable, testable, and safe to evolve after the demo is over.</p></div></div></section>
 
-      <section className="proof-section"><div className="container"><div className="section-intro centered"><SectionLabel>WHY RESTART</SectionLabel><h2>You're in <span>Good Company.</span></h2><p>We keep the operating model simple: senior attention, clear scope, and systems that keep working after launch.</p></div><div className="proof-grid"><div><CircleCheck size={18} /><strong>Senior by default</strong><p>Experienced hands stay close to the work from first conversation to production.</p></div><div><ShieldCheck size={18} /><strong>Production-minded</strong><p>Observability, deployment, security, and cost are part of the build.</p></div><div><Layers3 size={18} /><strong>Clear and scoped</strong><p>Time-boxed engagements make the next decision easier to make.</p></div><div><Network size={18} /><strong>Built for continuity</strong><p>We leave your team with the context to operate and extend the system.</p></div></div></div></section>
+      <section className="proof-section"><div className="container"><div className="section-intro centered"><SectionLabel>WHY RESTART</SectionLabel><h2>Senior judgment. Clear scope.<br /><span>Systems that keep working.</span></h2><p>Restart keeps the engagement model simple: experienced technical ownership, visible decisions, and delivery that leaves your team stronger after launch.</p></div><div className="proof-grid"><div><CircleCheck size={18} /><strong>Senior by default.</strong><p>The people shaping the system stay close to the work — from the first conversation to production.</p></div><div><ShieldCheck size={18} /><strong>Production-minded from the beginning.</strong><p>Observability, deployment, security, performance, and cost are not cleanup tasks. They are part of the build.</p></div><div><Layers3 size={18} /><strong>Clear enough to act on.</strong><p>Time-boxed engagements turn uncertainty into a decision, a deliverable, or a practical next step.</p></div><div><Network size={18} /><strong>Built for continuity.</strong><p>We leave your team with the context, documentation, and operating confidence to extend the system without us.</p></div></div></div></section>
 
-      <section className="insights-section container" id="insights"><div className="section-intro centered"><SectionLabel>INSIGHTS</SectionLabel><h2>Featured <span>Blog.</span></h2><p>Technical notes for people making consequential product decisions.</p></div><div className="insight-grid"><a href="#insights" className="insight-card"><div className="insight-image image-one"><Code2 size={40} /></div><span>ENGINEERING</span><h3>The Future of Cloud Hosting: Trends and Innovations</h3><ArrowUpRight size={15} /></a><a href="#insights" className="insight-card"><div className="insight-image image-two"><Database size={40} /></div><span>OPERATIONS</span><h3>How to Optimize Performance and Cost in Cloud Hosting</h3><ArrowUpRight size={15} /></a><a href="#insights" className="insight-card"><div className="insight-image image-three"><Network size={40} /></div><span>ARCHITECTURE</span><h3>Cloud Hosting vs. Traditional Hosting: Which One Is Right for You?</h3><ArrowUpRight size={15} /></a></div><a className="button outline small center-button" href="#contact">View all <ArrowRight size={14} /></a></section>
+      <section className="insights-section container" id="insights"><div className="section-intro centered"><SectionLabel>FIELD NOTES</SectionLabel><h2>Notes for people making<br /><span>consequential product decisions.</span></h2><p>Practical perspectives on architecture, operations, AI, cloud infrastructure, and the decisions that determine whether a system holds up under pressure.</p></div><div className="insight-grid"><a href="#insights" className="insight-card"><div className="insight-image image-one"><Code2 size={40} /></div><span>ENGINEERING</span><h3>Cloud infrastructure is a product decision — not just a hosting decision.</h3><ArrowUpRight size={15} /></a><a href="#insights" className="insight-card"><div className="insight-image image-two"><Database size={40} /></div><span>OPERATIONS</span><h3>Performance and cost are connected: how to find the trade-off before scale.</h3><ArrowUpRight size={15} /></a><a href="#insights" className="insight-card"><div className="insight-image image-three"><Network size={40} /></div><span>ARCHITECTURE</span><h3>When to extend the existing system — and when to redraw the boundary.</h3><ArrowUpRight size={15} /></a></div><a className="button outline small center-button" href="#contact">Read all field notes <ArrowRight size={14} /></a></section>
 
-      <section className="faq-section container" id="faq"><div className="faq-heading"><SectionLabel>FAQS</SectionLabel><h2>Good questions.<br /><span>Clear answers.</span></h2></div><div className="faq-list">{faqs.map(([question, answer], i) => <div className={`faq-item ${openFaq === i ? "open" : ""}`} key={question}><button onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i}><span>{question}</span><ChevronDown size={16} /></button>{openFaq === i && <p>{answer}</p>}</div>)}<Link href="/start-project" className="button outline small center-button">Still have questions? <ArrowRight size={14} /></Link></div></section>
+      <section className="faq-section container" id="faq"><div className="faq-heading"><SectionLabel>FAQS</SectionLabel><h2>Good questions.<br /><span>Useful answers.</span></h2></div><div className="faq-list">{faqs.map(([question, answer], i) => <div className={`faq-item ${openFaq === i ? "open" : ""}`} key={question}><button onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i}><span>{question}</span><ChevronDown size={16} /></button>{openFaq === i && <p>{answer}</p>}</div>)}<Link href="/start-project" className="button outline small center-button">Still have a question? Tell us what you're building <ArrowRight size={14} /></Link></div></section>
 
       <section className="final-cta" id="contact">
         <div className="final-cta-grid" />
         <div className="container final-cta-content">
           <SectionLabel>THE NEXT MOVE</SectionLabel>
-          <h2>Operate With the Credibility of a Far<br /><span>Larger Organization.</span></h2>
-          <p>Bring us the hard part. We will help you turn it into a system that can ship, scale, and keep its promises.</p>
+          <h2>Bring us <span>the hard part.</span></h2>
+          <p>Restart will help you turn it into a system that can ship, scale, and keep its promises.</p>
           <div className="final-cta-buttons">
             <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
             <a className="button outline" href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Explore solutions <ChevronRight size={15} /></a>
@@ -318,7 +318,7 @@ export default function Home() {
       </section>
     </main>
 
-    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")}><LogoMark /><span>RESTART<span className="logo-dot">.</span></span></a><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><a href="#platform" onClick={(e) => handleScrollTo(e, "platform")}>Platform</a><a href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Solutions</a><a href="#case-studies" onClick={(e) => handleScrollTo(e, "case-studies")}>Case Studies</a><a href="#insights" onClick={(e) => handleScrollTo(e, "insights")}>Insights</a></div><div><strong>COMPANY</strong><a href="#about" onClick={(e) => handleScrollTo(e, "about")}>About</a><Link href="/start-project">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
+    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")}><LogoMark /><span>RESTART<span className="logo-dot">.</span></span></a><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><a href="#platform" onClick={(e) => handleScrollTo(e, "platform")}>Platform</a><a href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Solutions</a><a href="#case-studies" onClick={(e) => handleScrollTo(e, "case-studies")}>Case Studies</a><a href="#insights" onClick={(e) => handleScrollTo(e, "insights")}>Field Notes</a></div><div><strong>COMPANY</strong><a href="#about" onClick={(e) => handleScrollTo(e, "about")}>About</a><Link href="/start-project">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
   </div>;
 }
 
