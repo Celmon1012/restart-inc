@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Switch, Route } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import Home from "./pages/Home";
 import CaseStudies from "./pages/CaseStudies";
 import Insights from "./pages/Insights";
@@ -25,11 +27,31 @@ function Router() {
       <Route path="/start-project" component={StartProject} />
       <Route path="/onboarding" component={StartProject} />
       <Route path="/login" component={Login} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/console/profile" component={ProfileSecurity} />
-      <Route path="/console/settings" component={ConsoleSettings} />
-      <Route path="/console/keys" component={ApiKeyVault} />
-      <Route path="/console/billing" component={BillingSla} />
+      <Route path="/dashboard">
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/console/profile">
+        <ProtectedRoute>
+          <ProfileSecurity />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/console/settings">
+        <ProtectedRoute>
+          <ConsoleSettings />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/console/keys">
+        <ProtectedRoute>
+          <ApiKeyVault />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/console/billing">
+        <ProtectedRoute>
+          <BillingSla />
+        </ProtectedRoute>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -39,10 +61,12 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
