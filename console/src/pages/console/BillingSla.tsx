@@ -2,14 +2,18 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ConsoleTopBar } from "@/components/ConsoleTopBar";
 import { ConsoleFooter } from "@/components/ConsoleFooter";
-import { ChevronLeft, ArrowUpRight, ExternalLink } from "lucide-react";
+import { ChevronLeft, ArrowUpRight, ExternalLink, CreditCard, ShieldCheck } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
 
 interface BillingSubscription {
   planCode: string;
+  planName: string;
   status: string;
   startedAt: string | null;
+  amountCents: number | null;
+  currency: string | null;
+  interval: string | null;
 }
 
 interface BillingInvoice {
@@ -22,8 +26,15 @@ interface BillingInvoice {
   fileUrl: string | null;
 }
 
+interface BillingCustomer {
+  externalId: string;
+  name: string | null;
+  paymentProvider: string | null;
+}
+
 interface BillingData {
   billingConfigured: boolean;
+  customer?: BillingCustomer | null;
   subscriptions?: BillingSubscription[];
   invoices?: BillingInvoice[];
 }
@@ -42,6 +53,13 @@ function statusTone(status: string): "healthy" | "warning" | "down" {
   if (s === "pending" || s === "draft") return "warning";
   return "down";
 }
+
+const PROVIDER_LABEL: Record<string, string> = {
+  stripe: "Stripe",
+  gocardless: "GoCardless",
+  adyen: "Adyen",
+  cashfree: "Cashfree",
+};
 
 export default function BillingSla() {
   const { activeWorkspace } = useWorkspace();
@@ -72,6 +90,8 @@ export default function BillingSla() {
       cancelled = true;
     };
   }, [activeWorkspace?.id]);
+
+  const primarySubscription = data?.subscriptions?.find((s) => s.status === "active") ?? data?.subscriptions?.[0];
 
   return (
     <div className="dash-shell">
@@ -108,84 +128,141 @@ export default function BillingSla() {
             to get it configured.
           </div>
         ) : (
-          <div className="console-grid-layout mt-6">
-            <div className="console-col">
-              <div className="console-card">
-                <div className="card-top-header">
-                  <span className="card-kicker">SUBSCRIPTION</span>
+          <>
+            {primarySubscription && (
+              <div className="sla-hero-banner">
+                <div className="sla-tier-info">
+                  <div className="sla-badge">
+                    <ShieldCheck size={14} className="text-teal" />
+                    <span>{primarySubscription.status.toUpperCase()} SUBSCRIPTION</span>
+                  </div>
+                  <h2>{primarySubscription.planName}</h2>
+                  <p>
+                    {primarySubscription.startedAt
+                      ? `Active since ${new Date(primarySubscription.startedAt).toLocaleDateString()}`
+                      : "Plan details for this workspace."}
+                  </p>
                 </div>
 
-                {!data.subscriptions || data.subscriptions.length === 0 ? (
-                  <p className="key-desc">No active subscription.</p>
-                ) : (
-                  <div className="sla-metrics-list">
-                    {data.subscriptions.map((sub) => {
-                      const tone = statusTone(sub.status);
-                      return (
-                        <div className="sla-metric-row" key={sub.planCode}>
-                          <div>
-                            <strong>{sub.planCode}</strong>
-                            <p>{sub.startedAt ? `Started ${new Date(sub.startedAt).toLocaleDateString()}` : ""}</p>
-                          </div>
-                          <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>
-                            {sub.status.toUpperCase()}
-                          </span>
-                        </div>
-                      );
-                    })}
+                {primarySubscription.amountCents !== null && primarySubscription.currency && (
+                  <div className="sla-billing-box">
+                    <span className="b-label">
+                      {primarySubscription.interval ? primarySubscription.interval.toUpperCase() : "RECURRING"} PLAN PRICE
+                    </span>
+                    <div className="b-price">
+                      <span className="val">
+                        {formatAmount(primarySubscription.amountCents, primarySubscription.currency)}
+                      </span>
+                    </div>
+                    <a href="mailto:billing@restart.ng" className="dash-action-btn mt-4 w-full text-center justify-center">
+                      <span>Request Plan Change</span>
+                      <ArrowUpRight size={14} />
+                    </a>
                   </div>
                 )}
               </div>
-            </div>
+            )}
 
-            <div className="console-col">
-              <div className="console-card">
-                <div className="card-top-header">
-                  <span className="card-kicker">INVOICE HISTORY</span>
-                </div>
-
-                {!data.invoices || data.invoices.length === 0 ? (
-                  <p className="key-desc">No invoices yet.</p>
-                ) : (
-                  <div className="invoices-list">
-                    {data.invoices.map((inv) => {
-                      const tone = statusTone(inv.paymentStatus === "pending" ? inv.paymentStatus : inv.status);
-                      return (
-                        <div key={inv.number} className="invoice-row">
-                          <div className="inv-left">
-                            <div className="inv-title">
-                              <strong>{inv.number}</strong>
-                              <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>
-                                {inv.paymentStatus.toUpperCase()}
-                              </span>
+            <div className="console-grid-layout mt-6">
+              <div className="console-col">
+                {data.subscriptions && data.subscriptions.length > 1 && (
+                  <div className="console-card">
+                    <div className="card-top-header">
+                      <span className="card-kicker">ALL SUBSCRIPTIONS</span>
+                    </div>
+                    <div className="sla-metrics-list">
+                      {data.subscriptions.map((sub) => {
+                        const tone = statusTone(sub.status);
+                        return (
+                          <div className="sla-metric-row" key={sub.planCode}>
+                            <div>
+                              <strong>{sub.planName}</strong>
+                              <p>{sub.startedAt ? `Started ${new Date(sub.startedAt).toLocaleDateString()}` : ""}</p>
                             </div>
-                            <span className="inv-date">{new Date(inv.issuingDate).toLocaleDateString()}</span>
+                            <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>
+                              {sub.status.toUpperCase()}
+                            </span>
                           </div>
-                          <div className="inv-right">
-                            <span className="inv-amount">{formatAmount(inv.totalAmountCents, inv.currency)}</span>
-                            {inv.fileUrl && (
-                              <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="inv-dl-btn">
-                                <ExternalLink size={13} />
-                                <span>PDF</span>
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
-                <div className="mt-5 pt-4 border-t border-white/5 flex justify-between items-center text-[12px] text-[#78849b]">
-                  <span>Questions about an invoice?</span>
-                  <a href="mailto:billing@restart.ng" className="text-teal hover:underline flex items-center gap-1">
-                    Contact Billing Team
-                    <ArrowUpRight size={12} />
-                  </a>
+                <div className={`console-card ${data.subscriptions && data.subscriptions.length > 1 ? "mt-6" : ""}`}>
+                  <div className="card-top-header">
+                    <span className="card-kicker">PAYMENT METHOD</span>
+                    <CreditCard size={15} className="text-teal" />
+                  </div>
+
+                  {data.customer?.paymentProvider ? (
+                    <div className="payment-method-box">
+                      <div className="pm-icon">
+                        <CreditCard size={20} className="text-white" />
+                      </div>
+                      <div className="pm-details">
+                        <strong>
+                          {PROVIDER_LABEL[data.customer.paymentProvider] ?? data.customer.paymentProvider}
+                        </strong>
+                        <span>Connected as the payment provider for this account</span>
+                      </div>
+                      <span className="badge-teal">CONNECTED</span>
+                    </div>
+                  ) : (
+                    <p className="key-desc">No payment method on file. Contact billing to add one.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="console-col">
+                <div className="console-card">
+                  <div className="card-top-header">
+                    <span className="card-kicker">INVOICE HISTORY</span>
+                  </div>
+
+                  {!data.invoices || data.invoices.length === 0 ? (
+                    <p className="key-desc">No invoices yet.</p>
+                  ) : (
+                    <div className="invoices-list">
+                      {data.invoices.map((inv) => {
+                        const tone = statusTone(inv.paymentStatus === "pending" ? inv.paymentStatus : inv.status);
+                        return (
+                          <div key={inv.number} className="invoice-row">
+                            <div className="inv-left">
+                              <div className="inv-title">
+                                <strong>{inv.number}</strong>
+                                <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>
+                                  {inv.paymentStatus.toUpperCase()}
+                                </span>
+                              </div>
+                              <span className="inv-date">{new Date(inv.issuingDate).toLocaleDateString()}</span>
+                            </div>
+                            <div className="inv-right">
+                              <span className="inv-amount">{formatAmount(inv.totalAmountCents, inv.currency)}</span>
+                              {inv.fileUrl && (
+                                <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="inv-dl-btn">
+                                  <ExternalLink size={13} />
+                                  <span>PDF</span>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="mt-5 pt-4 border-t border-white/5 flex justify-between items-center text-[12px] text-[#78849b]">
+                    <span>Questions about an invoice?</span>
+                    <a href="mailto:billing@restart.ng" className="text-teal hover:underline flex items-center gap-1">
+                      Contact Billing Team
+                      <ArrowUpRight size={12} />
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </>
         )}
       </main>
 

@@ -85,6 +85,14 @@ interface LagoInvoice {
   file_url: string | null;
 }
 
+interface LagoPlan {
+  name: string;
+  code: string;
+  amount_cents: number;
+  amount_currency: string;
+  interval: string;
+}
+
 async function fetchBilling(externalCustomerId: string) {
   const [customerRes, subsRes, invoicesRes] = await Promise.all([
     lagoFetch(`/customers/${encodeURIComponent(externalCustomerId)}`),
@@ -95,13 +103,34 @@ async function fetchBilling(externalCustomerId: string) {
   const subscriptions: LagoSubscription[] = subsRes?.subscriptions ?? [];
   const invoices: LagoInvoice[] = invoicesRes?.invoices ?? [];
 
+  // Plans aren't included inline on a subscription (only plan_code is), so
+  // fetch each distinct plan referenced to get its real price/interval.
+  const planCodes = [...new Set(subscriptions.map((s) => s.plan_code))];
+  const plans = await Promise.all(planCodes.map((code) => lagoFetch(`/plans/${encodeURIComponent(code)}`)));
+  const planByCode = new Map<string, LagoPlan>(
+    plans.filter((p): p is { plan: LagoPlan } => Boolean(p?.plan)).map((p) => [p.plan.code, p.plan])
+  );
+
   return {
-    customer: customerRes?.customer ? { externalId: externalCustomerId, name: customerRes.customer.name } : null,
-    subscriptions: subscriptions.map((s) => ({
-      planCode: s.plan_code,
-      status: s.status,
-      startedAt: s.started_at,
-    })),
+    customer: customerRes?.customer
+      ? {
+          externalId: externalCustomerId,
+          name: customerRes.customer.name,
+          paymentProvider: customerRes.customer.payment_provider ?? null,
+        }
+      : null,
+    subscriptions: subscriptions.map((s) => {
+      const plan = planByCode.get(s.plan_code);
+      return {
+        planCode: s.plan_code,
+        planName: plan?.name ?? s.plan_code,
+        status: s.status,
+        startedAt: s.started_at,
+        amountCents: plan?.amount_cents ?? null,
+        currency: plan?.amount_currency ?? null,
+        interval: plan?.interval ?? null,
+      };
+    }),
     invoices: invoices.map((inv) => ({
       number: inv.number,
       issuingDate: inv.issuing_date,
