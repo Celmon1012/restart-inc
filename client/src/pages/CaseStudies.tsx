@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, ArrowUpRight, Check, ChevronRight, ShieldCheck, ArrowLeft, Menu, X, ExternalLink } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, ChevronRight, ShieldCheck, Menu, X, ExternalLink } from "lucide-react";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import CaseStudyModal from "@/components/CaseStudyModal";
 import { OnboardingModal } from "@/components/OnboardingModal";
@@ -11,7 +11,7 @@ export default function CaseStudies() {
   const [onboardingLane, setOnboardingLane] = useState<string | undefined>(undefined);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
   const categories = [
     { id: "all", label: "All Deliveries", count: caseStudiesData.length },
@@ -33,34 +33,43 @@ export default function CaseStudies() {
     <div className="page-shell">
       {/* Header Navigation */}
       <header className="site-header">
-        <div className="header-left">
-          <Link href="/" className="logo-link">
-            <span className="restart-mark" aria-hidden="true"><span /></span>
-            <strong>RESTART<span>.</span></strong>
-          </Link>
-          <span className="header-divider" />
-          <span className="header-subtitle">CASE STUDIES</span>
-        </div>
-        <nav className={`main-nav ${menuOpen ? "open" : ""}`}>
-          <Link href="/#platform" onClick={() => setMenuOpen(false)}><span>PLATFORM</span></Link>
-          <Link href="/#solutions" onClick={() => setMenuOpen(false)}><span>SOLUTIONS</span></Link>
-          <Link href="/#work" onClick={() => setMenuOpen(false)}><span>OFFERS</span></Link>
-          <Link href="/case-studies" className="active" onClick={() => setMenuOpen(false)}>
-            <span>CASE STUDIES</span>
+        <Link href="/" className="site-logo" aria-label="Restart home">
+          <span className="restart-mark" aria-hidden="true"><span /></span>
+          <span>RESTART INC<span className="logo-dot">.</span></span>
+        </Link>
+        <nav className={menuOpen ? "open" : ""}>
+          <Link href="/#platform" onClick={() => setMenuOpen(false)}>
+            <span>PLATFORM</span>
             <span className="nav-indicator" />
           </Link>
-          <Link href="/#insights" onClick={() => setMenuOpen(false)}><span>INSIGHTS</span></Link>
+          <Link href="/#solutions" onClick={() => setMenuOpen(false)}>
+            <span>SOLUTIONS</span>
+            <span className="nav-indicator" />
+          </Link>
+          <Link href="/#work" onClick={() => setMenuOpen(false)}>
+            <span>WAYS TO ENGAGE</span>
+            <span className="nav-indicator" />
+          </Link>
+          <Link href="/case-studies" className={location.startsWith("/case-studies") ? "active" : ""} onClick={() => setMenuOpen(false)}>
+            <span>PROOF</span>
+            <span className="nav-indicator" />
+          </Link>
+          <Link href="/insights" className={location.startsWith("/insights") ? "active" : ""} onClick={() => setMenuOpen(false)}>
+            <span>INSIGHTS</span>
+            <span className="nav-indicator" />
+          </Link>
+          <Link href="/#about" onClick={() => setMenuOpen(false)}>
+            <span>ABOUT</span>
+            <span className="nav-indicator" />
+          </Link>
           <div className="mobile-nav-actions">
+            <Link href="/login">Client Login</Link>
             <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
           </div>
         </nav>
         <div className="header-actions">
-          <Link href="/" className="login-link">
-            <ArrowLeft size={14} /> Back to Home
-          </Link>
-          <Link href="/start-project" className="header-cta">
-            Start a Project <ArrowUpRight size={14} />
-          </Link>
+          <Link href="/login" className="login-link">Client Login</Link>
+          <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
           <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
