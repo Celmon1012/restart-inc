@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { ConsoleTopBar } from "@/components/ConsoleTopBar";
+import { ConsoleFooter } from "@/components/ConsoleFooter";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { getResources, getPrimaryApplication, type Resource, type ResourceStatus } from "@/lib/resources";
 import {
   Activity,
   Shield,
@@ -37,8 +40,42 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+const RESOURCE_KIND_LABEL: Record<Resource["kind"], string> = {
+  application: "APPLICATION",
+  database: "DATABASE",
+  service: "SERVICE"
+};
+
+function statusMeta(status: ResourceStatus): { label: string; tone: "healthy" | "warning" | "down" } {
+  switch (status) {
+    case "running:healthy":
+      return { label: "HEALTHY", tone: "healthy" };
+    case "running:unknown":
+      return { label: "RUNNING", tone: "healthy" };
+    case "running:unhealthy":
+      return { label: "DEGRADED", tone: "warning" };
+    case "exited:unhealthy":
+      return { label: "EXITED", tone: "down" };
+    case "stopped":
+      return { label: "STOPPED", tone: "down" };
+  }
+}
+
+function resourceSubtitle(resource: Resource): string {
+  if (resource.kind === "application") {
+    return `${resource.fqdn} · ${resource.gitRepository}@${resource.gitBranch} (${resource.gitCommitSha}) · ${resource.buildPack}`;
+  }
+  if (resource.kind === "database") {
+    return `${resource.databaseType} · ${resource.isPublic ? "Publicly reachable" : "Private network only"}`;
+  }
+  return `${resource.serviceType} service`;
+}
+
 export default function Dashboard() {
   const [, setLocation] = useLocation();
+  const { activeWorkspace } = useWorkspace();
+  const resources = getResources(activeWorkspace);
+  const primaryApp = getPrimaryApplication(activeWorkspace);
   const [activeTab, setActiveTab] = useState<"systems" | "hosting" | "sprints" | "logs">("systems");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -186,7 +223,7 @@ export default function Dashboard() {
             onClick={() => setActiveTab("systems")}
           >
             <Server size={14} />
-            <span>Active Systems (3)</span>
+            <span>Active Systems ({resources.length})</span>
           </button>
           <button
             className={`dash-tab-btn ${activeTab === "hosting" ? "active" : ""}`}
@@ -212,77 +249,40 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Tab 1: Active Systems */}
+        {/* Tab 1: Active Systems — every application, database, and service
+            Coolify reports as deployed to this workspace's dedicated server. */}
         {activeTab === "systems" && (
           <div className="dash-systems-list">
-            <div className="system-row">
-              <div className="system-status-indicator">
-                <span className="status-dot-active" />
-              </div>
-              <div className="system-info">
-                <div className="system-title-row">
-                  <h3>Dedicated Private Cloud Core</h3>
-                  <span className="system-badge">BARE-METAL INFRASTRUCTURE</span>
-                  <span className="system-version">v3.12.4</span>
+            {resources.length === 0 && (
+              <div className="dash-empty-state">No resources deployed to this workspace's server yet.</div>
+            )}
+            {resources.map((resource) => {
+              const { label, tone } = statusMeta(resource.status);
+              const Icon = resource.kind === "database" ? Database : resource.kind === "service" ? Boxes : Server;
+              return (
+                <div className="system-row" key={resource.uuid}>
+                  <div className="system-status-indicator">
+                    <span className={`status-dot-active ${tone === "healthy" ? "" : tone}`} />
+                  </div>
+                  <div className="system-info">
+                    <div className="system-title-row">
+                      <Icon size={15} className="text-teal" />
+                      <h3>{resource.name}</h3>
+                      <span className="system-kind-tag">{RESOURCE_KIND_LABEL[resource.kind]}</span>
+                      <span className="system-version">{resource.uuid}</span>
+                    </div>
+                    <p>{resourceSubtitle(resource)}</p>
+                    <div className="system-metrics-inline">
+                      <span>Server: <strong>{activeWorkspace.server.name}</strong></span>
+                      <span>Region: <strong>{activeWorkspace.server.region}</strong></span>
+                    </div>
+                  </div>
+                  <div className="system-actions">
+                    <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>{label}</span>
+                  </div>
                 </div>
-                <p>Bare-metal cluster migration running with redundant hot-standby nodes and automatic failover.</p>
-                <div className="system-metrics-inline">
-                  <span>CPU Load: <strong>26%</strong></span>
-                  <span>Memory: <strong>41.8 GB / 128 GB</strong></span>
-                  <span>Disk I/O: <strong>0.12ms</strong></span>
-                  <span>Failover SLA: <strong>Active</strong></span>
-                </div>
-              </div>
-              <div className="system-actions">
-                <span className="system-healthy-pill">HEALTHY</span>
-              </div>
-            </div>
-
-            <div className="system-row">
-              <div className="system-status-indicator">
-                <span className="status-dot-active" />
-              </div>
-              <div className="system-info">
-                <div className="system-title-row">
-                  <h3>Claude & Anthropic MCP Agent Pipeline</h3>
-                  <span className="system-badge">AI SYSTEMS ENGINE</span>
-                  <span className="system-version">v2.1.0</span>
-                </div>
-                <p>Deterministic evaluation harnesses with semantic caching and pgvector hybrid search clusters.</p>
-                <div className="system-metrics-inline">
-                  <span>Eval Accuracy: <strong>99.4%</strong></span>
-                  <span>Cache Hit Rate: <strong>68.2%</strong></span>
-                  <span>Token Cost Reduction: <strong>-48%</strong></span>
-                  <span>P99 Latency: <strong>142ms</strong></span>
-                </div>
-              </div>
-              <div className="system-actions">
-                <span className="system-healthy-pill">OPTIMAL</span>
-              </div>
-            </div>
-
-            <div className="system-row">
-              <div className="system-status-indicator">
-                <span className="status-dot-active" />
-              </div>
-              <div className="system-info">
-                <div className="system-title-row">
-                  <h3>High-Volume Medusa Commerce Event Consumer</h3>
-                  <span className="system-badge">COMMERCE INFRASTRUCTURE</span>
-                  <span className="system-version">v1.8.6</span>
-                </div>
-                <p>Idempotent queue consumers handling burst traffic without dropping orders or double-billing.</p>
-                <div className="system-metrics-inline">
-                  <span>Queue Depth: <strong>0</strong></span>
-                  <span>Processed (24h): <strong>1.48M events</strong></span>
-                  <span>Dunning Recovery: <strong>+38%</strong></span>
-                  <span>NDPA Compliance: <strong>Verified</strong></span>
-                </div>
-              </div>
-              <div className="system-actions">
-                <span className="system-healthy-pill">ONLINE</span>
-              </div>
-            </div>
+              );
+            })}
           </div>
         )}
 
@@ -297,10 +297,11 @@ export default function Dashboard() {
               </div>
               <div className="banner-content">
                 <div>
-                  <h3>Active Managed Application: <code>acme-logistics-checkout</code></h3>
+                  <h3>Active Managed Application: <code>{primaryApp?.name ?? "none deployed"}</code></h3>
                   <p>
-                    Single-tenant container cluster deployed on Restart's managed infrastructure with automated rollbacks,
-                    encrypted secrets, and zero-downtime deployment pipelines.
+                    Single-tenant container cluster deployed on {activeWorkspace.name}'s dedicated server (
+                    {activeWorkspace.server.name}) with automated rollbacks, encrypted secrets, and zero-downtime
+                    deployment pipelines.
                   </p>
                 </div>
                 <div className="banner-actions">
@@ -353,6 +354,45 @@ export default function Dashboard() {
               <div className="hosting-overview-grid">
                 <div className="hosting-card">
                   <div className="card-top-header">
+                    <span className="card-kicker">DEDICATED SERVER</span>
+                    <span className="status-live-pill">
+                      <span className={`status-dot-active ${activeWorkspace.server.isReachable ? "" : "down"}`} />
+                      {activeWorkspace.server.isReachable ? "REACHABLE" : "UNREACHABLE"}
+                    </span>
+                  </div>
+                  <div className="app-meta-list">
+                    <div className="app-meta-item">
+                      <span className="meta-k">Server Name / IP</span>
+                      <span className="meta-v mono">{activeWorkspace.server.name} · {activeWorkspace.server.ip}</span>
+                    </div>
+                    <div className="app-meta-item">
+                      <span className="meta-k">Region</span>
+                      <span className="meta-v">{activeWorkspace.server.region}</span>
+                    </div>
+                    <div className="app-meta-item">
+                      <span className="meta-k">Capacity</span>
+                      <span className="meta-v">
+                        {activeWorkspace.server.cpus} vCPU · {activeWorkspace.server.memoryGb} GB RAM ·{" "}
+                        {activeWorkspace.server.diskGb} GB disk
+                      </span>
+                    </div>
+                    <div className="app-meta-item">
+                      <span className="meta-k">Docker Engine</span>
+                      <span className="meta-v mono">{activeWorkspace.server.dockerVersion}</span>
+                    </div>
+                    <div className="app-meta-item">
+                      <span className="meta-k">Resources Deployed</span>
+                      <span className="meta-v">
+                        {resources.length} ({resources.filter((r) => r.kind === "application").length} app ·{" "}
+                        {resources.filter((r) => r.kind === "database").length} db ·{" "}
+                        {resources.filter((r) => r.kind === "service").length} service)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="hosting-card">
+                  <div className="card-top-header">
                     <span className="card-kicker">APPLICATION SPECIFICATION</span>
                     <span className="status-live-pill">
                       <span className="status-dot-active" />
@@ -363,23 +403,30 @@ export default function Dashboard() {
                     <div className="app-meta-item">
                       <span className="meta-k">FQDN / Public URL</span>
                       <span className="meta-v">
-                        <a href="https://checkout.acmeglobal.ng" target="_blank" rel="noreferrer" className="link-fqdn">
-                          https://checkout.acmeglobal.ng
+                        <a
+                          href={`https://${primaryApp?.fqdn ?? ""}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="link-fqdn"
+                        >
+                          https://{primaryApp?.fqdn ?? "not deployed"}
                           <ArrowUpRight size={13} />
                         </a>
                       </span>
                     </div>
                     <div className="app-meta-item">
                       <span className="meta-k">Instance UUID</span>
-                      <span className="meta-v mono">app-c84d9f10-91a2-4a0e-bc21</span>
+                      <span className="meta-v mono">{primaryApp?.uuid ?? "—"}</span>
                     </div>
                     <div className="app-meta-item">
-                      <span className="meta-k">Base Image / Stack</span>
-                      <span className="meta-v">Node.js 22-alpine · Remix SSR · NGINX reverse proxy</span>
+                      <span className="meta-k">Source</span>
+                      <span className="meta-v mono">
+                        {primaryApp?.gitRepository}@{primaryApp?.gitBranch} ({primaryApp?.gitCommitSha})
+                      </span>
                     </div>
                     <div className="app-meta-item">
-                      <span className="meta-k">Server Node</span>
-                      <span className="meta-v">Hetzner Dedicated CX52 · Ashburn US-East (worker-04)</span>
+                      <span className="meta-k">Build Pack</span>
+                      <span className="meta-v">{primaryApp?.buildPack}</span>
                     </div>
                     <div className="app-meta-item">
                       <span className="meta-k">SSL / TLS Certificate</span>
@@ -606,7 +653,7 @@ export default function Dashboard() {
                 <span className="dot yellow" />
                 <span className="dot green" />
               </div>
-              <span className="terminal-title">restart-syslog://acme-logistics-core/prod/telemetry.stream</span>
+              <span className="terminal-title">restart-syslog://{activeWorkspace.id}/prod/telemetry.stream</span>
               <span className="terminal-live-badge">LIVE STREAM</span>
             </div>
             <div className="terminal-body">
@@ -621,6 +668,8 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      <ConsoleFooter />
     </div>
   );
 }

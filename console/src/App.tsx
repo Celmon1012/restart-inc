@@ -2,6 +2,7 @@ import { Toaster } from "sonner";
 import { Switch, Route } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider } from "./contexts/AuthContext";
+import { WorkspaceProvider } from "./contexts/WorkspaceContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -49,8 +50,10 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <Toaster theme="dark" />
-        <Router />
+        <WorkspaceProvider>
+          <Toaster theme="dark" />
+          <Router />
+        </WorkspaceProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

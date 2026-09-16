@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { ConsoleTopBar } from "@/components/ConsoleTopBar";
+import { ConsoleFooter } from "@/components/ConsoleFooter";
 import {
   Shield,
   User,
@@ -272,6 +273,8 @@ export default function ProfileSecurity() {
           </div>
         </div>
       </main>
+
+      <ConsoleFooter />
     </div>
   );
 }

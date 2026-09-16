@@ -1096,6 +1096,38 @@ button { font: inherit; }
   color: #fca5a5;
 }
 
+.org-dot.down {
+  background: #f87171;
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.7);
+}
+
+.workspace-dropdown {
+  width: 300px;
+}
+
+.workspace-dropdown-item {
+  align-items: flex-start;
+}
+
+.workspace-dropdown-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.workspace-dropdown-item-server {
+  font-size: 10px;
+  color: #636878;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-dropdown-item.active-link .workspace-dropdown-item-server {
+  color: rgba(46, 229, 193, 0.7);
+}
+
 /* ══════════════════════════════════════════════════════════════
    CONSOLE SUBPAGES (PROFILE, SETTINGS, KEYS, BILLING)
    ══════════════════════════════════════════════════════════════ */
@@ -1862,10 +1894,89 @@ button { font: inherit; }
 }
 
 .dash-main {
+  flex: 1 0 auto;
   padding-top: 40px;
   padding-bottom: 80px;
   width: min(1320px, calc(100% - 64px));
   margin: 0 auto;
+}
+
+.dash-footer {
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: #030304;
+}
+
+.dash-footer-inner {
+  padding: 18px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  font-size: 11px;
+  color: #636878;
+}
+
+.dash-footer-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: #8fa2cd;
+}
+
+.dash-footer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 8px rgba(46, 229, 193, 0.7);
+  flex-shrink: 0;
+}
+
+.dash-footer-dot.down {
+  background: #f87171;
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.7);
+}
+
+.dash-footer-sep {
+  color: #3a3f4c;
+}
+
+.dash-footer-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.dash-footer-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #8b93a7;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.dash-footer-links a:hover {
+  color: var(--teal);
+}
+
+.dash-footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .hide-sm {
+    display: none;
+  }
+  .dash-footer-inner {
+    justify-content: flex-start;
+  }
 }
 .dash-header-row {
   display: flex;
@@ -2094,6 +2205,43 @@ button { font: inherit; }
   border: 1px solid rgba(46, 229, 193, 0.3);
   border-radius: 20px;
   padding: 5px 14px;
+}
+.system-healthy-pill.warning {
+  color: var(--amber);
+  background: rgba(229, 176, 97, 0.1);
+  border-color: rgba(229, 176, 97, 0.3);
+}
+.system-healthy-pill.down {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+.status-dot-active.warning {
+  background: var(--amber);
+  box-shadow: 0 0 12px var(--amber);
+}
+.status-dot-active.down {
+  background: #f87171;
+  box-shadow: 0 0 12px #f87171;
+}
+.system-kind-tag {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--blue);
+  background: rgba(91, 132, 255, 0.08);
+  border: 1px solid rgba(91, 132, 255, 0.25);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+.dash-empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: #727a8c;
+  font-size: 13px;
+  background: #070709;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
 }
 
 .dash-sprints-view {
@@ -2432,7 +2580,7 @@ button { font: inherit; }
 
 .hosting-overview-grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 20px;
 }
 

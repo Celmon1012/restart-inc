@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { ConsoleTopBar } from "@/components/ConsoleTopBar";
+import { ConsoleFooter } from "@/components/ConsoleFooter";
 import {
   Sliders,
   Bell,
@@ -272,6 +273,8 @@ export default function ConsoleSettings() {
           </div>
         </form>
       </main>
+
+      <ConsoleFooter />
     </div>
   );
 }

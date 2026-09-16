@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { ConsoleTopBar } from "@/components/ConsoleTopBar";
+import { ConsoleFooter } from "@/components/ConsoleFooter";
 import {
   Key,
   Shield,
@@ -322,6 +323,8 @@ curl -X POST https://api.restart.ng/v1/telemetry/ingest \\
           </div>
         </div>
       </main>
+
+      <ConsoleFooter />
     </div>
   );
 }

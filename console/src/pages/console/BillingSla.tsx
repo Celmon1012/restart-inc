@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { ConsoleTopBar } from "@/components/ConsoleTopBar";
+import { ConsoleFooter } from "@/components/ConsoleFooter";
 import { MARKETING_URL } from "@/lib/site";
 import {
   CreditCard,
@@ -231,6 +232,8 @@ export default function BillingSla() {
           </div>
         </div>
       </main>
+
+      <ConsoleFooter />
     </div>
   );
 }

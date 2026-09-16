@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "restart-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "client-console",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "client-console", "run", "dev", "--", "-p", "3001"],
+      "port": 3001
+    },
+    {
+      "name": "console",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "console", "run", "dev", "--", "--port", "3002"],
+      "port": 3002
+    }
+  ]
+}

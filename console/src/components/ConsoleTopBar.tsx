@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { MARKETING_URL } from "@/lib/site";
 
 interface ConsoleTopBarProps {
@@ -23,15 +24,10 @@ interface ConsoleTopBarProps {
   isRefreshing?: boolean;
 }
 
-const workspaces = [
-  { name: "Acme Global Logistics", pod: "Project #04 · Senior Dedicated" },
-  { name: "Lubcon International", pod: "Project #02 · Standard" },
-  { name: "Breadmaker Systems", pod: "Project #07 · Senior Dedicated" },
-];
-
 export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBarProps) {
   const [location, setLocation] = useLocation();
   const { user, signOut } = useAuth();
+  const { workspaces, activeWorkspace, setActiveWorkspaceId } = useWorkspace();
   const displayName =
     (user?.user_metadata?.full_name as string | undefined) ||
     (user?.user_metadata?.name as string | undefined) ||
@@ -40,7 +36,6 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
   const displayEmail = user?.email || "";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
-  const [activeWorkspace, setActiveWorkspace] = useState(workspaces[0]);
   const [unreadCount, setUnreadCount] = useState(3);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const workspaceMenuRef = useRef<HTMLDivElement>(null);
@@ -58,8 +53,8 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSwitchWorkspace = (workspace: typeof workspaces[number]) => {
-    setActiveWorkspace(workspace);
+  const handleSwitchWorkspace = (workspace: (typeof workspaces)[number]) => {
+    setActiveWorkspaceId(workspace.id);
     setWorkspaceMenuOpen(false);
     toast.success(`Switched to workspace: ${workspace.name}`);
   };
@@ -95,14 +90,14 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
             title="Switch workspace"
             aria-expanded={workspaceMenuOpen}
           >
-            <span className="org-dot" />
+            <span className={`org-dot ${activeWorkspace.server.isReachable ? "" : "down"}`} />
             <span className="org-name">{activeWorkspace.name}</span>
-            <span className="org-pod">{activeWorkspace.pod}</span>
+            <span className="org-pod">{activeWorkspace.tier}</span>
             <ChevronDown size={12} className={`dash-user-chevron ${workspaceMenuOpen ? "rotate" : ""}`} />
           </button>
 
           {workspaceMenuOpen && (
-            <div className="dash-dropdown-menu">
+            <div className="dash-dropdown-menu workspace-dropdown">
               <div className="dash-dropdown-header">
                 <span className="dropdown-user-name">Switch Workspace</span>
                 <span className="dropdown-user-email">Projects you have access to</span>
@@ -110,13 +105,18 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
 
               {workspaces.map((workspace) => (
                 <button
-                  key={workspace.name}
+                  key={workspace.id}
                   onClick={() => handleSwitchWorkspace(workspace)}
-                  className={`dash-dropdown-item ${activeWorkspace.name === workspace.name ? "active-link" : ""}`}
+                  className={`dash-dropdown-item workspace-dropdown-item ${activeWorkspace.id === workspace.id ? "active-link" : ""}`}
                 >
                   <Building2 size={14} />
-                  <span>{workspace.name}</span>
-                  {activeWorkspace.name === workspace.name && <Check size={13} className="dash-workspace-check" />}
+                  <span className="workspace-dropdown-item-text">
+                    <span>{workspace.name}</span>
+                    <span className="workspace-dropdown-item-server font-mono">
+                      {workspace.server.name} · {workspace.server.ip}
+                    </span>
+                  </span>
+                  {activeWorkspace.id === workspace.id && <Check size={13} className="dash-workspace-check" />}
                 </button>
               ))}
             </div>
