@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
+import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { getResources, statusMeta, deploymentStatusLabel, formatRelativeTime, type Resource } from "@/lib/resources";
 import { getCurrentMilestone } from "@/lib/delivery";
+import { getDisplayName } from "@/lib/utils";
 import { CheckCircle2, AlertTriangle, ArrowRight, Server, Database, Boxes, Clock, Terminal, Rocket } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,6 +16,7 @@ const KIND_ICON: Record<Resource["kind"], typeof Server> = {
 };
 
 export default function Overview() {
+  const { user } = useAuth();
   const { activeWorkspace, loading: workspaceLoading, error: workspaceError, refresh } = useWorkspace();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const resources = activeWorkspace ? getResources(activeWorkspace) : [];
@@ -50,9 +53,10 @@ export default function Overview() {
         <>
           <div className="dash-header-row">
             <div>
+              <span className="overview-greeting">Welcome back, {getDisplayName(user)}</span>
               <span className="dash-kicker">OVERVIEW</span>
-              <h1>{headline}</h1>
-              <p>Here's the state of {activeWorkspace.name}'s systems and delivery right now.</p>
+              <h1>Systems Overview</h1>
+              <p>{headline} — here's the state of {activeWorkspace.name}'s systems and delivery right now.</p>
             </div>
           </div>
 

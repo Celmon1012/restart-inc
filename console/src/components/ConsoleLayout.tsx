@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { MARKETING_URL } from "@/lib/site";
+import { getDisplayName } from "@/lib/utils";
 import { ConsoleFooter } from "./ConsoleFooter";
 
 interface ConsoleLayoutProps {
@@ -57,11 +58,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
   const [location, setLocation] = useLocation();
   const { user, signOut } = useAuth();
   const { workspaces, activeWorkspace, setActiveWorkspaceId } = useWorkspace();
-  const displayName =
-    (user?.user_metadata?.full_name as string | undefined) ||
-    (user?.user_metadata?.name as string | undefined) ||
-    user?.email?.split("@")[0] ||
-    "Operator";
+  const displayName = getDisplayName(user);
   const displayEmail = user?.email || "";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
@@ -124,7 +121,10 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
         <div className="console-sidebar-brand-row">
           <a href={MARKETING_URL} className="console-sidebar-brand" aria-label="Restart home">
             <span className="restart-mark" aria-hidden="true"><span /></span>
-            <span>RESTART INC<span className="logo-dot">.</span></span>
+            <span className="console-sidebar-brand-text">
+              <span className="console-sidebar-brand-name">RESTART INC<span className="logo-dot">.</span></span>
+              <span className="dash-tag">CONSOLE</span>
+            </span>
           </a>
           <button
             onClick={toggleSidebar}

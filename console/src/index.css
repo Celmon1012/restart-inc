@@ -866,6 +866,30 @@ button { font: inherit; }
   min-width: 0;
   overflow: hidden;
 }
+.console-sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.console-sidebar-brand-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.console-sidebar-brand .dash-tag {
+  align-self: flex-start;
+}
+.dash-tag {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--teal);
+  background: rgba(46, 229, 193, 0.07);
+  border: 1px solid rgba(46, 229, 193, 0.22);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
 .console-sidebar-collapse-btn {
   flex-shrink: 0;
   width: 28px;
@@ -2157,6 +2181,13 @@ button { font: inherit; }
   color: var(--teal);
   margin-bottom: 8px;
   display: block;
+}
+.overview-greeting {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8c95a8;
+  margin-bottom: 10px;
 }
 .dash-header-row h1 {
   font-size: clamp(28px, 3.8vw, 42px);
