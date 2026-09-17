@@ -1240,6 +1240,41 @@ button { font: inherit; }
 
 .workspace-dropdown {
   width: 300px;
+  max-height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 4px 6px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #6d778a;
+}
+.workspace-search-box input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e6edfd;
+  font-size: 12px;
+  font-family: inherit;
+}
+.workspace-search-box input::placeholder {
+  color: #565e70;
+}
+
+/* Room for the search box + header before the list has to scroll on its
+   own -- the dropdown itself can't scroll as a whole without also scrolling
+   the search box out of view. */
+.workspace-dropdown-list {
+  overflow-y: auto;
 }
 
 .workspace-dropdown-item {

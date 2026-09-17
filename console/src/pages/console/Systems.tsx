@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
+import { ResourceIcon } from "@/components/ResourceIcon";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { getResources, getPrimaryApplication, statusMeta, resourceSubtitle, RESOURCE_KIND_LABEL } from "@/lib/resources";
-import { Server, Database, Boxes, ArrowUpRight, Info } from "lucide-react";
+import { Server, Boxes, ArrowUpRight, Info } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Systems() {
@@ -63,7 +64,6 @@ export default function Systems() {
               )}
               {resources.map((resource) => {
                 const { label, tone } = statusMeta(resource.status);
-                const Icon = resource.kind === "database" ? Database : resource.kind === "service" ? Boxes : Server;
                 return (
                   <div className="system-row" key={resource.uuid}>
                     <div className="system-status-indicator">
@@ -71,7 +71,7 @@ export default function Systems() {
                     </div>
                     <div className="system-info">
                       <div className="system-title-row">
-                        <Icon size={15} className="text-teal" />
+                        <ResourceIcon resource={resource} size={15} className="text-teal" />
                         <h3>{resource.name}</h3>
                         <span className="system-kind-tag">{RESOURCE_KIND_LABEL[resource.kind]}</span>
                         <span className="system-version">{resource.uuid}</span>

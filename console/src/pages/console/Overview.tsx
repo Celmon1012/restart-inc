@@ -1,19 +1,14 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
+import { ResourceIcon } from "@/components/ResourceIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { getResources, statusMeta, deploymentStatusLabel, formatRelativeTime, type Resource } from "@/lib/resources";
+import { getResources, statusMeta, deploymentStatusLabel, formatRelativeTime } from "@/lib/resources";
 import { getCurrentMilestone } from "@/lib/delivery";
 import { getDisplayName } from "@/lib/utils";
-import { CheckCircle2, AlertTriangle, ArrowRight, Server, Database, Boxes, Clock, Terminal, Rocket } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ArrowRight, Clock, Terminal, Rocket } from "lucide-react";
 import { toast } from "sonner";
-
-const KIND_ICON: Record<Resource["kind"], typeof Server> = {
-  application: Server,
-  database: Database,
-  service: Boxes
-};
 
 export default function Overview() {
   const { user } = useAuth();
@@ -126,10 +121,9 @@ export default function Overview() {
               <div className="overview-systems-grid">
                 {resources.map((r) => {
                   const { label, tone } = statusMeta(r.status);
-                  const Icon = KIND_ICON[r.kind];
                   return (
                     <div className="overview-system-card" key={r.uuid}>
-                      <Icon size={15} className="text-teal" />
+                      <ResourceIcon resource={r} size={15} className="text-teal" />
                       <span className="overview-system-name">{r.name}</span>
                       <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>{label}</span>
                     </div>

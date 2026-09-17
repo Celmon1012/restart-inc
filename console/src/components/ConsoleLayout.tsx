@@ -18,7 +18,8 @@ import {
   Check,
   Building2,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Search
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -62,6 +63,10 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
   const displayEmail = user?.email || "";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const [workspaceSearch, setWorkspaceSearch] = useState("");
+  const filteredWorkspaces = workspaces.filter((w) =>
+    w.name.toLowerCase().includes(workspaceSearch.trim().toLowerCase())
+  );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem("console.sidebarCollapsed") === "1";
@@ -79,6 +84,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
       }
       if (workspaceMenuRef.current && !workspaceMenuRef.current.contains(event.target as Node)) {
         setWorkspaceMenuOpen(false);
+        setWorkspaceSearch("");
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -88,6 +94,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
   const handleSwitchWorkspace = (workspace: { id: string; name: string }) => {
     setActiveWorkspaceId(workspace.id);
     setWorkspaceMenuOpen(false);
+    setWorkspaceSearch("");
     toast.success(`Switched to workspace: ${workspace.name}`);
   };
 
@@ -186,26 +193,48 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
                     <span className="dropdown-user-email">Projects you have access to</span>
                   </div>
 
+                  {workspaces.length > 0 && (
+                    <div className="workspace-search-box">
+                      <Search size={13} />
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="Search projects…"
+                        value={workspaceSearch}
+                        onChange={(e) => setWorkspaceSearch(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  )}
+
                   {workspaces.length === 0 && (
                     <div className="dash-dropdown-item" style={{ cursor: "default" }}>
                       <span>No workspaces assigned yet</span>
                     </div>
                   )}
 
-                  {workspaces.map((workspace) => (
-                    <button
-                      key={workspace.id}
-                      onClick={() => handleSwitchWorkspace(workspace)}
-                      className={`dash-dropdown-item workspace-dropdown-item ${activeWorkspace?.id === workspace.id ? "active-link" : ""}`}
-                    >
-                      <Building2 size={14} />
-                      <span className="workspace-dropdown-item-text">
-                        <span>{workspace.name}</span>
-                        {workspace.tier && <span className="workspace-dropdown-item-server">{workspace.tier}</span>}
-                      </span>
-                      {activeWorkspace?.id === workspace.id && <Check size={13} className="dash-workspace-check" />}
-                    </button>
-                  ))}
+                  <div className="workspace-dropdown-list">
+                    {workspaces.length > 0 && filteredWorkspaces.length === 0 && (
+                      <div className="dash-dropdown-item" style={{ cursor: "default" }}>
+                        <span>No projects match "{workspaceSearch}"</span>
+                      </div>
+                    )}
+
+                    {filteredWorkspaces.map((workspace) => (
+                      <button
+                        key={workspace.id}
+                        onClick={() => handleSwitchWorkspace(workspace)}
+                        className={`dash-dropdown-item workspace-dropdown-item ${activeWorkspace?.id === workspace.id ? "active-link" : ""}`}
+                      >
+                        <Building2 size={14} />
+                        <span className="workspace-dropdown-item-text">
+                          <span>{workspace.name}</span>
+                          {workspace.tier && <span className="workspace-dropdown-item-server">{workspace.tier}</span>}
+                        </span>
+                        {activeWorkspace?.id === workspace.id && <Check size={13} className="dash-workspace-check" />}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
