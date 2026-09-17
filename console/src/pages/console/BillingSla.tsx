@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
-import { ArrowUpRight, ExternalLink, CreditCard, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, ExternalLink, CreditCard, ShieldCheck, Tag, Wallet } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
 
@@ -22,6 +22,7 @@ interface BillingInvoice {
   totalAmountCents: number;
   currency: string;
   fileUrl: string | null;
+  paymentUrl: string | null;
 }
 
 interface BillingCustomer {
@@ -30,11 +31,36 @@ interface BillingCustomer {
   paymentProvider: string | null;
 }
 
+interface AppliedCoupon {
+  name: string;
+  code: string;
+  frequency: string;
+  durationTotal: number | null;
+  durationRemaining: number | null;
+  percentageRate: string | null;
+  amountCents: number | null;
+  amountCurrency: string | null;
+}
+
 interface BillingData {
   billingConfigured: boolean;
   customer?: BillingCustomer | null;
   subscriptions?: BillingSubscription[];
   invoices?: BillingInvoice[];
+  appliedCoupons?: AppliedCoupon[];
+}
+
+function describeCoupon(c: AppliedCoupon): string {
+  const value = c.percentageRate
+    ? `${c.percentageRate}% off`
+    : c.amountCents !== null && c.amountCurrency
+      ? `${formatAmount(c.amountCents, c.amountCurrency)} off`
+      : "Discount";
+  if (c.durationTotal && c.durationRemaining !== null) {
+    const used = c.durationTotal - c.durationRemaining;
+    return `${value} — month ${Math.max(used, 0) + 1} of ${c.durationTotal}`;
+  }
+  return value;
 }
 
 function formatAmount(cents: number, currency: string) {
@@ -151,7 +177,7 @@ export default function BillingSla() {
 
             <div className="console-grid-layout mt-6">
               <div className="console-col">
-                {data.subscriptions && data.subscriptions.length > 1 && (
+                {data.subscriptions && data.subscriptions.length > 0 && (
                   <div className="console-card">
                     <div className="card-top-header">
                       <span className="card-kicker">ALL SUBSCRIPTIONS</span>
@@ -165,17 +191,38 @@ export default function BillingSla() {
                               <strong>{sub.planName}</strong>
                               <p>{sub.startedAt ? `Started ${new Date(sub.startedAt).toLocaleDateString()}` : ""}</p>
                             </div>
-                            <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>
-                              {sub.status.toUpperCase()}
-                            </span>
+                            <div className="text-right">
+                              {sub.amountCents !== null && sub.currency && (
+                                <div className="text-[13px] font-semibold">
+                                  {formatAmount(sub.amountCents, sub.currency)}
+                                  {sub.interval && <span className="text-[#78849b]"> /{sub.interval}</span>}
+                                </div>
+                              )}
+                              <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>
+                                {sub.status.toUpperCase()}
+                              </span>
+                            </div>
                           </div>
                         );
                       })}
                     </div>
+
+                    {data.appliedCoupons && data.appliedCoupons.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-white/5">
+                        {data.appliedCoupons.map((c) => (
+                          <div key={c.code} className="flex items-center gap-2 text-[12px] text-teal">
+                            <Tag size={12} />
+                            <span>
+                              {c.name}: {describeCoupon(c)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                <div className={`console-card ${data.subscriptions && data.subscriptions.length > 1 ? "mt-6" : ""}`}>
+                <div className={`console-card ${data.subscriptions && data.subscriptions.length > 0 ? "mt-6" : ""}`}>
                   <div className="card-top-header">
                     <span className="card-kicker">PAYMENT METHOD</span>
                     <CreditCard size={15} className="text-teal" />
@@ -225,6 +272,18 @@ export default function BillingSla() {
                             </div>
                             <div className="inv-right">
                               <span className="inv-amount">{formatAmount(inv.totalAmountCents, inv.currency)}</span>
+                              {inv.paymentUrl && (
+                                <a
+                                  href={inv.paymentUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="dash-action-btn"
+                                  style={{ padding: "6px 12px", fontSize: "12px" }}
+                                >
+                                  <Wallet size={13} />
+                                  <span>Pay Now</span>
+                                </a>
+                              )}
                               {inv.fileUrl && (
                                 <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="inv-dl-btn">
                                   <ExternalLink size={13} />

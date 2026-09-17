@@ -71,6 +71,15 @@ async function lagoFetch(path: string) {
   return res.json();
 }
 
+async function lagoPost(path: string) {
+  const res = await fetch(`${LAGO_API_URL}/api/v1${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${LAGO_API_KEY}`, "Content-Type": "application/json" },
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
 interface LagoSubscription {
   external_id: string;
   plan_code: string;
@@ -79,6 +88,7 @@ interface LagoSubscription {
 }
 
 interface LagoInvoice {
+  lago_id: string;
   number: string;
   issuing_date: string;
   status: string;
@@ -96,15 +106,39 @@ interface LagoPlan {
   interval: string;
 }
 
+interface LagoAppliedCoupon {
+  coupon_name: string;
+  coupon_code: string;
+  status: string;
+  frequency: string;
+  frequency_duration: number | null;
+  frequency_duration_remaining: number | null;
+  percentage_rate: string | null;
+  amount_cents: number | null;
+  amount_currency: string | null;
+}
+
+// A pending/failed invoice needs a real checkout link, not just a PDF -- this
+// is what a client actually clicks to pay. Only invoices already succeeded
+// don't need one. Best-effort: if Lago can't generate a link for some reason
+// (e.g. the payment provider rejects it), the invoice still shows, just
+// without a "Pay Now" button, rather than failing the whole billing fetch.
+async function fetchPaymentUrl(lagoInvoiceId: string): Promise<string | null> {
+  const body = await lagoPost(`/invoices/${encodeURIComponent(lagoInvoiceId)}/payment_url`);
+  return body?.invoice?.payment_url ?? body?.payment_url ?? null;
+}
+
 async function fetchBilling(externalCustomerId: string) {
-  const [customerRes, subsRes, invoicesRes] = await Promise.all([
+  const [customerRes, subsRes, invoicesRes, couponsRes] = await Promise.all([
     lagoFetch(`/customers/${encodeURIComponent(externalCustomerId)}`),
     lagoFetch(`/subscriptions?external_customer_id=${encodeURIComponent(externalCustomerId)}`),
     lagoFetch(`/invoices?external_customer_id=${encodeURIComponent(externalCustomerId)}&per_page=20`),
+    lagoFetch(`/applied_coupons?external_customer_id=${encodeURIComponent(externalCustomerId)}&status=active`),
   ]);
 
   const subscriptions: LagoSubscription[] = subsRes?.subscriptions ?? [];
   const invoices: LagoInvoice[] = invoicesRes?.invoices ?? [];
+  const appliedCoupons: LagoAppliedCoupon[] = couponsRes?.applied_coupons ?? [];
 
   // Plans aren't included inline on a subscription (only plan_code is), so
   // fetch each distinct plan referenced to get its real price/interval.
@@ -112,6 +146,12 @@ async function fetchBilling(externalCustomerId: string) {
   const plans = await Promise.all(planCodes.map((code) => lagoFetch(`/plans/${encodeURIComponent(code)}`)));
   const planByCode = new Map<string, LagoPlan>(
     plans.filter((p): p is { plan: LagoPlan } => Boolean(p?.plan)).map((p) => [p.plan.code, p.plan])
+  );
+
+  // Only fetch a payment link for invoices that actually need paying --
+  // no point generating one for an already-succeeded invoice.
+  const paymentUrls = await Promise.all(
+    invoices.map((inv) => (inv.payment_status === "succeeded" ? Promise.resolve(null) : fetchPaymentUrl(inv.lago_id)))
   );
 
   return {
@@ -134,7 +174,7 @@ async function fetchBilling(externalCustomerId: string) {
         interval: plan?.interval ?? null,
       };
     }),
-    invoices: invoices.map((inv) => ({
+    invoices: invoices.map((inv, i) => ({
       number: inv.number,
       issuingDate: inv.issuing_date,
       status: inv.status,
@@ -142,6 +182,17 @@ async function fetchBilling(externalCustomerId: string) {
       totalAmountCents: inv.total_amount_cents,
       currency: inv.currency,
       fileUrl: inv.file_url,
+      paymentUrl: paymentUrls[i],
+    })),
+    appliedCoupons: appliedCoupons.map((c) => ({
+      name: c.coupon_name,
+      code: c.coupon_code,
+      frequency: c.frequency,
+      durationTotal: c.frequency_duration,
+      durationRemaining: c.frequency_duration_remaining,
+      percentageRate: c.percentage_rate,
+      amountCents: c.amount_cents,
+      amountCurrency: c.amount_currency,
     })),
   };
 }
