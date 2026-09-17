@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   Key,
   Shield,
@@ -66,6 +67,9 @@ export default function ApiKeyVault() {
   const [isCreatingKey, setIsCreatingKey] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [newKeyRole, setNewKeyRole] = useState<"READ_WRITE" | "INGESTION_ONLY" | "ADMIN">("READ_WRITE");
+  const [confirmTarget, setConfirmTarget] = useState<{ action: "rotate" | "revoke"; id: string; name: string } | null>(
+    null
+  );
 
   const toggleReveal = (id: string) => {
     setRevealedKeys((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -266,14 +270,14 @@ export default function ApiKeyVault() {
                               {copiedId === k.id ? <Check size={13} className="text-teal" /> : <Copy size={13} />}
                             </button>
                             <button
-                              onClick={() => handleRotateKey(k.id, k.name)}
+                              onClick={() => setConfirmTarget({ action: "rotate", id: k.id, name: k.name })}
                               className="env-action-btn"
                               title="Rotate Secret"
                             >
                               <RotateCw size={13} />
                             </button>
                             <button
-                              onClick={() => handleRevokeKey(k.id, k.name)}
+                              onClick={() => setConfirmTarget({ action: "revoke", id: k.id, name: k.name })}
                               className="env-action-btn text-rose-400 hover:text-rose-300"
                               title="Revoke Key"
                             >
@@ -306,6 +310,32 @@ curl -X POST https://api.restart.ng/v1/telemetry/ingest \\
             </pre>
           </div>
         </div>
+
+        <ConfirmDialog
+          open={confirmTarget !== null}
+          title={confirmTarget?.action === "rotate" ? "Rotate this key's secret?" : "Revoke this key?"}
+          description={
+            confirmTarget?.action === "rotate" ? (
+              <>
+                The current secret for <strong>{confirmTarget?.name}</strong> stops working immediately. Anything
+                still using the old value will fail until it's updated with the new one.
+              </>
+            ) : (
+              <>
+                <strong>{confirmTarget?.name}</strong> will be permanently disabled. This can't be undone — any
+                integration using this key will stop working right away.
+              </>
+            )
+          }
+          confirmLabel={confirmTarget?.action === "rotate" ? "Rotate Secret" : "Revoke Key"}
+          onConfirm={() => {
+            if (!confirmTarget) return;
+            if (confirmTarget.action === "rotate") handleRotateKey(confirmTarget.id, confirmTarget.name);
+            else handleRevokeKey(confirmTarget.id, confirmTarget.name);
+            setConfirmTarget(null);
+          }}
+          onCancel={() => setConfirmTarget(null)}
+        />
     </ConsoleLayout>
   );
 }

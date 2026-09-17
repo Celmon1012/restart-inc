@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Shield, ShieldOff, Smartphone, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,6 +38,7 @@ export default function ProfileSecurity() {
   const [mfaBusy, setMfaBusy] = useState(false);
 
   const [terminatingOthers, setTerminatingOthers] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"disable-mfa" | "terminate-others" | null>(null);
 
   const loadFactors = async () => {
     setLoadingFactors(true);
@@ -165,11 +167,12 @@ export default function ProfileSecurity() {
 
   // The toggle is the single control for the whole flow: off -> on starts
   // enrollment (QR appears below, still unverified until the code is
-  // confirmed); on -> off disables the existing verified factor.
+  // confirmed); on -> off disables the existing verified factor, which goes
+  // through a confirmation step since it removes a real security control.
   const handleToggleMfa = () => {
     if (mfaBusy || !mfaSupported) return;
     if (verifiedFactor) {
-      handleRemoveFactor(verifiedFactor.id);
+      setConfirmAction("disable-mfa");
     } else if (enrolling) {
       handleCancelEnroll();
     } else {
@@ -416,7 +419,7 @@ export default function ProfileSecurity() {
 
               <div className="mt-5 pt-4 border-t border-white/5">
                 <button
-                  onClick={handleTerminateOthers}
+                  onClick={() => setConfirmAction("terminate-others")}
                   disabled={terminatingOthers}
                   className="console-btn-danger w-full"
                 >
@@ -427,6 +430,32 @@ export default function ProfileSecurity() {
             </div>
           </div>
         </div>
+
+        <ConfirmDialog
+          open={confirmAction === "disable-mfa"}
+          title="Disable two-factor authentication?"
+          description="Your account will no longer require an authenticator app code at sign-in. You can re-enable it any time from this page."
+          confirmLabel="Disable 2FA"
+          busy={mfaBusy}
+          onConfirm={async () => {
+            if (verifiedFactor) await handleRemoveFactor(verifiedFactor.id);
+            setConfirmAction(null);
+          }}
+          onCancel={() => setConfirmAction(null)}
+        />
+
+        <ConfirmDialog
+          open={confirmAction === "terminate-others"}
+          title="Sign out everywhere else?"
+          description="Every other active session for this account will be signed out immediately. This device stays signed in; anywhere else you're logged in will need to sign back in."
+          confirmLabel="Sign Out Everywhere Else"
+          busy={terminatingOthers}
+          onConfirm={async () => {
+            await handleTerminateOthers();
+            setConfirmAction(null);
+          }}
+          onCancel={() => setConfirmAction(null)}
+        />
     </ConsoleLayout>
   );
 }
