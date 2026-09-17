@@ -16,7 +16,9 @@ import {
   Shield,
   Bell,
   Check,
-  Building2
+  Building2,
+  PanelLeftClose,
+  PanelLeftOpen
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,6 +66,13 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(3);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("console.sidebarCollapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
   const userMenuRef = useRef<HTMLDivElement>(null);
   const workspaceMenuRef = useRef<HTMLDivElement>(null);
 
@@ -100,13 +109,33 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
     }
   };
 
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("console.sidebarCollapsed", next ? "1" : "0");
+      } catch {}
+      return next;
+    });
+  };
+
   return (
     <div className="console-app-shell">
-      <aside className="console-sidebar">
-        <a href={MARKETING_URL} className="console-sidebar-brand" aria-label="Restart home">
-          <span className="restart-mark" aria-hidden="true"><span /></span>
-          <span>RESTART INC<span className="logo-dot">.</span></span>
-        </a>
+      <aside className={`console-sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
+        <div className="console-sidebar-brand-row">
+          <a href={MARKETING_URL} className="console-sidebar-brand" aria-label="Restart home">
+            <span className="restart-mark" aria-hidden="true"><span /></span>
+            <span>RESTART INC<span className="logo-dot">.</span></span>
+          </a>
+          <button
+            onClick={toggleSidebar}
+            className="console-sidebar-collapse-btn"
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+          </button>
+        </div>
 
         <nav className="console-sidebar-nav" aria-label="Console">
           {NAV_GROUPS.map((group, idx) => (
@@ -203,6 +232,11 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
             >
               <RefreshCw size={15} />
             </button>
+
+            <a href={`${MARKETING_URL}/start-project`} className="dash-action-btn">
+              <span>Start a Project</span>
+              <ArrowUpRight size={14} />
+            </a>
 
             <div className="dash-user-menu-wrapper" ref={userMenuRef}>
               <button
