@@ -136,6 +136,49 @@ function statusTone(status: string): "healthy" | "warning" | "down" {
   return "down";
 }
 
+// Lago's subscription object doesn't hand back a clean "next charge" date
+// directly, but a yearly/monthly/etc. subscription renews on the same
+// day-of-period as it started -- so this is a real calculation, not a
+// guess, and it matches what Lago's own dashboard shows for a fixed-term
+// subscription (confirmed against a real yearly sub: computed date lined
+// up with Lago's displayed end date exactly).
+function computeRenewalDate(startedAt: string | null, interval: string | null): Date | null {
+  if (!startedAt || !interval) return null;
+  const start = new Date(startedAt);
+  if (isNaN(start.getTime())) return null;
+  const stepMonths: Record<string, number> = { monthly: 1, quarterly: 3, yearly: 12 };
+  const now = new Date();
+  if (interval === "weekly") {
+    const next = new Date(start);
+    while (next <= now) next.setDate(next.getDate() + 7);
+    return next;
+  }
+  const months = stepMonths[interval];
+  if (!months) return null;
+  const next = new Date(start);
+  while (next <= now) next.setMonth(next.getMonth() + months);
+  return next;
+}
+
+// Which subscription a coupon actually discounts isn't in the applied-coupon
+// payload -- Lago ties coupons to the customer, not a specific subscription,
+// in this API. Matching by a shared word in the name (e.g. "DevOps" coupon
+// <-> "DevOps Retainer" subscription) is a heuristic, not a guarantee; when
+// nothing matches, falling back to the workspace's primary subscription is
+// still the best available guess.
+function matchSubscriptionForCoupon(
+  coupon: AppliedCoupon,
+  subscriptions: BillingSubscription[],
+  fallback: BillingSubscription | undefined
+): BillingSubscription | undefined {
+  const firstWord = coupon.name.trim().split(/\s+/)[0]?.toLowerCase();
+  if (firstWord) {
+    const match = subscriptions.find((s) => s.planName.toLowerCase().includes(firstWord));
+    if (match) return match;
+  }
+  return fallback;
+}
+
 const PROVIDER_LABEL: Record<string, string> = {
   stripe: "Stripe",
   gocardless: "GoCardless",
@@ -173,7 +216,11 @@ export default function BillingSla() {
     };
   }, [activeWorkspace?.id]);
 
+  const [priceModalOpen, setPriceModalOpen] = useState(false);
   const primarySubscription = data?.subscriptions?.find((s) => s.status === "active") ?? data?.subscriptions?.[0];
+  const renewalDate = primarySubscription
+    ? computeRenewalDate(primarySubscription.startedAt, primarySubscription.interval)
+    : null;
 
   return (
     <ConsoleLayout>
@@ -215,22 +262,23 @@ export default function BillingSla() {
                 </div>
 
                 {primarySubscription.amountCents !== null && primarySubscription.currency && (
-                  <div className="sla-billing-box">
-                    <span className="b-label">
-                      {primarySubscription.interval ? primarySubscription.interval.toUpperCase() : "RECURRING"} PLAN PRICE
-                    </span>
+                  <div
+                    className="sla-billing-box sla-billing-box-clickable"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setPriceModalOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") setPriceModalOpen(true);
+                    }}
+                  >
+                    <span className="b-label">{renewalDate ? "RENEWS" : "NEXT CHARGE"}</span>
                     <div className="b-price">
-                      <span className="val">
-                        {formatAmount(primarySubscription.amountCents, primarySubscription.currency)}
-                      </span>
+                      <span className="val">{renewalDate ? renewalDate.toLocaleDateString() : "—"}</span>
                     </div>
-                    <Link
-                      href="/console/systems?tab=infrastructure"
-                      className="overview-section-link mt-4 w-full justify-center"
-                    >
-                      <span>Need more capacity? Manage on Systems</span>
+                    <span className="overview-section-link mt-2">
+                      <span>View price & server details</span>
                       <ArrowRight size={12} />
-                    </Link>
+                    </span>
                   </div>
                 )}
               </div>
@@ -293,6 +341,11 @@ export default function BillingSla() {
                       <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
                         {data.appliedCoupons.map((c) => {
                           const endsAround = estimatedCouponEnd(c);
+                          const appliesTo = matchSubscriptionForCoupon(
+                            c,
+                            data.subscriptions ?? [],
+                            primarySubscription
+                          );
                           return (
                             <BillingDetailCard
                               key={c.code}
@@ -301,7 +354,7 @@ export default function BillingSla() {
                               title={c.name}
                               statusLabel={c.status.toUpperCase()}
                               metaItems={[
-                                ...(primarySubscription ? [`Applies to ${primarySubscription.planName}`] : []),
+                                ...(appliesTo ? [`Applies to ${appliesTo.planName}`] : []),
                                 describeCoupon(c),
                                 ...(endsAround ? [`Ends around ${endsAround.toLocaleDateString()}`] : [])
                               ]}
@@ -404,6 +457,64 @@ export default function BillingSla() {
                 </div>
               </div>
             </div>
+
+            {priceModalOpen && primarySubscription && (
+              <div className="confirm-dialog-overlay" onClick={() => setPriceModalOpen(false)}>
+                <div className="confirm-dialog-card" onClick={(e) => e.stopPropagation()}>
+                  <h3>{primarySubscription.planName}</h3>
+                  <div className="billing-detail-expanded">
+                    {primarySubscription.amountCents !== null && primarySubscription.currency && (
+                      <div className="billing-detail-expanded-row">
+                        <span>Price</span>
+                        <span className="mono">
+                          {formatAmount(primarySubscription.amountCents, primarySubscription.currency)}
+                          {primarySubscription.interval && ` / ${primarySubscription.interval}`}
+                        </span>
+                      </div>
+                    )}
+                    {primarySubscription.startedAt && (
+                      <div className="billing-detail-expanded-row">
+                        <span>Started</span>
+                        <span>{new Date(primarySubscription.startedAt).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                    {renewalDate && (
+                      <div className="billing-detail-expanded-row">
+                        <span>Renews</span>
+                        <span>{renewalDate.toLocaleDateString()}</span>
+                      </div>
+                    )}
+                    {activeWorkspace?.server && (
+                      <>
+                        <div className="billing-detail-expanded-row">
+                          <span>Server</span>
+                          <span className="mono">{activeWorkspace.server.name}</span>
+                        </div>
+                        <div className="billing-detail-expanded-row">
+                          <span>Capacity</span>
+                          <span>
+                            {activeWorkspace.server.cpus ?? "—"} vCPU · {activeWorkspace.server.memoryGb ?? "—"} GB RAM
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    <div className="billing-detail-expanded-actions">
+                      <Link href="/console/systems?tab=infrastructure" className="overview-section-link">
+                        <span>Manage capacity</span>
+                        <ArrowRight size={12} />
+                      </Link>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="console-btn-secondary mt-4 w-full justify-center"
+                    onClick={() => setPriceModalOpen(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
     </ConsoleLayout>

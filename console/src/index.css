@@ -1952,6 +1952,15 @@ button { font: inherit; }
   flex-direction: column;
   justify-content: center;
 }
+.sla-billing-box-clickable {
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.sla-billing-box-clickable:hover,
+.sla-billing-box-clickable:focus-visible {
+  border-color: rgba(46, 229, 193, 0.4);
+  background: #050506;
+}
 .b-label {
   font-size: 10.5px;
   font-weight: 800;

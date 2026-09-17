@@ -131,7 +131,12 @@ async function fetchPaymentUrl(lagoInvoiceId: string): Promise<string | null> {
 async function fetchBilling(externalCustomerId: string) {
   const [customerRes, subsRes, invoicesRes, couponsRes] = await Promise.all([
     lagoFetch(`/customers/${encodeURIComponent(externalCustomerId)}`),
-    lagoFetch(`/subscriptions?external_customer_id=${encodeURIComponent(externalCustomerId)}`),
+    // Lago's default (no status[] filter) only returns "active" subscriptions
+    // -- a scheduled/future-dated one (status "pending") silently disappears
+    // otherwise, even though it's real and the client should see it coming.
+    lagoFetch(
+      `/subscriptions?external_customer_id=${encodeURIComponent(externalCustomerId)}&status[]=active&status[]=pending`
+    ),
     lagoFetch(`/invoices?external_customer_id=${encodeURIComponent(externalCustomerId)}&per_page=20`),
     lagoFetch(`/applied_coupons?external_customer_id=${encodeURIComponent(externalCustomerId)}&status=active`),
   ]);
