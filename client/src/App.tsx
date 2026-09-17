@@ -8,6 +8,8 @@ import Home from "./pages/Home";
 import CaseStudies from "./pages/CaseStudies";
 import Insights from "./pages/Insights";
 import StartProject from "./pages/StartProject";
+import Contact from "./pages/Contact";
+import SolutionDetail from "./pages/SolutionDetail";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -16,6 +18,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/case-studies" component={CaseStudies} />
       <Route path="/insights" component={Insights} />
+      <Route path="/solutions/:slug" component={SolutionDetail} />
+      <Route path="/contact" component={Contact} />
       <Route path="/start-project" component={StartProject} />
       <Route path="/onboarding" component={StartProject} />
       <Route component={NotFound} />

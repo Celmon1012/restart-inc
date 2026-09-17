@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, ArrowUpRight, Check, CheckCircle2, ChevronRight, Cpu, Database, Loader2, Network, Radio, Send, Server, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Check, CheckCircle2, ChevronRight, Cpu, Database, Loader2, Network, Send, Server, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export const premiumTiers = [
   { id: "cloud", name: "Enterprise Cloud & Migration (99.99% SLA)", tag: "Bare-Metal / 99.99% SLA" },
@@ -32,13 +33,6 @@ export const stages = [
   "1-Week Architecture Audit",
 ];
 
-interface WebhookReceipt {
-  status: number;
-  endpoint: string;
-  delivered: boolean;
-  latencyMs: number;
-  timestamp: string;
-}
 
 export default function StartProject() {
   const [selectedTier, setSelectedTier] = useState(premiumTiers[0].name);
@@ -51,7 +45,6 @@ export default function StartProject() {
   const [projectBrief, setProjectBrief] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [referenceId, setReferenceId] = useState("");
-  const [webhookReceipt, setWebhookReceipt] = useState<WebhookReceipt | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -95,67 +88,40 @@ export default function StartProject() {
     setStatus("submitting");
     setError(null);
 
+    if (!isSupabaseConfigured) {
+      setError("Submissions aren't configured on this deployment yet. Please email hello@restart.ng directly.");
+      setStatus("idle");
+      return;
+    }
+
     const generatedRef = `RST-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 899 + 100)}`;
-    const payload = {
-      event: "onboarding_inquiry_submitted",
-      source: "dedicated_squeeze_page",
-      referenceId: generatedRef,
-      timestamp: new Date().toISOString(),
-      lead: {
+
+    const { error: insertError } = await supabase
+      .schema("console")
+      .from("inquiries")
+      .insert({
+        reference_id: generatedRef,
+        source: "start_project_page",
         name,
         email,
-        company: company || "Not specified",
-        serviceTier: selectedTier,
-        budgetRange: selectedBudget,
-        projectStage: selectedStage,
-        targetTimeline: selectedTimeline,
-        projectBrief: projectBrief || "Direct scope discussion requested",
-      },
-      meta: {
-        userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "SSR",
-        referrer: typeof document !== "undefined" ? document.referrer : "",
-      },
-    };
-
-    const startTime = performance.now();
-    try {
-      const response = await fetch("https://httpbin.org/post", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: JSON.stringify(payload),
+        company: company || null,
+        service_tier: selectedTier,
+        budget_range: selectedBudget,
+        project_stage: selectedStage,
+        target_timeline: selectedTimeline,
+        project_brief: projectBrief || null,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+        referrer: typeof document !== "undefined" ? document.referrer || null : null,
       });
 
-      const endTime = performance.now();
-      const latencyMs = Math.round(endTime - startTime);
-
-      if (response.ok) {
-        setReferenceId(generatedRef);
-        setWebhookReceipt({
-          status: response.status,
-          endpoint: "https://httpbin.org/post",
-          delivered: true,
-          latencyMs,
-          timestamp: new Date().toLocaleTimeString(),
-        });
-        setStatus("success");
-      } else {
-        throw new Error(`Webhook endpoint returned status ${response.status}`);
-      }
-    } catch (err: any) {
-      const fallbackLatency = Math.round(performance.now() - startTime);
-      setReferenceId(generatedRef);
-      setWebhookReceipt({
-        status: 200,
-        endpoint: "Local Sandbox Mock Intake",
-        delivered: true,
-        latencyMs: fallbackLatency > 0 ? fallbackLatency : 120,
-        timestamp: new Date().toLocaleTimeString(),
-      });
-      setStatus("success");
+    if (insertError) {
+      setError("We couldn't submit your inquiry — please try again, or email hello@restart.ng directly.");
+      setStatus("idle");
+      return;
     }
+
+    setReferenceId(generatedRef);
+    setStatus("success");
   };
 
   return (
@@ -263,19 +229,6 @@ export default function StartProject() {
                     <strong>24h Review Guarantee</strong>
                   </div>
                 </div>
-
-                {webhookReceipt && (
-                  <div className="webhook-receipt-card">
-                    <div className="receipt-header">
-                      <span className="receipt-badge">WEBHOOK DISPATCH 200 OK</span>
-                      <span className="receipt-latency">{webhookReceipt.latencyMs}ms</span>
-                    </div>
-                    <div className="receipt-details">
-                      <span>Endpoint: {webhookReceipt.endpoint}</span>
-                      <span>Timestamp: {webhookReceipt.timestamp}</span>
-                    </div>
-                  </div>
-                )}
 
                 <div className="success-next-steps">
                   <h4>WHAT HAPPENS NEXT</h4>
@@ -448,7 +401,7 @@ export default function StartProject() {
         </div>
       </main>
 
-      <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><span className="restart-mark" aria-hidden="true"><span /></span><span>RESTART<span className="logo-dot">.</span></span></Link><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><Link href="/#platform">Platform</Link><Link href="/#solutions">Solutions</Link><Link href="/#case-studies">Case Studies</Link><Link href="/#insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/#about">About</Link><Link href="/start-project">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
+      <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><span className="restart-mark" aria-hidden="true"><span /></span><span>RESTART<span className="logo-dot">.</span></span></Link><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><Link href="/#platform">Platform</Link><Link href="/#solutions">Solutions</Link><Link href="/#case-studies">Case Studies</Link><Link href="/#insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/#about">About</Link><Link href="/contact">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
     </div>
   );
 }

@@ -5,16 +5,15 @@ import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Cpu, Database, Gauge, Layers3, Menu, Network, Orbit, ShieldCheck, Sparkles, X, Zap, ExternalLink } from "lucide-react";
-import { OnboardingModal } from "@/components/OnboardingModal";
 import CaseStudyModal from "@/components/CaseStudyModal";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import { insightsData } from "@/data/insights";
 
 const lanes = [
-  { number: "01", title: "Build a platform your team can operate.", accent: "teal", icon: Code2, text: "Multi-tenant B2B platforms designed around clear boundaries, resilient jobs, secure access, observable workflows, and the operational detail that makes production sustainable.", tags: ["Laravel", "PostgreSQL", "Octane", "Filament", "Horizon", "Observability"], action: "Explore SaaS builds" },
-  { number: "02", title: "Make commerce operations work harder.", accent: "blue", icon: Layers3, text: "Custom commerce platforms built on Medusa — admin workflows, billing, protected data, resilient webhooks, and the realities of high-volume commerce.", tags: ["Medusa", "Next.js", "PostgreSQL", "Admin API", "Workflows"], action: "Explore commerce builds" },
-  { number: "03", title: "Put AI where it can earn trust.", accent: "violet", icon: BrainCircuit, text: "We turn models, retrieval, tools, and agents into useful product capabilities — with evaluation, observability, and cost controls built in from the start.", tags: ["Claude API", "MCP", "RAG", "pgvector", "Evaluation harnesses"], action: "Explore AI engineering" },
-  { number: "04", title: "Bring experience to the decisions that matter.", accent: "amber", icon: Network, text: "Architecture reviews, fractional technical leadership, hiring support, and hands-on mentorship for teams that need a clearer path from complexity to execution.", tags: ["Architecture reviews", "Domain modeling", "Testing strategy", "Technical leadership", "Mentorship"], action: "Talk to an engineer" },
+  { number: "01", slug: "saas-platforms", title: "Build a platform your team can operate.", accent: "teal", icon: Code2, text: "Multi-tenant B2B platforms designed around clear boundaries, resilient jobs, secure access, observable workflows, and the operational detail that makes production sustainable.", tags: ["Laravel", "PostgreSQL", "Octane", "Filament", "Horizon", "Observability"], action: "Explore SaaS builds" },
+  { number: "02", slug: "commerce", title: "Make commerce operations work harder.", accent: "blue", icon: Layers3, text: "Custom commerce platforms built on Medusa — admin workflows, billing, protected data, resilient webhooks, and the realities of high-volume commerce.", tags: ["Medusa", "Next.js", "PostgreSQL", "Admin API", "Workflows"], action: "Explore commerce builds" },
+  { number: "03", slug: "ai-engineering", title: "Put AI where it can earn trust.", accent: "violet", icon: BrainCircuit, text: "We turn models, retrieval, tools, and agents into useful product capabilities — with evaluation, observability, and cost controls built in from the start.", tags: ["Claude API", "MCP", "RAG", "pgvector", "Evaluation harnesses"], action: "Explore AI engineering" },
+  { number: "04", slug: "architecture-leadership", title: "Bring experience to the decisions that matter.", accent: "amber", icon: Network, text: "Architecture reviews, fractional technical leadership, hiring support, and hands-on mentorship for teams that need a clearer path from complexity to execution.", tags: ["Architecture reviews", "Domain modeling", "Testing strategy", "Technical leadership", "Mentorship"], action: "Talk to an engineer" },
 ];
 
 const offers = [
@@ -60,8 +59,6 @@ function SignalPanel() {
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const [onboardingLane, setOnboardingLane] = useState<string | undefined>(undefined);
   const [activeSection, setActiveSection] = useState("top");
   const [selectedCaseStudy, setSelectedCaseStudy] = useState<CaseStudy | null>(null);
   const [, setLocation] = useLocation();
@@ -113,7 +110,6 @@ export default function Home() {
   }, []);
 
   return <div className="restart-home">
-    <OnboardingModal isOpen={onboardingOpen} onClose={() => setOnboardingOpen(false)} initialLane={onboardingLane} />
     <CaseStudyModal
       isOpen={!!selectedCaseStudy}
       onClose={() => setSelectedCaseStudy(null)}
@@ -180,7 +176,7 @@ export default function Home() {
             <p>Restart Inc. is a technology and engineering firm that helps ambitious operators turn complex workflows and product ideas into reliable, scalable systems.</p>
             <div className="hero-buttons">
               <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
-              <a className="button outline" href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>See how we work <ChevronRight size={15} /></a>
+              <a className="button outline" href="#process" onClick={(e) => handleScrollTo(e, "process")}>See how we work <ChevronRight size={15} /></a>
             </div>
             <div className="hero-proof-row">
               <span><Check size={13} /> Senior technical ownership</span>
@@ -216,7 +212,7 @@ export default function Home() {
                     <span key={tag}>{tag}</span>
                   ))}
                 </div>
-                <Link href={`/start-project?tier=${encodeURIComponent(lane.title)}`} className="card-link">
+                <Link href={`/solutions/${lane.slug}`} className="card-link">
                   {lane.action} <ArrowRight size={14} />
                 </Link>
               </article>
@@ -296,11 +292,11 @@ export default function Home() {
 
       <section className="saas-section" id="about"><div className="container saas-wrap"><div className="saas-copy"><SectionLabel>PLATFORM</SectionLabel><h2>Turn operational friction into <span>technical leverage.</span></h2><p>Restart combines architecture, automation, and product thinking to turn messy operational work into a system your team can understand, improve, and rely on.</p><div className="saas-points"><div><strong>See the system clearly.</strong><span>Map the workflows, constraints, dependencies, and costs that are shaping the business.</span></div><div><strong>Remove the repeatable friction.</strong><span>Automate the work that slows good teams down and build interfaces around the decisions that matter.</span></div><div><strong>Create capacity for the next stage.</strong><span>Build a foundation that supports growth without forcing a full rewrite every time the business changes direction.</span></div></div></div><div className="saas-art"><div className="art-grid" /><div className="art-ring ring-a" /><div className="art-ring ring-b" /><div className="art-label"><Sparkles size={14} />SYSTEMS / 01</div></div></div></section>
 
-      <section className="proof-section"><div className="container"><div className="section-intro centered"><SectionLabel>SIMPLE 4 STEPS PROCESS</SectionLabel><h2>A straightforward path<br /><span>from constraint to production.</span></h2><p>No lengthy proposals or open-ended retainers — just a clear sequence from your first message to a system your team can run.</p></div><div className="proof-grid"><div><CircleCheck size={18} /><strong>01. Start the conversation.</strong><p>Tell us what you are building and where it is stuck. We reply quickly with whether the timing and fit make sense.</p></div><div><ShieldCheck size={18} /><strong>02. Scope the real work.</strong><p>A short technical review turns your constraint into a concrete plan — deliverables, timeline, and cost, with no surprises later.</p></div><div><Layers3 size={18} /><strong>03. Build in the open.</strong><p>Weekly checkpoints, visible progress, and decisions made together — not a black box that reappears at the deadline.</p></div><div><Network size={18} /><strong>04. Launch and hand off.</strong><p>Ship to production with documentation and context your team can operate without us.</p></div></div></div></section>
+      <section className="proof-section" id="process"><div className="container"><div className="section-intro centered"><SectionLabel>SIMPLE 4 STEPS PROCESS</SectionLabel><h2>A straightforward path<br /><span>from constraint to production.</span></h2><p>No lengthy proposals or open-ended retainers — just a clear sequence from your first message to a system your team can run.</p></div><div className="proof-grid"><div><CircleCheck size={18} /><strong>01. Start the conversation.</strong><p>Tell us what you are building and where it is stuck. We reply quickly with whether the timing and fit make sense.</p></div><div><ShieldCheck size={18} /><strong>02. Scope the real work.</strong><p>A short technical review turns your constraint into a concrete plan — deliverables, timeline, and cost, with no surprises later.</p></div><div><Layers3 size={18} /><strong>03. Build in the open.</strong><p>Weekly checkpoints, visible progress, and decisions made together — not a black box that reappears at the deadline.</p></div><div><Network size={18} /><strong>04. Launch and hand off.</strong><p>Ship to production with documentation and context your team can operate without us.</p></div></div></div></section>
 
       <section className="insights-section container" id="insights"><div className="section-intro centered"><SectionLabel>INSIGHTS</SectionLabel><h2>Insights for people making<br /><span>consequential product decisions.</span></h2><p>Practical perspectives on architecture, operations, AI, cloud infrastructure, and the decisions that determine whether a system holds up under pressure.</p></div><div className="insight-grid">{insightsData.slice(0, 3).map((insight) => { const Icon = insight.icon; return <Link key={insight.id} href="/insights" className="insight-card"><div className={`insight-image ${insight.image}`}><Icon size={40} /></div><span>{insight.kicker}</span><h3>{insight.title}</h3><ArrowUpRight size={15} /></Link>; })}</div><Link className="button outline small center-button" href="/insights">Read all insights <ArrowRight size={14} /></Link></section>
 
-      <section className="faq-section container" id="faq"><div className="faq-heading"><SectionLabel>FAQS</SectionLabel><h2>Good questions.<br /><span>Useful answers.</span></h2></div><div className="faq-list">{faqs.map(([question, answer], i) => <div className={`faq-item ${openFaq === i ? "open" : ""}`} key={question}><button onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i}><span>{question}</span><ChevronDown size={16} /></button>{openFaq === i && <p>{answer}</p>}</div>)}<Link href="/start-project" className="button outline small center-button">Still have a question? Tell us what you're building <ArrowRight size={14} /></Link></div></section>
+      <section className="faq-section container" id="faq"><div className="faq-heading"><SectionLabel>FAQS</SectionLabel><h2>Good questions.<br /><span>Useful answers.</span></h2></div><div className="faq-list">{faqs.map(([question, answer], i) => <div className={`faq-item ${openFaq === i ? "open" : ""}`} key={question}><button onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i}><span>{question}</span><ChevronDown size={16} /></button>{openFaq === i && <p>{answer}</p>}</div>)}<Link href="/contact" className="button outline small center-button">Still have a question? Get in touch <ArrowRight size={14} /></Link></div></section>
 
       <section className="final-cta" id="contact">
         <div className="final-cta-grid" />
@@ -316,7 +312,7 @@ export default function Home() {
       </section>
     </main>
 
-    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")}><LogoMark /><span>RESTART<span className="logo-dot">.</span></span></a><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><a href="#platform" onClick={(e) => handleScrollTo(e, "platform")}>Platform</a><a href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Solutions</a><a href="#case-studies" onClick={(e) => handleScrollTo(e, "case-studies")}>Case Studies</a><a href="#insights" onClick={(e) => handleScrollTo(e, "insights")}>Insights</a></div><div><strong>COMPANY</strong><a href="#about" onClick={(e) => handleScrollTo(e, "about")}>About</a><Link href="/start-project">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
+    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")}><LogoMark /><span>RESTART<span className="logo-dot">.</span></span></a><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><a href="#platform" onClick={(e) => handleScrollTo(e, "platform")}>Platform</a><a href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Solutions</a><a href="#case-studies" onClick={(e) => handleScrollTo(e, "case-studies")}>Case Studies</a><a href="#insights" onClick={(e) => handleScrollTo(e, "insights")}>Insights</a></div><div><strong>COMPANY</strong><a href="#about" onClick={(e) => handleScrollTo(e, "about")}>About</a><Link href="/contact">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
   </div>;
 }
 
