@@ -1,15 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { MARKETING_URL } from "@/lib/site";
+import { MfaChallenge } from "@/components/MfaChallenge";
 
 // Destination for both invite links and "forgot password" recovery links —
 // GoTrue hands the browser a fresh session in the URL either way, and both
 // cases need exactly the same thing from the user: set a password. There's
 // no meaningful difference between "set your first password" and "reset
 // your password" from here.
+//
+// One wrinkle: this session comes straight from the recovery link, not from
+// a normal sign-in, so it's always aal1 -- even for an account with a
+// verified TOTP factor. Supabase rejects updateUser({ password }) with
+// "AAL2 session is required" in that case, so a 2FA-enabled account has to
+// clear an MFA challenge here before it can set a password at all.
 export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const { session, loading } = useAuth();
@@ -18,6 +25,17 @@ export default function ResetPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [aalChecked, setAalChecked] = useState(false);
+  const [needsMfa, setNeedsMfa] = useState(false);
+
+  useEffect(() => {
+    if (!session) return;
+    setAalChecked(false);
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data, error }) => {
+      setNeedsMfa(!error && data.currentLevel !== data.nextLevel && data.nextLevel === "aal2");
+      setAalChecked(true);
+    });
+  }, [session]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +72,7 @@ export default function ResetPassword() {
 
       <div className="simple-login-page">
         <div className="simple-login-card">
-          {loading ? (
+          {loading || (session && !aalChecked) ? (
             <>
               <h1>One moment…</h1>
               <p className="simple-login-subtitle">Verifying your link.</p>
@@ -71,6 +89,8 @@ export default function ResetPassword() {
                 <ArrowRight size={16} />
               </a>
             </>
+          ) : needsMfa ? (
+            <MfaChallenge onVerified={() => setNeedsMfa(false)} />
           ) : (
             <>
               <h1>Set your password</h1>

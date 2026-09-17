@@ -845,6 +845,44 @@ button { font: inherit; }
   align-items: center;
   gap: 16px;
 }
+.dash-nav-bar {
+  height: 46px;
+  background: #050506;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: sticky;
+  top: 64px;
+  z-index: 90;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dash-nav-bar::-webkit-scrollbar {
+  display: none;
+}
+.dash-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 46px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b95ab;
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.dash-nav-link:hover {
+  color: #e6edfd;
+}
+.dash-nav-link.active {
+  color: var(--teal);
+  border-bottom-color: var(--teal);
+}
 .dash-tag {
   font-size: 9px;
   font-weight: 800;
@@ -1131,32 +1169,6 @@ button { font: inherit; }
 /* ══════════════════════════════════════════════════════════════
    CONSOLE SUBPAGES (PROFILE, SETTINGS, KEYS, BILLING)
    ══════════════════════════════════════════════════════════════ */
-.console-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
-  font-size: 13px;
-}
-.breadcrumb-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--teal);
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.15s;
-}
-.breadcrumb-back:hover {
-  color: #66f0d7;
-  text-decoration: underline;
-}
-.breadcrumb-sep {
-  color: #555d6e;
-}
-.breadcrumb-current {
-  color: #94a3b8;
-}
 
 .console-grid-layout {
   display: grid;
@@ -2412,6 +2424,16 @@ button { font: inherit; }
   }
   .dash-tag {
     display: none;
+  }
+  .dash-nav-bar {
+    top: 60px;
+    padding: 0 12px;
+  }
+  .dash-nav-link span {
+    display: none;
+  }
+  .dash-nav-link {
+    padding: 0 12px;
   }
   .dash-main {
     padding-top: 24px;

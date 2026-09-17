@@ -5,6 +5,7 @@ import {
   RefreshCw,
   User,
   ChevronDown,
+  LayoutGrid,
   Settings,
   CreditCard,
   Key,
@@ -23,6 +24,14 @@ interface ConsoleTopBarProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
 }
+
+const NAV_ITEMS = [
+  { href: "/dashboard", label: "Overview", icon: LayoutGrid },
+  { href: "/console/profile", label: "Profile & Security", icon: Shield },
+  { href: "/console/settings", label: "Settings", icon: Settings },
+  { href: "/console/keys", label: "API & Key Vault", icon: Key },
+  { href: "/console/billing", label: "Billing & SLA", icon: CreditCard }
+];
 
 export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBarProps) {
   const [location, setLocation] = useLocation();
@@ -74,6 +83,7 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
   };
 
   return (
+    <>
     <header className="dash-top-bar">
       <div className="dash-top-left">
         <a href={MARKETING_URL} className="site-logo" aria-label="Restart home">
@@ -175,42 +185,6 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
                 <span className="dropdown-user-email">{displayEmail}</span>
               </div>
 
-              <Link
-                href="/console/profile"
-                onClick={() => setUserMenuOpen(false)}
-                className={`dash-dropdown-item ${location === "/console/profile" ? "active-link" : ""}`}
-              >
-                <User size={14} />
-                <span>Profile & Security</span>
-              </Link>
-
-              <Link
-                href="/console/settings"
-                onClick={() => setUserMenuOpen(false)}
-                className={`dash-dropdown-item ${location === "/console/settings" ? "active-link" : ""}`}
-              >
-                <Settings size={14} />
-                <span>Console Settings</span>
-              </Link>
-
-              <Link
-                href="/console/keys"
-                onClick={() => setUserMenuOpen(false)}
-                className={`dash-dropdown-item ${location === "/console/keys" ? "active-link" : ""}`}
-              >
-                <Key size={14} />
-                <span>API & Key Vault</span>
-              </Link>
-
-              <Link
-                href="/console/billing"
-                onClick={() => setUserMenuOpen(false)}
-                className={`dash-dropdown-item ${location === "/console/billing" ? "active-link" : ""}`}
-              >
-                <CreditCard size={14} />
-                <span>Billing & SLA Contract</span>
-              </Link>
-
               <button
                 onClick={() => {
                   setUserMenuOpen(false);
@@ -226,5 +200,20 @@ export function ConsoleTopBar({ onRefresh, isRefreshing = false }: ConsoleTopBar
         </div>
       </div>
     </header>
+
+    <nav className="dash-nav-bar" aria-label="Console">
+      {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+        <Link
+          key={href}
+          href={href}
+          title={label}
+          className={`dash-nav-link ${location === href ? "active" : ""}`}
+        >
+          <Icon size={14} />
+          <span>{label}</span>
+        </Link>
+      ))}
+    </nav>
+    </>
   );
 }

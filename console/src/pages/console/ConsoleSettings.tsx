@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { Link } from "wouter";
 import { ConsoleTopBar } from "@/components/ConsoleTopBar";
 import { ConsoleFooter } from "@/components/ConsoleFooter";
 import {
   Sliders,
   Bell,
   Shield,
-  ChevronLeft,
   Check,
   Zap,
   Cpu,
@@ -46,16 +44,6 @@ export default function ConsoleSettings() {
       <ConsoleTopBar />
 
       <main className="dash-main container">
-        {/* Breadcrumb Back Link */}
-        <div className="console-breadcrumb">
-          <Link href="/dashboard" className="breadcrumb-back">
-            <ChevronLeft size={14} />
-            <span>Back to Dashboard</span>
-          </Link>
-          <span className="breadcrumb-sep">/</span>
-          <span className="breadcrumb-current">Console Settings</span>
-        </div>
-
         {/* Header Row */}
         <div className="dash-header-row">
           <div>

@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "wouter";
 import { ConsoleTopBar } from "@/components/ConsoleTopBar";
 import { ConsoleFooter } from "@/components/ConsoleFooter";
-import { ChevronLeft, ArrowUpRight, ExternalLink, CreditCard, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, ExternalLink, CreditCard, ShieldCheck } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
 
@@ -98,15 +97,6 @@ export default function BillingSla() {
       <ConsoleTopBar />
 
       <main className="dash-main container">
-        <div className="console-breadcrumb">
-          <Link href="/dashboard" className="breadcrumb-back">
-            <ChevronLeft size={14} />
-            <span>Back to Dashboard</span>
-          </Link>
-          <span className="breadcrumb-sep">/</span>
-          <span className="breadcrumb-current">Billing</span>
-        </div>
-
         <div className="dash-header-row">
           <div>
             <span className="dash-kicker">SUBSCRIPTION & INVOICES</span>

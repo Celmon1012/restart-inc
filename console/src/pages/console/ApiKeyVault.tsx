@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "wouter";
 import { ConsoleTopBar } from "@/components/ConsoleTopBar";
 import { ConsoleFooter } from "@/components/ConsoleFooter";
 import {
@@ -12,7 +11,6 @@ import {
   EyeOff,
   Trash2,
   RotateCw,
-  ChevronLeft,
   Terminal,
   AlertTriangle,
   Lock
@@ -128,16 +126,6 @@ export default function ApiKeyVault() {
       <ConsoleTopBar />
 
       <main className="dash-main container">
-        {/* Breadcrumb Back Link */}
-        <div className="console-breadcrumb">
-          <Link href="/dashboard" className="breadcrumb-back">
-            <ChevronLeft size={14} />
-            <span>Back to Dashboard</span>
-          </Link>
-          <span className="breadcrumb-sep">/</span>
-          <span className="breadcrumb-current">API & Key Vault</span>
-        </div>
-
         {/* Header Row */}
         <div className="dash-header-row">
           <div>
