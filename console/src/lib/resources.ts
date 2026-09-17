@@ -10,12 +10,18 @@
 // are nullable wherever Coolify doesn't reliably report them (e.g. it has
 // no concept of physical region at all).
 
+// Coolify's actual status vocabulary is broader than this list (confirmed:
+// a service came back "degraded:unhealthy", which isn't documented) -- this
+// is a hint for the common cases, not a guarantee, so statusMeta() below
+// must handle values outside it instead of assuming exhaustiveness.
 export type ResourceStatus =
   | "running:healthy"
   | "running:unhealthy"
   | "running:unknown"
   | "exited:unhealthy"
-  | "stopped";
+  | "degraded:unhealthy"
+  | "stopped"
+  | string;
 
 export interface DedicatedServer {
   uuid: string;
@@ -106,10 +112,18 @@ export function statusMeta(status: ResourceStatus): { label: string; tone: "heal
       return { label: "Running", tone: "healthy" };
     case "running:unhealthy":
       return { label: "Degraded", tone: "warning" };
+    case "degraded:unhealthy":
+      return { label: "Degraded", tone: "warning" };
     case "exited:unhealthy":
       return { label: "Exited", tone: "down" };
     case "stopped":
       return { label: "Stopped", tone: "down" };
+    default:
+      // An unrecognized status is a sign something changed on Coolify's
+      // side, not proof the resource is unhealthy -- show it plainly rather
+      // than guessing "healthy" (hides a real problem) or crashing (this
+      // exact bug, from "degraded:unhealthy" before it was added above).
+      return { label: status, tone: "warning" };
   }
 }
 
