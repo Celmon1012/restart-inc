@@ -139,7 +139,11 @@ export default function Overview() {
                     <div className="overview-system-card" key={r.uuid}>
                       <ResourceIcon resource={r} size={20} className="text-teal" />
                       <span className="overview-system-name">{r.name}</span>
-                      <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>{label}</span>
+                      <span
+                        className={`status-dot-active ${tone === "healthy" ? "" : tone}`}
+                        title={label}
+                        aria-label={label}
+                      />
                     </div>
                   );
                 })}
