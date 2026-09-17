@@ -65,7 +65,6 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
   const displayEmail = user?.email || "";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(3);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem("console.sidebarCollapsed") === "1";
@@ -214,15 +213,11 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
 
           <div className="dash-top-right">
             <button
-              onClick={() => {
-                setUnreadCount(0);
-                toast.info("No new notifications");
-              }}
+              onClick={() => toast.info("Notifications aren't connected yet")}
               className="dash-icon-btn dash-notif-btn"
-              title="Notifications"
+              title="Notifications (not connected yet)"
             >
               <Bell size={15} />
-              {unreadCount > 0 && <span className="dash-notif-badge">{unreadCount}</span>}
             </button>
 
             <button

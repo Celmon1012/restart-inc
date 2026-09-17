@@ -1039,22 +1039,6 @@ button { font: inherit; }
   transition: all 0.2s;
   position: relative;
 }
-.dash-notif-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 999px;
-  background: var(--teal);
-  color: #04080d;
-  font-size: 9px;
-  font-weight: 800;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 0 0 2px #030304;
-}
 .dash-icon-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
