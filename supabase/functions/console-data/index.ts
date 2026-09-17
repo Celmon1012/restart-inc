@@ -217,6 +217,11 @@ async function fetchWorkspaceLiveData(coolifyProjectUuid: string) {
           ? Math.round(full.server_metadata.memory_bytes / 1024 / 1024 / 1024)
           : null,
         dockerVersion: full.settings?.docker_version ?? null,
+        os: full.server_metadata?.os ?? null,
+        arch: full.server_metadata?.arch ?? null,
+        kernel: full.server_metadata?.kernel ?? null,
+        composeVersion: full.settings?.compose_version ?? null,
+        upSince: full.server_metadata?.uptime_since ?? null,
       };
     } catch {
       // Server detail is a nice-to-have; resource list still stands without it.
@@ -257,7 +262,7 @@ Deno.serve(async (req) => {
     return json({ error: (err as Error).message }, 500);
   }
 
-  if (workspaces.length === 0) return json({ workspaces: [], active: null });
+  if (workspaces.length === 0) return json({ workspaces: [], active: null, isAdmin: caller.isAdmin });
 
   const requestedId = new URL(req.url).searchParams.get("workspace_id");
   // Belt-and-suspenders: getMyWorkspaces() already only returns rows RLS
@@ -276,6 +281,7 @@ Deno.serve(async (req) => {
         tier: target.tier_label,
         ...live,
       },
+      isAdmin: caller.isAdmin,
     });
   } catch (err) {
     return json({ error: `Failed to load Coolify data: ${(err as Error).message}` }, 502);

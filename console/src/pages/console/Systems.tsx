@@ -109,6 +109,18 @@ export default function Systems() {
                       </span>
                     </div>
                     <div className="app-meta-item">
+                      <span className="meta-k">Operating System</span>
+                      <span className="meta-v">{activeWorkspace.server?.os ?? "—"}</span>
+                    </div>
+                    <div className="app-meta-item">
+                      <span className="meta-k">Architecture</span>
+                      <span className="meta-v mono">{activeWorkspace.server?.arch ?? "—"}</span>
+                    </div>
+                    <div className="app-meta-item">
+                      <span className="meta-k">Kernel</span>
+                      <span className="meta-v mono">{activeWorkspace.server?.kernel ?? "—"}</span>
+                    </div>
+                    <div className="app-meta-item">
                       <span className="meta-k">Capacity</span>
                       <span className="meta-v">
                         {activeWorkspace.server?.cpus ?? "—"} vCPU · {activeWorkspace.server?.memoryGb ?? "—"} GB RAM
@@ -117,6 +129,14 @@ export default function Systems() {
                     <div className="app-meta-item">
                       <span className="meta-k">Docker Engine</span>
                       <span className="meta-v mono">{activeWorkspace.server?.dockerVersion ?? "—"}</span>
+                    </div>
+                    <div className="app-meta-item">
+                      <span className="meta-k">Compose Version</span>
+                      <span className="meta-v mono">{activeWorkspace.server?.composeVersion ?? "N/A"}</span>
+                    </div>
+                    <div className="app-meta-item">
+                      <span className="meta-k">Up Since</span>
+                      <span className="meta-v mono">{activeWorkspace.server?.upSince ?? "—"}</span>
                     </div>
                     <div className="app-meta-item">
                       <span className="meta-k">Resources Deployed</span>

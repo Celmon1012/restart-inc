@@ -31,6 +31,11 @@ export interface DedicatedServer {
   cpus: number | null;
   memoryGb: number | null;
   dockerVersion: string | null;
+  os: string | null;
+  arch: string | null;
+  kernel: string | null;
+  composeVersion: string | null;
+  upSince: string | null;
 }
 
 interface BaseResource {
