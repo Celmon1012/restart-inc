@@ -2473,6 +2473,193 @@ button { font: inherit; }
   margin-top: 6px;
 }
 
+/* Leads / CRM page */
+.system-healthy-pill.neutral {
+  color: #9aa1b2;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.leads-layout {
+  grid-template-columns: 360px 1fr;
+  align-items: start;
+}
+@media (max-width: 992px) {
+  .leads-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.leads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lead-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  background: #070709;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.18s;
+}
+.lead-row:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.lead-row.active {
+  border-color: rgba(46, 229, 193, 0.4);
+  background: rgba(46, 229, 193, 0.04);
+}
+.lead-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lead-row-main strong {
+  font-size: 14px;
+  color: #f2f6ff;
+}
+.lead-row-company {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #8c95a8;
+}
+.lead-row-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.lead-row-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #636d80;
+}
+.lead-detail-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.lead-detail-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f2f6ff;
+  margin: 0;
+}
+.lead-brief {
+  font-size: 13px;
+  color: #b8c0d4;
+  line-height: 1.6;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 14px;
+  margin: 0;
+}
+.lead-stage-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lead-stage-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.lead-stage-buttons .dash-tab-btn {
+  text-transform: capitalize;
+}
+.lead-activity-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.activity-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.activity-item {
+  display: flex;
+  gap: 10px;
+}
+.activity-item-icon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(91, 132, 255, 0.1);
+  color: var(--blue);
+}
+.activity-item-icon.agent {
+  background: rgba(46, 229, 193, 0.1);
+  color: var(--teal);
+}
+.activity-item-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.activity-item-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: #8c95a8;
+}
+.activity-item-head strong {
+  color: #e2e8f0;
+}
+.activity-item-time {
+  margin-left: auto;
+  font-size: 11px;
+  color: #636d80;
+}
+.activity-item-body p {
+  font-size: 13px;
+  color: #b8c0d4;
+  margin: 0;
+  line-height: 1.5;
+}
+.activity-proposal-draft {
+  background: rgba(229, 176, 97, 0.05);
+  border: 1px solid rgba(229, 176, 97, 0.2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-top: 4px;
+}
+.lead-note-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lead-note-form textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #e2e8f0;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+}
+.lead-note-form .dash-action-btn {
+  align-self: flex-end;
+}
+
 /* Overview page: at-a-glance / needs-attention / current-delivery / systems
    summary / recent-activity modules. */
 .overview-section {

@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { ResourceIcon } from "@/components/ResourceIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { getResources, statusMeta, deploymentStatusLabel, formatRelativeTime } from "@/lib/resources";
-import { getCurrentMilestone } from "@/lib/delivery";
+import { consoleSchema } from "@/lib/supabase";
+import { getCurrentDeliverable, type Deliverable } from "@/lib/deliverables";
 import { getDisplayName } from "@/lib/utils";
 import { CheckCircle2, AlertTriangle, ArrowRight, Clock, Terminal, Rocket } from "lucide-react";
 import { toast } from "sonner";
@@ -14,9 +15,22 @@ export default function Overview() {
   const { user } = useAuth();
   const { activeWorkspace, loading: workspaceLoading, error: workspaceError, refresh } = useWorkspace();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const resources = activeWorkspace ? getResources(activeWorkspace) : [];
   const attention = resources.filter((r) => statusMeta(r.status).tone !== "healthy");
-  const currentMilestone = getCurrentMilestone();
+  const currentMilestone = getCurrentDeliverable(deliverables);
+
+  useEffect(() => {
+    if (!activeWorkspace) return;
+    (async () => {
+      try {
+        const { data } = await consoleSchema().from("deliverables").select("*").eq("workspace_id", activeWorkspace.id);
+        setDeliverables(data ?? []);
+      } catch {
+        setDeliverables([]);
+      }
+    })();
+  }, [activeWorkspace?.id]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);

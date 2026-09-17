@@ -2,7 +2,7 @@ import { Toaster } from "sonner";
 import { Switch, Route, Redirect } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider } from "./contexts/AuthContext";
-import { WorkspaceProvider } from "./contexts/WorkspaceContext";
+import { WorkspaceProvider, useWorkspace } from "./contexts/WorkspaceContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
@@ -10,10 +10,21 @@ import Overview from "./pages/console/Overview";
 import Systems from "./pages/console/Systems";
 import Delivery from "./pages/console/Delivery";
 import Activity from "./pages/console/Activity";
+import Leads from "./pages/console/Leads";
 import ProfileSecurity from "./pages/console/ProfileSecurity";
 import ConsoleSettings from "./pages/console/ConsoleSettings";
 import ApiKeyVault from "./pages/console/ApiKeyVault";
 import BillingSla from "./pages/console/BillingSla";
+
+// UX-only gate -- console.inquiries/inquiry_activities RLS (console.is_admin())
+// is the real boundary. This just avoids flashing the page at a non-admin
+// before bouncing them, same spirit as ProtectedRoute's own session check.
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAdmin, loading } = useWorkspace();
+  if (loading) return null;
+  if (!isAdmin) return <Redirect to="/console/overview" />;
+  return <>{children}</>;
+}
 
 function Router() {
   return (
@@ -39,6 +50,13 @@ function Router() {
       <Route path="/console/activity">
         <ProtectedRoute>
           <Activity />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/console/leads">
+        <ProtectedRoute>
+          <AdminRoute>
+            <Leads />
+          </AdminRoute>
         </ProtectedRoute>
       </Route>
       <Route path="/console/profile">

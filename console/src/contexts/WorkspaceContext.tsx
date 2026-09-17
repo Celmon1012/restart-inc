@@ -6,6 +6,12 @@ import type { Workspace, WorkspaceSummary } from "@/lib/resources";
 interface WorkspaceContextType {
   workspaces: WorkspaceSummary[];
   activeWorkspace: Workspace | null;
+  // Mirrors auth.jwt() app_metadata.is_admin (see console.is_admin() in the
+  // console_admin_visibility migration). console-data is the only place
+  // that already computes this server-side, so it's threaded through here
+  // rather than re-derived -- this is a UX-only gate for nav/routes, never
+  // the real authorization boundary (RLS on console.* tables is).
+  isAdmin: boolean;
   loading: boolean;
   error: string | null;
   setActiveWorkspaceId: (id: string) => void;
@@ -18,6 +24,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { session, loading: authLoading } = useAuth();
   const [workspaces, setWorkspaces] = useState<WorkspaceSummary[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [requestedId, setRequestedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +42,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       if (data?.error) throw new Error(data.error);
       setWorkspaces(data?.workspaces ?? []);
       setActiveWorkspace(data?.active ?? null);
+      setIsAdmin(Boolean(data?.isAdmin));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load workspace data");
     } finally {
@@ -56,6 +64,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       value={{
         workspaces,
         activeWorkspace,
+        isAdmin,
         loading,
         error,
         setActiveWorkspaceId: setRequestedId,

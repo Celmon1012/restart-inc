@@ -19,7 +19,8 @@ import {
   Building2,
   PanelLeftClose,
   PanelLeftOpen,
-  Search
+  Search,
+  Users
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,7 +35,10 @@ interface ConsoleLayoutProps {
   isRefreshing?: boolean;
 }
 
-const NAV_GROUPS: Array<{ label: string | null; items: Array<{ href: string; label: string; icon: typeof Server }> }> = [
+const NAV_GROUPS: Array<{
+  label: string | null;
+  items: Array<{ href: string; label: string; icon: typeof Server; adminOnly?: boolean }>;
+}> = [
   {
     label: null,
     items: [
@@ -43,6 +47,10 @@ const NAV_GROUPS: Array<{ label: string | null; items: Array<{ href: string; lab
       { href: "/console/delivery", label: "Delivery", icon: Clock },
       { href: "/console/activity", label: "Activity", icon: Terminal }
     ]
+  },
+  {
+    label: "Admin",
+    items: [{ href: "/console/leads", label: "Leads", icon: Users, adminOnly: true }]
   },
   {
     label: "Account",
@@ -58,7 +66,7 @@ const NAV_GROUPS: Array<{ label: string | null; items: Array<{ href: string; lab
 export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: ConsoleLayoutProps) {
   const [location, setLocation] = useLocation();
   const { user, signOut } = useAuth();
-  const { workspaces, activeWorkspace, setActiveWorkspaceId } = useWorkspace();
+  const { workspaces, activeWorkspace, isAdmin, setActiveWorkspaceId } = useWorkspace();
   const displayName = getDisplayName(user);
   const displayEmail = user?.email || "";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -144,10 +152,13 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
         </div>
 
         <nav className="console-sidebar-nav" aria-label="Console">
-          {NAV_GROUPS.map((group, idx) => (
+          {NAV_GROUPS.map((group, idx) => {
+            const visibleItems = group.items.filter((item) => !item.adminOnly || isAdmin);
+            if (visibleItems.length === 0) return null;
+            return (
             <div className="console-sidebar-group" key={group.label ?? `group-${idx}`}>
               {group.label && <span className="console-sidebar-group-label">{group.label}</span>}
-              {group.items.map(({ href, label, icon: Icon }) => (
+              {visibleItems.map(({ href, label, icon: Icon }) => (
                 <Link
                   key={href}
                   href={href}
@@ -159,7 +170,8 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
                 </Link>
               ))}
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         <div className="console-sidebar-footer">
