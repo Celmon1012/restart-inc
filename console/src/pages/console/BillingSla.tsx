@@ -285,8 +285,8 @@ export default function BillingSla() {
               <div className="console-col">
                 {data.subscriptions && data.subscriptions.length > 0 && (
                   <div className="console-card">
-                    <div className="card-top-header">
-                      <span className="card-kicker">ALL SUBSCRIPTIONS</span>
+                    <div className="card-top-header card-top-header-spaced">
+                      <span className="card-kicker card-kicker-lg">ALL SUBSCRIPTIONS</span>
                     </div>
                     <div className="sla-metrics-list">
                       {data.subscriptions.map((sub) => (
@@ -329,40 +329,32 @@ export default function BillingSla() {
                           }
                         />
                       ))}
-                    </div>
 
-                    {data.appliedCoupons && data.appliedCoupons.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
-                        {data.appliedCoupons.map((c) => {
-                          const endsAround = estimatedCouponEnd(c);
-                          const appliesTo = matchSubscriptionForCoupon(
-                            c,
-                            data.subscriptions ?? [],
-                            primarySubscription
-                          );
-                          return (
-                            <BillingDetailCard
-                              key={c.code}
-                              tone="healthy"
-                              icon={<Tag size={13} className="text-teal" />}
-                              title={c.name}
-                              statusLabel={c.status.toUpperCase()}
-                              metaItems={[
-                                ...(appliesTo ? [`Applies to ${appliesTo.planName}`] : []),
-                                describeCoupon(c),
-                                ...(endsAround ? [`Ends around ${endsAround.toLocaleDateString()}`] : [])
-                              ]}
-                              expandedContent={
-                                <div className="billing-detail-expanded-row">
-                                  <span>Coupon code</span>
-                                  <span className="mono">{c.code}</span>
-                                </div>
-                              }
-                            />
-                          );
-                        })}
-                      </div>
-                    )}
+                      {data.appliedCoupons?.map((c) => {
+                        const endsAround = estimatedCouponEnd(c);
+                        const appliesTo = matchSubscriptionForCoupon(c, data.subscriptions ?? [], primarySubscription);
+                        return (
+                          <BillingDetailCard
+                            key={c.code}
+                            tone="healthy"
+                            icon={<Tag size={13} className="text-teal" />}
+                            title={c.name}
+                            statusLabel={c.status.toUpperCase()}
+                            metaItems={[
+                              ...(appliesTo ? [`Applies to ${appliesTo.planName}`] : []),
+                              describeCoupon(c),
+                              ...(endsAround ? [`Ends around ${endsAround.toLocaleDateString()}`] : [])
+                            ]}
+                            expandedContent={
+                              <div className="billing-detail-expanded-row">
+                                <span>Coupon code</span>
+                                <span className="mono">{c.code}</span>
+                              </div>
+                            }
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
@@ -393,8 +385,8 @@ export default function BillingSla() {
 
               <div className="console-col">
                 <div className="console-card">
-                  <div className="card-top-header">
-                    <span className="card-kicker">INVOICE HISTORY</span>
+                  <div className="card-top-header card-top-header-spaced">
+                    <span className="card-kicker card-kicker-lg">INVOICE HISTORY</span>
                   </div>
 
                   {!data.invoices || data.invoices.length === 0 ? (

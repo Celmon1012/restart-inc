@@ -1996,7 +1996,12 @@ button { font: inherit; }
 .sla-metrics-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+}
+.sla-metrics-list > *:not(:first-child),
+.invoices-list > *:not(:first-child) {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 .metric-score {
   font-size: 18px;
@@ -2040,7 +2045,6 @@ button { font: inherit; }
 .invoices-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 .invoice-row {
   display: flex;
@@ -3057,6 +3061,12 @@ button { font: inherit; }
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.card-top-header-spaced {
+  margin-bottom: 16px;
+}
+.card-kicker-lg {
+  font-size: 10.5px;
 }
 
 .card-kicker {
