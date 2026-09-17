@@ -58,7 +58,13 @@ async function pg(path: string, init: RequestInit & { profile?: "read" | "write"
   if (!res.ok) {
     throw new Error(`PostgREST ${path} -> ${res.status}: ${await res.text()}`);
   }
-  return res.status === 204 ? null : res.json();
+  // A plain POST/PATCH with no `Prefer: return=representation` comes back
+  // with an empty body -- 201 for an insert, 204 for an update -- so this
+  // can't just special-case 204. Parsing "" as JSON throws "Unexpected end
+  // of JSON input", which is exactly what happened here the first time a
+  // write actually ran (every 204 case so far had been a genuine no-op).
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
 interface InquiryRow {
