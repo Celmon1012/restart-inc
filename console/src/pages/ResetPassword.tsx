@@ -55,7 +55,7 @@ export default function ResetPassword() {
       setErrorMessage(error.message);
       return;
     }
-    setLocation("/dashboard");
+    setLocation("/console/overview");
   };
 
   return (

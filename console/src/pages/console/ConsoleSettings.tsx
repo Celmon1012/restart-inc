@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { ConsoleTopBar } from "@/components/ConsoleTopBar";
-import { ConsoleFooter } from "@/components/ConsoleFooter";
+import { ConsoleLayout } from "@/components/ConsoleLayout";
 import {
   Sliders,
   Bell,
@@ -40,26 +39,13 @@ export default function ConsoleSettings() {
   };
 
   return (
-    <div className="dash-shell">
-      <ConsoleTopBar />
-
-      <main className="dash-main container">
+    <ConsoleLayout>
         {/* Header Row */}
         <div className="dash-header-row">
           <div>
-            <span className="dash-kicker">PREFERENCES, ALERTS & TELEMETRY STREAM TUNING</span>
-            <h1>Console Preferences</h1>
-            <p>Customize live telemetry refresh rates, incident alert dispatches, and operator HUD presentation.</p>
-          </div>
-          <div className="dash-header-meta">
-            <div className="meta-box">
-              <span className="meta-title">CONFIG TARGET</span>
-              <span className="meta-val text-teal">PROJECT #04 DEDICATED</span>
-            </div>
-            <div className="meta-box">
-              <span className="meta-title">NODE LATENCY</span>
-              <span className="meta-val text-white">0.8ms P50</span>
-            </div>
+            <span className="dash-kicker">SETTINGS</span>
+            <h1>Settings</h1>
+            <p>Notification routing, alert thresholds, and how the console presents itself to you.</p>
           </div>
         </div>
 
@@ -260,9 +246,6 @@ export default function ConsoleSettings() {
             </div>
           </div>
         </form>
-      </main>
-
-      <ConsoleFooter />
-    </div>
+    </ConsoleLayout>
   );
 }

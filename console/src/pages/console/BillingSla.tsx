@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { ConsoleTopBar } from "@/components/ConsoleTopBar";
-import { ConsoleFooter } from "@/components/ConsoleFooter";
+import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { ArrowUpRight, ExternalLink, CreditCard, ShieldCheck } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
@@ -93,10 +92,7 @@ export default function BillingSla() {
   const primarySubscription = data?.subscriptions?.find((s) => s.status === "active") ?? data?.subscriptions?.[0];
 
   return (
-    <div className="dash-shell">
-      <ConsoleTopBar />
-
-      <main className="dash-main container">
+    <ConsoleLayout>
         <div className="dash-header-row">
           <div>
             <span className="dash-kicker">SUBSCRIPTION & INVOICES</span>
@@ -254,9 +250,6 @@ export default function BillingSla() {
             </div>
           </>
         )}
-      </main>
-
-      <ConsoleFooter />
-    </div>
+    </ConsoleLayout>
   );
 }

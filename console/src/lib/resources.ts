@@ -81,3 +81,34 @@ export function getResources(workspace: Workspace): Resource[] {
 export function getPrimaryApplication(workspace: Workspace): ApplicationResource | undefined {
   return getResources(workspace).find((r): r is ApplicationResource => r.kind === "application");
 }
+
+export const RESOURCE_KIND_LABEL: Record<Resource["kind"], string> = {
+  application: "APPLICATION",
+  database: "DATABASE",
+  service: "SERVICE"
+};
+
+export function statusMeta(status: ResourceStatus): { label: string; tone: "healthy" | "warning" | "down" } {
+  switch (status) {
+    case "running:healthy":
+      return { label: "Healthy", tone: "healthy" };
+    case "running:unknown":
+      return { label: "Running", tone: "healthy" };
+    case "running:unhealthy":
+      return { label: "Degraded", tone: "warning" };
+    case "exited:unhealthy":
+      return { label: "Exited", tone: "down" };
+    case "stopped":
+      return { label: "Stopped", tone: "down" };
+  }
+}
+
+export function resourceSubtitle(resource: Resource): string {
+  if (resource.kind === "application") {
+    return `${resource.fqdn} · ${resource.gitRepository}@${resource.gitBranch} (${resource.gitCommitSha}) · ${resource.buildPack}`;
+  }
+  if (resource.kind === "database") {
+    return `${resource.databaseType} · ${resource.isPublic ? "Publicly reachable" : "Private network only"}`;
+  }
+  return resource.serviceType ? `${resource.serviceType} service` : "Custom service";
+}

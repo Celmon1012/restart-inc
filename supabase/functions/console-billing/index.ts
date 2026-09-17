@@ -12,7 +12,10 @@
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const LAGO_API_URL = (Deno.env.get("LAGO_API_URL") ?? "https://billing-api.restart.ng:3000").replace(/\/$/, "");
+// No :3000 here -- Coolify's proxy terminates TLS on 443 for this domain and
+// routes internally to the container's port 3000. Hitting :3000 directly
+// bypasses the proxy and gets "connection refused" (confirmed 2026-09-17).
+const LAGO_API_URL = (Deno.env.get("LAGO_API_URL") ?? "https://billing-api.restart.ng").replace(/\/$/, "");
 const LAGO_API_KEY = Deno.env.get("LAGO_API_KEY")!;
 
 const CORS_HEADERS = {

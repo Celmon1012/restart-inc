@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { ConsoleTopBar } from "@/components/ConsoleTopBar";
-import { ConsoleFooter } from "@/components/ConsoleFooter";
+import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { Shield, ShieldOff, Smartphone, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -195,10 +194,7 @@ export default function ProfileSecurity() {
   const mfaOn = Boolean(verifiedFactor) || Boolean(enrolling);
 
   return (
-    <div className="dash-shell">
-      <ConsoleTopBar />
-
-      <main className="dash-main container">
+    <ConsoleLayout>
         <div className="dash-header-row">
           <div>
             <span className="dash-kicker">IDENTITY & CREDENTIAL SECURITY</span>
@@ -431,9 +427,6 @@ export default function ProfileSecurity() {
             </div>
           </div>
         </div>
-      </main>
-
-      <ConsoleFooter />
-    </div>
+    </ConsoleLayout>
   );
 }

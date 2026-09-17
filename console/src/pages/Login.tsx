@@ -31,7 +31,7 @@ export default function Login() {
       setErrorMessage(error);
       return;
     }
-    setLocation("/dashboard");
+    setLocation("/console/overview");
   };
 
   const handleForgotPassword = async () => {

@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { ConsoleTopBar } from "@/components/ConsoleTopBar";
-import { ConsoleFooter } from "@/components/ConsoleFooter";
+import { ConsoleLayout } from "@/components/ConsoleLayout";
 import {
   Key,
   Shield,
@@ -122,10 +121,7 @@ export default function ApiKeyVault() {
   };
 
   return (
-    <div className="dash-shell">
-      <ConsoleTopBar />
-
-      <main className="dash-main container">
+    <ConsoleLayout>
         {/* Header Row */}
         <div className="dash-header-row">
           <div>
@@ -310,9 +306,6 @@ curl -X POST https://api.restart.ng/v1/telemetry/ingest \\
             </pre>
           </div>
         </div>
-      </main>
-
-      <ConsoleFooter />
-    </div>
+    </ConsoleLayout>
   );
 }
