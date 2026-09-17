@@ -1989,24 +1989,6 @@ button { font: inherit; }
   flex-direction: column;
   gap: 16px;
 }
-.sla-metric-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-.sla-metric-row strong {
-  display: block;
-  font-size: 13.5px;
-  color: #ffffff;
-  margin-bottom: 2px;
-}
-.sla-metric-row p {
-  font-size: 11.5px;
-  color: #798399;
-  margin: 0;
-}
 .metric-score {
   font-size: 18px;
   font-weight: 800;
@@ -2479,33 +2461,97 @@ button { font: inherit; }
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.14);
 }
-.coupon-detail-box {
+/* Billing detail card -- shared by subscriptions and applied coupons so
+   both read as one consistent pattern: tone-tinted container, a clickable
+   header (title, price, status pill, chevron), a meta line, and a
+   click-to-expand detail panel for whatever needs more room later. */
+.billing-detail-card {
   padding: 12px 14px;
   background: rgba(46, 229, 193, 0.04);
   border: 1px solid rgba(46, 229, 193, 0.15);
   border-radius: 8px;
 }
-.coupon-detail-head {
+.billing-detail-card.warning {
+  background: rgba(229, 176, 97, 0.05);
+  border-color: rgba(229, 176, 97, 0.2);
+}
+.billing-detail-card.down {
+  background: rgba(248, 113, 113, 0.05);
+  border-color: rgba(248, 113, 113, 0.2);
+}
+.billing-detail-head {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
   margin-bottom: 6px;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
 }
-.coupon-detail-head strong {
+.billing-detail-head strong {
   font-size: 13px;
   color: #f2f6ff;
 }
-.coupon-detail-meta {
+.billing-detail-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.billing-detail-price {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f5;
+  flex-shrink: 0;
+}
+.billing-chevron {
+  flex-shrink: 0;
+  color: #6d778a;
+  transition: transform 0.18s var(--ease-out);
+}
+.billing-chevron.open {
+  transform: rotate(180deg);
+}
+.billing-detail-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 10px;
   font-size: 11.5px;
   color: #8c97af;
 }
-.coupon-detail-meta span:not(:last-child)::after {
+.billing-detail-meta span:not(:last-child)::after {
   content: "·";
   margin-left: 10px;
   color: #4a5163;
+}
+.billing-detail-expanded {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.billing-detail-expanded-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #a6b2c8;
+}
+.billing-detail-expanded-row .mono {
+  color: #cbd5e1;
+}
+.billing-detail-expanded-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 4px;
 }
 .leads-layout {
   grid-template-columns: 360px 1fr;

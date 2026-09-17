@@ -1,9 +1,55 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
-import { ArrowUpRight, ArrowRight, ExternalLink, CreditCard, ShieldCheck, Tag, Wallet } from "lucide-react";
+import { ArrowUpRight, ArrowRight, ChevronDown, ExternalLink, CreditCard, ShieldCheck, Tag, Wallet } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
+
+type Tone = "healthy" | "warning" | "down";
+
+// Shared by subscriptions and applied coupons so both read as one pattern:
+// tone-tinted card, a clickable header, a meta line, and a detail panel that
+// only renders once opened -- room to grow without cluttering the default
+// view (more fields/actions land here as they come up).
+function BillingDetailCard({
+  tone,
+  icon,
+  title,
+  statusLabel,
+  priceLabel,
+  metaItems,
+  expandedContent
+}: {
+  tone: Tone;
+  icon?: React.ReactNode;
+  title: string;
+  statusLabel: string;
+  priceLabel?: React.ReactNode;
+  metaItems: string[];
+  expandedContent?: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const toneClass = tone === "healthy" ? "" : tone;
+  return (
+    <div className={`billing-detail-card ${toneClass}`}>
+      <button type="button" className="billing-detail-head" onClick={() => setOpen((o) => !o)}>
+        {icon}
+        <strong className="billing-detail-title">{title}</strong>
+        {priceLabel}
+        <span className={`system-healthy-pill ${toneClass}`}>{statusLabel}</span>
+        <ChevronDown size={14} className={`billing-chevron ${open ? "open" : ""}`} />
+      </button>
+      {metaItems.length > 0 && (
+        <div className="billing-detail-meta">
+          {metaItems.map((m, i) => (
+            <span key={i}>{m}</span>
+          ))}
+        </div>
+      )}
+      {open && expandedContent && <div className="billing-detail-expanded">{expandedContent}</div>}
+    </div>
+  );
+}
 
 interface BillingSubscription {
   planCode: string;
@@ -198,28 +244,49 @@ export default function BillingSla() {
                       <span className="card-kicker">ALL SUBSCRIPTIONS</span>
                     </div>
                     <div className="sla-metrics-list">
-                      {data.subscriptions.map((sub) => {
-                        const tone = statusTone(sub.status);
-                        return (
-                          <div className="sla-metric-row" key={sub.planCode}>
-                            <div>
-                              <strong>{sub.planName}</strong>
-                              <p>{sub.startedAt ? `Started ${new Date(sub.startedAt).toLocaleDateString()}` : ""}</p>
-                            </div>
-                            <div className="text-right">
-                              {sub.amountCents !== null && sub.currency && (
-                                <div className="text-[13px] font-semibold">
-                                  {formatAmount(sub.amountCents, sub.currency)}
-                                  {sub.interval && <span className="text-[#78849b]"> /{sub.interval}</span>}
-                                </div>
-                              )}
-                              <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>
-                                {sub.status.toUpperCase()}
+                      {data.subscriptions.map((sub) => (
+                        <BillingDetailCard
+                          key={sub.planCode}
+                          tone={statusTone(sub.status)}
+                          title={sub.planName}
+                          statusLabel={sub.status.toUpperCase()}
+                          priceLabel={
+                            sub.amountCents !== null && sub.currency ? (
+                              <span className="billing-detail-price">
+                                {formatAmount(sub.amountCents, sub.currency)}
+                                {sub.interval && <span className="text-[#78849b]"> /{sub.interval}</span>}
                               </span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                            ) : undefined
+                          }
+                          metaItems={[
+                            sub.startedAt
+                              ? `Started ${new Date(sub.startedAt).toLocaleDateString()}`
+                              : "Start date unavailable"
+                          ]}
+                          expandedContent={
+                            <>
+                              <div className="billing-detail-expanded-row">
+                                <span>Plan code</span>
+                                <span className="mono">{sub.planCode}</span>
+                              </div>
+                              <div className="billing-detail-expanded-row">
+                                <span>Billing interval</span>
+                                <span>{sub.interval ?? "—"}</span>
+                              </div>
+                              <div className="billing-detail-expanded-actions">
+                                <Link href="/console/systems?tab=infrastructure" className="overview-section-link">
+                                  <span>Manage capacity</span>
+                                  <ArrowRight size={12} />
+                                </Link>
+                                <a href="mailto:billing@restart.ng" className="overview-section-link">
+                                  <span>Contact billing</span>
+                                  <ArrowUpRight size={12} />
+                                </a>
+                              </div>
+                            </>
+                          }
+                        />
+                      ))}
                     </div>
 
                     {data.appliedCoupons && data.appliedCoupons.length > 0 && (
@@ -227,18 +294,24 @@ export default function BillingSla() {
                         {data.appliedCoupons.map((c) => {
                           const endsAround = estimatedCouponEnd(c);
                           return (
-                            <div key={c.code} className="coupon-detail-box">
-                              <div className="coupon-detail-head">
-                                <Tag size={13} className="text-teal" />
-                                <strong>{c.name}</strong>
-                                <span className="system-healthy-pill">{c.status.toUpperCase()}</span>
-                              </div>
-                              <div className="coupon-detail-meta">
-                                {primarySubscription && <span>Applies to {primarySubscription.planName}</span>}
-                                <span>{describeCoupon(c)}</span>
-                                {endsAround && <span>Ends around {endsAround.toLocaleDateString()}</span>}
-                              </div>
-                            </div>
+                            <BillingDetailCard
+                              key={c.code}
+                              tone="healthy"
+                              icon={<Tag size={13} className="text-teal" />}
+                              title={c.name}
+                              statusLabel={c.status.toUpperCase()}
+                              metaItems={[
+                                ...(primarySubscription ? [`Applies to ${primarySubscription.planName}`] : []),
+                                describeCoupon(c),
+                                ...(endsAround ? [`Ends around ${endsAround.toLocaleDateString()}`] : [])
+                              ]}
+                              expandedContent={
+                                <div className="billing-detail-expanded-row">
+                                  <span>Coupon code</span>
+                                  <span className="mono">{c.code}</span>
+                                </div>
+                              }
+                            />
                           );
                         })}
                       </div>
