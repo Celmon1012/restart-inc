@@ -16,7 +16,6 @@ function BillingDetailCard({
   icon,
   title,
   statusLabel,
-  priceLabel,
   metaItems,
   expandedContent
 }: {
@@ -24,7 +23,6 @@ function BillingDetailCard({
   icon?: React.ReactNode;
   title: string;
   statusLabel: string;
-  priceLabel?: React.ReactNode;
   metaItems: string[];
   expandedContent?: React.ReactNode;
 }) {
@@ -35,7 +33,6 @@ function BillingDetailCard({
       <button type="button" className="billing-detail-head" onClick={() => setOpen((o) => !o)}>
         {icon}
         <strong className="billing-detail-title">{title}</strong>
-        {priceLabel}
         <span className={`system-healthy-pill ${toneClass}`}>{statusLabel}</span>
         <ChevronDown size={14} className={`billing-chevron ${open ? "open" : ""}`} />
       </button>
@@ -298,14 +295,6 @@ export default function BillingSla() {
                           tone={statusTone(sub.status)}
                           title={sub.planName}
                           statusLabel={sub.status.toUpperCase()}
-                          priceLabel={
-                            sub.amountCents !== null && sub.currency ? (
-                              <span className="billing-detail-price">
-                                {formatAmount(sub.amountCents, sub.currency)}
-                                {sub.interval && <span className="text-[#78849b]"> /{sub.interval}</span>}
-                              </span>
-                            ) : undefined
-                          }
                           metaItems={[
                             sub.startedAt
                               ? `Started ${new Date(sub.startedAt).toLocaleDateString()}`
@@ -317,13 +306,18 @@ export default function BillingSla() {
                                 <span>Plan code</span>
                                 <span className="mono">{sub.planCode}</span>
                               </div>
-                              <div className="billing-detail-expanded-row">
-                                <span>Billing interval</span>
-                                <span>{sub.interval ?? "—"}</span>
-                              </div>
+                              {sub.amountCents !== null && sub.currency && (
+                                <div className="billing-detail-expanded-row">
+                                  <span>Amount</span>
+                                  <span>
+                                    {formatAmount(sub.amountCents, sub.currency)}
+                                    {sub.interval && ` / ${sub.interval}`}
+                                  </span>
+                                </div>
+                              )}
                               <div className="billing-detail-expanded-actions">
                                 <Link href="/console/systems?tab=infrastructure" className="overview-section-link">
-                                  <span>Manage capacity</span>
+                                  <span>View details</span>
                                   <ArrowRight size={12} />
                                 </Link>
                                 <a href="mailto:billing@restart.ng" className="overview-section-link">

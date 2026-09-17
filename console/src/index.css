@@ -2513,12 +2513,6 @@ button { font: inherit; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.billing-detail-price {
-  font-size: 13px;
-  font-weight: 600;
-  color: #e2e8f5;
-  flex-shrink: 0;
-}
 .billing-chevron {
   flex-shrink: 0;
   color: #6d778a;
