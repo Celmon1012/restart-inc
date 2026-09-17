@@ -20,7 +20,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
-  Users
+  Users,
+  LifeBuoy,
+  Sparkles,
+  X
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,7 +40,7 @@ interface ConsoleLayoutProps {
 
 const NAV_GROUPS: Array<{
   label: string | null;
-  items: Array<{ href: string; label: string; icon: typeof Server; adminOnly?: boolean }>;
+  items: Array<{ href: string; label: string; icon: typeof Server; adminOnly?: boolean; external?: boolean }>;
 }> = [
   {
     label: null,
@@ -58,7 +61,13 @@ const NAV_GROUPS: Array<{
       { href: "/console/profile", label: "Security & Access", icon: Shield },
       { href: "/console/keys", label: "API Keys", icon: Key },
       { href: "/console/settings", label: "Settings", icon: Settings },
-      { href: "/console/billing", label: "Billing & SLA", icon: CreditCard }
+      { href: "/console/billing", label: "Billing & SLA", icon: CreditCard },
+      {
+        href: "mailto:billing@restart.ng?subject=" + encodeURIComponent("Help & Support"),
+        label: "Help & Support",
+        icon: LifeBuoy,
+        external: true
+      }
     ]
   }
 ];
@@ -82,6 +91,21 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
       return false;
     }
   });
+  // Per-viewer convenience only (which promo they've already dismissed) --
+  // bump the key if the promo copy changes so it resurfaces once.
+  const [promoDismissed, setPromoDismissed] = useState(() => {
+    try {
+      return localStorage.getItem("console.promoDismissed.ai-engineering") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const dismissPromo = () => {
+    setPromoDismissed(true);
+    try {
+      localStorage.setItem("console.promoDismissed.ai-engineering", "1");
+    } catch {}
+  };
   const userMenuRef = useRef<HTMLDivElement>(null);
   const workspaceMenuRef = useRef<HTMLDivElement>(null);
 
@@ -158,23 +182,47 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
             return (
             <div className="console-sidebar-group" key={group.label ?? `group-${idx}`}>
               {group.label && <span className="console-sidebar-group-label">{group.label}</span>}
-              {visibleItems.map(({ href, label, icon: Icon }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  title={label}
-                  className={`console-sidebar-link ${location === href ? "active" : ""}`}
-                >
-                  <Icon size={15} />
-                  <span>{label}</span>
-                </Link>
-              ))}
+              {visibleItems.map(({ href, label, icon: Icon, external }) =>
+                external ? (
+                  <a key={href} href={href} title={label} className="console-sidebar-link">
+                    <Icon size={15} />
+                    <span>{label}</span>
+                  </a>
+                ) : (
+                  <Link
+                    key={href}
+                    href={href}
+                    title={label}
+                    className={`console-sidebar-link ${location === href ? "active" : ""}`}
+                  >
+                    <Icon size={15} />
+                    <span>{label}</span>
+                  </Link>
+                )
+              )}
             </div>
             );
           })}
         </nav>
 
         <div className="console-sidebar-footer">
+          {!promoDismissed && !sidebarCollapsed && (
+            <div className="sidebar-promo-card">
+              <button className="sidebar-promo-close" onClick={dismissPromo} aria-label="Dismiss">
+                <X size={12} />
+              </button>
+              <span className="sidebar-promo-kicker">
+                <Sparkles size={11} />
+                AI ENGINEERING
+              </span>
+              <h5>Put AI where it can earn trust</h5>
+              <p>Agentic workflows, LLM integration, and automation built into your own stack.</p>
+              <a href={`${MARKETING_URL}/solutions/ai-engineering`} className="sidebar-promo-cta">
+                Explore the offer
+                <ArrowUpRight size={12} />
+              </a>
+            </div>
+          )}
           <a href={`${MARKETING_URL}/start-project`} title="Start a Project" className="dash-action-btn full-width">
             <span>Start a Project</span>
             <ArrowUpRight size={14} />
