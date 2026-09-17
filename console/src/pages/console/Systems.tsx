@@ -3,15 +3,41 @@ import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { ResourceIcon } from "@/components/ResourceIcon";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { getResources, getPrimaryApplication, statusMeta, resourceSubtitle, RESOURCE_KIND_LABEL } from "@/lib/resources";
-import { Server, Boxes, ArrowUpRight, Info } from "lucide-react";
+import { Server, Boxes, ArrowUpRight, Info, Rocket } from "lucide-react";
 import { toast } from "sonner";
+
+function initialTab(): "systems" | "infrastructure" {
+  try {
+    return new URLSearchParams(window.location.search).get("tab") === "infrastructure"
+      ? "infrastructure"
+      : "systems";
+  } catch {
+    return "systems";
+  }
+}
 
 export default function Systems() {
   const { activeWorkspace, loading: workspaceLoading, error: workspaceError, refresh } = useWorkspace();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"systems" | "infrastructure">("systems");
+  const [activeTab, setActiveTab] = useState<"systems" | "infrastructure">(initialTab);
   const resources = activeWorkspace ? getResources(activeWorkspace) : [];
   const primaryApp = activeWorkspace ? getPrimaryApplication(activeWorkspace) : undefined;
+
+  const upgradeMailto = activeWorkspace
+    ? `mailto:billing@restart.ng?subject=${encodeURIComponent(
+        `Upgrade request — ${activeWorkspace.name}`
+      )}&body=${encodeURIComponent(
+        `We'd like to request a capacity upgrade for our dedicated server.\n\nWorkspace: ${activeWorkspace.name}\nCurrent server: ${activeWorkspace.server?.name ?? "—"}\nCurrent capacity: ${activeWorkspace.server?.cpus ?? "—"} vCPU · ${activeWorkspace.server?.memoryGb ?? "—"} GB RAM\n\nWhat we need:\n`
+      )}`
+    : "mailto:billing@restart.ng";
+
+  const newServerMailto = activeWorkspace
+    ? `mailto:billing@restart.ng?subject=${encodeURIComponent(
+        `New server request — ${activeWorkspace.name}`
+      )}&body=${encodeURIComponent(
+        `We'd like to deploy an additional server in this project.\n\nWorkspace: ${activeWorkspace.name}\nExisting server: ${activeWorkspace.server?.name ?? "—"}\n\nWhat it's for:\n`
+      )}`
+    : "mailto:billing@restart.ng";
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -92,6 +118,23 @@ export default function Systems() {
 
           {activeTab === "infrastructure" && (
             <div className="dash-hosting-view">
+              <div className="infra-actions-bar">
+                <div>
+                  <h3>Need more capacity?</h3>
+                  <p>Request an upgrade to this server, or a second server in this project.</p>
+                </div>
+                <div className="infra-actions-buttons">
+                  <a href={upgradeMailto} className="dash-action-btn">
+                    <span>Request Upgrade</span>
+                    <ArrowUpRight size={14} />
+                  </a>
+                  <a href={newServerMailto} className="console-btn-secondary">
+                    <Rocket size={13} />
+                    <span>Deploy New Server</span>
+                  </a>
+                </div>
+              </div>
+
               <div className="hosting-overview-grid">
                 <div className="hosting-card">
                   <div className="card-top-header">

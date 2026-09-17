@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
-import { ArrowUpRight, ExternalLink, CreditCard, ShieldCheck, Tag, Wallet } from "lucide-react";
+import { ArrowUpRight, ArrowRight, ExternalLink, CreditCard, ShieldCheck, Tag, Wallet } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
 
@@ -34,12 +35,23 @@ interface BillingCustomer {
 interface AppliedCoupon {
   name: string;
   code: string;
+  status: string;
   frequency: string;
   durationTotal: number | null;
   durationRemaining: number | null;
   percentageRate: string | null;
   amountCents: number | null;
   amountCurrency: string | null;
+}
+
+// Lago tracks progress in months remaining, not a calendar end date, so this
+// is a projection from "today," not a value Lago reports directly -- good
+// enough to say "around," not precise enough to promise an exact day.
+function estimatedCouponEnd(c: AppliedCoupon): Date | null {
+  if (c.durationRemaining === null) return null;
+  const d = new Date();
+  d.setMonth(d.getMonth() + c.durationRemaining);
+  return d;
 }
 
 interface BillingData {
@@ -166,10 +178,13 @@ export default function BillingSla() {
                         {formatAmount(primarySubscription.amountCents, primarySubscription.currency)}
                       </span>
                     </div>
-                    <a href="mailto:billing@restart.ng" className="dash-action-btn mt-4 w-full text-center justify-center">
-                      <span>Request Plan Change</span>
-                      <ArrowUpRight size={14} />
-                    </a>
+                    <Link
+                      href="/console/systems?tab=infrastructure"
+                      className="overview-section-link mt-4 w-full justify-center"
+                    >
+                      <span>Need more capacity? Manage on Systems</span>
+                      <ArrowRight size={12} />
+                    </Link>
                   </div>
                 )}
               </div>
@@ -208,15 +223,24 @@ export default function BillingSla() {
                     </div>
 
                     {data.appliedCoupons && data.appliedCoupons.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-white/5">
-                        {data.appliedCoupons.map((c) => (
-                          <div key={c.code} className="flex items-center gap-2 text-[12px] text-teal">
-                            <Tag size={12} />
-                            <span>
-                              {c.name}: {describeCoupon(c)}
-                            </span>
-                          </div>
-                        ))}
+                      <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+                        {data.appliedCoupons.map((c) => {
+                          const endsAround = estimatedCouponEnd(c);
+                          return (
+                            <div key={c.code} className="coupon-detail-box">
+                              <div className="coupon-detail-head">
+                                <Tag size={13} className="text-teal" />
+                                <strong>{c.name}</strong>
+                                <span className="system-healthy-pill">{c.status.toUpperCase()}</span>
+                              </div>
+                              <div className="coupon-detail-meta">
+                                {primarySubscription && <span>Applies to {primarySubscription.planName}</span>}
+                                <span>{describeCoupon(c)}</span>
+                                {endsAround && <span>Ends around {endsAround.toLocaleDateString()}</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

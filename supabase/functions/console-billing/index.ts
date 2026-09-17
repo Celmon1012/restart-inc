@@ -187,6 +187,7 @@ async function fetchBilling(externalCustomerId: string) {
     appliedCoupons: appliedCoupons.map((c) => ({
       name: c.coupon_name,
       code: c.coupon_code,
+      status: c.status,
       frequency: c.frequency,
       durationTotal: c.frequency_duration,
       durationRemaining: c.frequency_duration_remaining,
