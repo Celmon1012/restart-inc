@@ -178,6 +178,27 @@ function mapResources(env: Record<string, any>) {
   return { resources, serverRef };
 }
 
+// Deployment history is per-application, not per-project, so a workspace
+// with several applications needs one call per app. Small, bounded lists
+// (every workspace here has a handful of apps at most) so running them
+// concurrently and merging is cheap; failures are swallowed per-app so one
+// app's deploy history being unavailable doesn't blank the whole feed.
+async function fetchDeployments(appUuid: string, appName: string) {
+  try {
+    const rows = await coolifyFetch(`/deployments/applications/${appUuid}?take=10`);
+    return (Array.isArray(rows) ? rows : []).map((d: Record<string, any>) => ({
+      uuid: d.deployment_uuid,
+      applicationName: appName,
+      status: d.status,
+      commitSha: typeof d.commit === "string" ? d.commit.slice(0, 7) : null,
+      createdAt: d.created_at,
+      trigger: d.is_webhook ? "webhook" : d.is_api ? "api" : "manual",
+    }));
+  } catch {
+    return [];
+  }
+}
+
 async function fetchWorkspaceLiveData(coolifyProjectUuid: string) {
   const env = await coolifyFetch(`/projects/${coolifyProjectUuid}/production`);
   const { resources, serverRef } = mapResources(env);
@@ -203,9 +224,19 @@ async function fetchWorkspaceLiveData(coolifyProjectUuid: string) {
     }
   }
 
+  const applications = resources.filter((r) => r.kind === "application");
+  const deploymentLists = await Promise.all(
+    applications.map((app) => fetchDeployments(app.uuid, app.name))
+  );
+  const deployments = deploymentLists
+    .flat()
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    .slice(0, 10);
+
   return {
     server,
     environments: [{ name: "production", resources }],
+    deployments,
   };
 }
 

@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { getResources, statusMeta, type Resource } from "@/lib/resources";
+import { getResources, statusMeta, deploymentStatusLabel, formatRelativeTime, type Resource } from "@/lib/resources";
 import { getCurrentMilestone } from "@/lib/delivery";
-import { CheckCircle2, AlertTriangle, ArrowRight, Server, Database, Boxes, Clock, Terminal } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ArrowRight, Server, Database, Boxes, Clock, Terminal, Rocket } from "lucide-react";
 import { toast } from "sonner";
 
 const KIND_ICON: Record<Resource["kind"], typeof Server> = {
@@ -143,10 +143,28 @@ export default function Overview() {
                 Open activity log <ArrowRight size={12} />
               </Link>
             </div>
-            <div className="overview-not-connected">
-              <Terminal size={16} />
-              <span>Activity history isn't connected yet — deployments and security events will appear here.</span>
-            </div>
+            {(activeWorkspace.deployments ?? []).length === 0 ? (
+              <div className="overview-not-connected">
+                <Terminal size={16} />
+                <span>Nothing deployed yet — deployments will appear here once they run.</span>
+              </div>
+            ) : (
+              <div className="activity-list">
+                {activeWorkspace.deployments.slice(0, 3).map((d) => (
+                  <div className="activity-row" key={d.uuid}>
+                    <div className="activity-row-icon">
+                      <Rocket size={15} className="text-teal" />
+                    </div>
+                    <div className="activity-row-body">
+                      <p>
+                        <strong>{d.applicationName}</strong> — {deploymentStatusLabel(d.status)}
+                      </p>
+                      <span className="activity-row-meta">{formatRelativeTime(d.createdAt)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}

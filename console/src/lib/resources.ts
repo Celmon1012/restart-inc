@@ -60,12 +60,22 @@ export interface Environment {
   resources: Resource[];
 }
 
+export interface Deployment {
+  uuid: string;
+  applicationName: string;
+  status: string;
+  commitSha: string | null;
+  createdAt: string;
+  trigger: "webhook" | "api" | "manual";
+}
+
 export interface Workspace {
   id: string;
   name: string;
   tier: string | null;
   server: DedicatedServer | null;
   environments: Environment[];
+  deployments: Deployment[];
 }
 
 export interface WorkspaceSummary {
@@ -101,6 +111,30 @@ export function statusMeta(status: ResourceStatus): { label: string; tone: "heal
     case "stopped":
       return { label: "Stopped", tone: "down" };
   }
+}
+
+const DEPLOYMENT_STATUS_LABEL: Record<string, string> = {
+  finished: "Deployed successfully",
+  failed: "Deployment failed",
+  "in_progress": "Deploying",
+  running: "Deploying",
+  queued: "Queued to deploy",
+  "cancelled-by-user": "Deployment cancelled"
+};
+
+export function deploymentStatusLabel(status: string): string {
+  return DEPLOYMENT_STATUS_LABEL[status] ?? status;
+}
+
+export function formatRelativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.round(diffMs / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
 export function resourceSubtitle(resource: Resource): string {
