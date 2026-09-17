@@ -878,7 +878,10 @@ button { font: inherit; }
   white-space: nowrap;
 }
 .console-sidebar-brand .dash-tag {
-  align-self: flex-start;
+  align-self: flex-end;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 .dash-tag {
   font-size: 9px;
