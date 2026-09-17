@@ -123,7 +123,7 @@ export default function Overview() {
                   const { label, tone } = statusMeta(r.status);
                   return (
                     <div className="overview-system-card" key={r.uuid}>
-                      <ResourceIcon resource={r} size={15} className="text-teal" />
+                      <ResourceIcon resource={r} size={20} className="text-teal" />
                       <span className="overview-system-name">{r.name}</span>
                       <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>{label}</span>
                     </div>

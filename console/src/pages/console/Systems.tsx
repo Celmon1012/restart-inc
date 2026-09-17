@@ -71,7 +71,7 @@ export default function Systems() {
                     </div>
                     <div className="system-info">
                       <div className="system-title-row">
-                        <ResourceIcon resource={resource} size={15} className="text-teal" />
+                        <ResourceIcon resource={resource} size={22} className="text-teal" />
                         <h3>{resource.name}</h3>
                         <span className="system-kind-tag">{RESOURCE_KIND_LABEL[resource.kind]}</span>
                         <span className="system-version">{resource.uuid}</span>
