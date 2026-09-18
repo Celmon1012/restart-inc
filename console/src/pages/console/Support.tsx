@@ -18,10 +18,15 @@ interface ConversationSummary {
   lastActivityAt: number | null;
 }
 
+// Chatwoot serializes message_type as a number, not the string its own
+// API docs' examples suggest: 0 = incoming (client), 1 = outgoing
+// (Restart), 2 = activity, 3 = template.
+type ChatwootMessageType = 0 | 1 | 2 | 3;
+
 interface ChatwootMessage {
   id: number;
   content: string;
-  message_type: "incoming" | "outgoing" | "template" | "activity";
+  message_type: ChatwootMessageType;
   private: boolean;
   created_at: number;
 }
@@ -255,7 +260,7 @@ export default function Support() {
                   {(thread?.messages ?? []).map((m) => (
                     <div
                       key={m.id}
-                      className={`support-message ${m.message_type === "outgoing" ? "outgoing" : "incoming"} ${m.private ? "private" : ""}`}
+                      className={`support-message ${m.message_type === 1 ? "outgoing" : "incoming"} ${m.private ? "private" : ""}`}
                     >
                       {m.private && (
                         <span className="support-message-badge">

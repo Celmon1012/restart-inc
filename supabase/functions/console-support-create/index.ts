@@ -10,6 +10,18 @@
 // only open a ticket for their own workspace. Chatwoot's inbox/contact
 // tokens are the only secret here, which is why this has to be a function
 // at all rather than a direct client insert.
+//
+// Uses TWO different Chatwoot APIs on purpose, not by accident:
+// - The agent-token Application API (chatwootGet/chatwootPost below) only
+//   for finding/creating the contact and its contact_inbox -- that's an
+//   agent-side operation.
+// - Chatwoot's separate, unauthenticated-by-design Client API
+//   (chatwootPublicPost, keyed by inbox_identifier + the contact's
+//   source_id) to actually create the conversation and its first message
+//   -- confirmed the hard way that the Application API's create-message
+//   endpoint does NOT genuinely persist a message when message_type is
+//   set to "incoming"; that representation is only real when created
+//   through the Client API, which is what a real contact/widget uses.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -17,6 +29,7 @@ const CHATWOOT_API_URL = (Deno.env.get("CHATWOOT_API_URL") ?? "https://support.r
 const CHATWOOT_API_ACCESS_TOKEN = Deno.env.get("CHATWOOT_API_ACCESS_TOKEN")!;
 const CHATWOOT_ACCOUNT_ID = Deno.env.get("CHATWOOT_ACCOUNT_ID")!;
 const CHATWOOT_INBOX_ID = Deno.env.get("CHATWOOT_INBOX_ID")!;
+const CHATWOOT_INBOX_IDENTIFIER = Deno.env.get("CHATWOOT_INBOX_IDENTIFIER")!;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -74,6 +87,19 @@ async function chatwootPost(path: string, body: unknown) {
   return res.json();
 }
 
+// The Client API -- no api_access_token, authorized purely by knowing the
+// inbox_identifier + contact_identifier (source_id) pair, exactly like a
+// real widget session would be.
+async function chatwootPublicPost(path: string, body: unknown) {
+  const res = await fetch(`${CHATWOOT_API_URL}/public/api/v1/inboxes/${CHATWOOT_INBOX_IDENTIFIER}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Chatwoot public ${path} -> ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
 // Finds the workspace's Chatwoot contact by email, or creates one; either
 // way, ensures it has a contact_inbox (and therefore a source_id) for
 // OUR api-channel inbox specifically -- an existing contact found by
@@ -124,16 +150,12 @@ Deno.serve(async (req) => {
 
     const { contactId, sourceId } = await findOrCreateContact(workspace.contact_email, workspace.name);
 
-    const conversation = await chatwootPost("/conversations", {
-      source_id: sourceId,
-      inbox_id: Number(CHATWOOT_INBOX_ID),
-      contact_id: contactId,
+    const conversation = await chatwootPublicPost(`/contacts/${sourceId}/conversations`, {
       custom_attributes: { workspace_id: workspace.id, workspace_name: workspace.name },
     });
 
-    await chatwootPost(`/conversations/${conversation.id}/messages`, {
+    await chatwootPublicPost(`/contacts/${sourceId}/conversations/${conversation.id}/messages`, {
       content: body.subject ? `${body.subject}\n\n${body.message}` : body.message,
-      message_type: "incoming",
     });
 
     const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/support_conversations`, {
@@ -149,6 +171,7 @@ Deno.serve(async (req) => {
         workspace_id: workspace.id,
         chatwoot_conversation_id: conversation.id,
         chatwoot_contact_id: contactId,
+        chatwoot_source_id: sourceId,
       }),
     });
     if (!insertRes.ok) throw new Error(`support_conversations insert -> ${insertRes.status}`);
