@@ -19,6 +19,7 @@ const stackLogos: Record<string, string> = {
   "Supabase": "/logos/stacks/supabase.svg",
   "n8n": "/logos/stacks/n8n.svg",
   "Chatwoot": "/logos/stacks/chatwoot.svg",
+  "Lago": "/logos/stacks/lago.svg",
 };
 
 const lanes = [
