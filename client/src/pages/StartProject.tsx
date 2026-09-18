@@ -146,7 +146,7 @@ export default function StartProject() {
           {/* Left Column: Authority, Value Proposition & Track Record */}
           <div className="squeeze-pitch">
             <span className="section-label teal">START A PROJECT</span>
-            <h1>Build the system your business <span>cannot outgrow.</span></h1>
+            <h1>Build systems your business <span>cannot outgrow.</span></h1>
             <p className="squeeze-subheading">
               You work directly with systems architects who scope precisely, protect continuous production uptime, and build reliable software.
             </p>
@@ -385,7 +385,7 @@ export default function StartProject() {
                       </>
                     ) : (
                       <>
-                        <span>Submit Project Enquiry</span>
+                        <span>Submit Enquiry</span>
                         <ArrowUpRight size={15} />
                       </>
                     )}

@@ -1098,6 +1098,30 @@ button { font: inherit; }
 .dash-workspace-menu-wrapper {
   position: relative;
 }
+.mobile-sidebar-toggle {
+  display: none;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #8fa0ba;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+.mobile-sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.console-sidebar-backdrop {
+  display: none;
+}
+.console-sidebar-mobile-close {
+  display: none;
+}
 .dash-workspace-check {
   margin-left: auto;
   color: var(--teal);
@@ -3073,9 +3097,6 @@ button { font: inherit; }
   .dash-top-bar {
     padding: 0 20px;
   }
-  .dash-org-badge {
-    display: none;
-  }
 }
 @media (max-width: 768px) {
   .system-row {
@@ -3100,22 +3121,90 @@ button { font: inherit; }
     padding: 6px 12px;
     font-size: 11px;
   }
-  .console-sidebar {
-    width: 64px;
+  .mobile-sidebar-toggle {
+    display: flex;
+  }
+  /* Sidebar is fully off-canvas by default on mobile -- the drawer overrides
+     the desktop user-controlled "collapsed" rail so mobile always opens to
+     full labels regardless of that persisted desktop preference. */
+  .console-sidebar,
+  .console-sidebar.collapsed {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 250px !important;
+    height: 100dvh;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.22s var(--ease-out);
+    box-shadow: 0 0 48px rgba(0, 0, 0, 0.65);
+  }
+  .console-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  .console-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 190;
+    background: rgba(0, 0, 0, 0.6);
+    animation: overlay-fade 0.18s ease-out;
+  }
+  .console-sidebar-brand-row,
+  .console-sidebar.collapsed .console-sidebar-brand-row {
+    padding: 0 8px 0 20px !important;
+    justify-content: space-between !important;
+  }
+  .console-sidebar-brand,
+  .console-sidebar.collapsed .console-sidebar-brand {
+    flex: 1 !important;
+    justify-content: flex-start !important;
   }
   .console-sidebar-brand span:not(:first-child),
+  .console-sidebar.collapsed .console-sidebar-brand span:not(:first-child),
   .console-sidebar-group-label,
-  .console-sidebar-link span {
-    display: none;
+  .console-sidebar.collapsed .console-sidebar-group-label,
+  .console-sidebar-link span,
+  .console-sidebar.collapsed .console-sidebar-link span,
+  .console-sidebar-footer .dash-action-btn span,
+  .console-sidebar.collapsed .console-sidebar-footer .dash-action-btn span {
+    display: inline !important;
   }
-  .console-sidebar-link {
-    justify-content: center;
-    padding: 10px;
-  }
-  .console-sidebar-footer .dash-action-btn span {
-    display: none;
+  .console-sidebar-link,
+  .console-sidebar.collapsed .console-sidebar-link {
+    justify-content: flex-start !important;
+    padding: 9px 12px !important;
   }
   .console-sidebar-collapse-btn {
+    display: none;
+  }
+  .console-sidebar-mobile-close {
+    display: grid;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    place-items: center;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #727a8c;
+    cursor: pointer;
+  }
+  .console-sidebar-mobile-close:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+  .dash-org-badge {
+    max-width: 150px;
+  }
+  .org-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 90px;
+  }
+  .org-pod {
     display: none;
   }
   .dash-main {
@@ -3129,6 +3218,20 @@ button { font: inherit; }
     width: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 420px) {
+  .dash-top-right .dash-action-btn span {
+    display: none;
+  }
+  .dash-top-right .dash-action-btn {
+    padding: 8px;
+  }
+  .dash-org-badge {
+    max-width: 110px;
+  }
+  .org-name {
+    max-width: 60px;
   }
 }
 

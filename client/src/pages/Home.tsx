@@ -9,6 +9,15 @@ import CaseStudyModal from "@/components/CaseStudyModal";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import { insightsData } from "@/data/insights";
 
+const stackLogos: Record<string, string> = {
+  "Laravel": "/logos/stacks/laravel.svg",
+  "PostgreSQL": "/logos/stacks/postgresql.svg",
+  "Filament": "/logos/stacks/filament.svg",
+  "Medusa": "/logos/stacks/medusa.svg",
+  "Next.js": "/logos/stacks/nextdotjs.svg",
+  "Claude API": "/logos/stacks/anthropic.svg",
+};
+
 const lanes = [
   { number: "01", slug: "saas-platforms", title: "Build a platform your team can operate.", accent: "teal", icon: Code2, text: "Multi-tenant B2B platforms designed around clear boundaries, resilient jobs, secure access, observable workflows, and the operational detail that makes production sustainable.", tags: ["Laravel", "PostgreSQL", "Octane", "Filament", "Horizon", "Observability"], action: "Explore SaaS builds" },
   { number: "02", slug: "commerce", title: "Make commerce operations work harder.", accent: "blue", icon: Layers3, text: "Custom commerce platforms built on Medusa — admin workflows, billing, protected data, resilient webhooks, and the realities of high-volume commerce.", tags: ["Medusa", "Next.js", "PostgreSQL", "Admin API", "Workflows"], action: "Explore commerce builds" },
@@ -176,7 +185,7 @@ export default function Home() {
             <p>Restart Inc. is a technology and engineering firm that helps ambitious operators turn complex workflows and product ideas into reliable, scalable systems.</p>
             <div className="hero-buttons">
               <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
-              <a className="button outline" href="#process" onClick={(e) => handleScrollTo(e, "process")}>See how we work <ChevronRight size={15} /></a>
+              <a className="button outline" href="#process" onClick={(e) => handleScrollTo(e, "process")}>See how we build <ChevronRight size={15} /></a>
             </div>
             <div className="hero-proof-row">
               <span><Check size={13} /> Senior technical ownership</span>
@@ -209,7 +218,10 @@ export default function Home() {
                 <p>{lane.text}</p>
                 <div className="tag-row">
                   {lane.tags.map((tag) => (
-                    <span key={tag}>{tag}</span>
+                    <span key={tag}>
+                      {stackLogos[tag] && <img src={stackLogos[tag]} alt="" aria-hidden="true" className="tag-logo" />}
+                      {tag}
+                    </span>
                   ))}
                 </div>
                 <Link href={`/solutions/${lane.slug}`} className="card-link">

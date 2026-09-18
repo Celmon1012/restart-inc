@@ -23,7 +23,8 @@ import {
   Users,
   LifeBuoy,
   Sparkles,
-  X
+  X,
+  Menu
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -91,6 +92,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
       return false;
     }
   });
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   // Per-viewer convenience only (which promo they've already dismissed) --
   // bump the key if the promo copy changes so it resurfaces once.
   const [promoDismissed, setPromoDismissed] = useState(() => {
@@ -108,6 +110,10 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
   };
   const userMenuRef = useRef<HTMLDivElement>(null);
   const workspaceMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [location]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -156,7 +162,10 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
 
   return (
     <div className="console-app-shell">
-      <aside className={`console-sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
+      {mobileSidebarOpen && (
+        <div className="console-sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)} />
+      )}
+      <aside className={`console-sidebar ${sidebarCollapsed ? "collapsed" : ""} ${mobileSidebarOpen ? "mobile-open" : ""}`}>
         <div className="console-sidebar-brand-row">
           <a href={MARKETING_URL} className="console-sidebar-brand" aria-label="Restart home">
             <span className="restart-mark" aria-hidden="true"><span /></span>
@@ -172,6 +181,13 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
             aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {sidebarCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+          </button>
+          <button
+            onClick={() => setMobileSidebarOpen(false)}
+            className="console-sidebar-mobile-close"
+            aria-label="Close menu"
+          >
+            <X size={16} />
           </button>
         </div>
 
@@ -233,6 +249,13 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
       <div className="dash-content-col">
         <header className="dash-top-bar">
           <div className="dash-top-left">
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="mobile-sidebar-toggle"
+              aria-label="Open menu"
+            >
+              <Menu size={17} />
+            </button>
             <div className="dash-workspace-menu-wrapper" ref={workspaceMenuRef}>
               <button
                 onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
