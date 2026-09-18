@@ -145,13 +145,14 @@ button { font: inherit; }
   .hero-section { min-height: 600px; }
   .hero-content { padding: 20px 0 36px !important; }
   .hero-content h1 { font-size: clamp(34px, 8.5vw, 44px) !important; line-height: 1.1 !important; margin: 18px 0 14px !important; }
-  .hero-content p { font-size: 15px !important; line-height: 1.65 !important; color: #b7c5ea !important; }
+  .hero-content p { font-size: 17px !important; line-height: 1.65 !important; color: #b7c5ea !important; }
   .hero-proof-row { gap: 10px 18px !important; font-size: 13px !important; margin-top: 20px !important; }
   .hero-proof-row span { font-size: 13px !important; gap: 6px !important; }
   .hero-buttons { flex-direction: column !important; width: 100% !important; gap: 11px !important; margin-top: 24px !important; }
   .hero-buttons .button { width: 100% !important; max-width: none !important; padding: 14px 20px !important; font-size: 14px !important; justify-content: center !important; }
 
   .section-intro h2 { font-size: clamp(28px, 6.2vw, 36px) !important; line-height: 1.15 !important; }
+  .lanes-section .section-intro h2, .offers-section .section-intro h2 { font-size: calc(clamp(28px, 6.2vw, 36px) + 3px) !important; }
   .section-intro p { font-size: 15px !important; line-height: 1.65 !important; color: #a4b3dc !important; }
   .section-label { font-size: 11px !important; padding: 7px 11px !important; }
 
@@ -189,11 +190,12 @@ button { font: inherit; }
   .saas-art { height: 260px !important; }
   .integration-wall { grid-template-columns: repeat(6, 1fr) !important; gap: 7px !important; }
 
-  .use-cases-grid strong, .proof-grid strong { font-size: 17px !important; }
+  .use-cases-grid strong { font-size: 17px !important; }
+  .proof-grid strong { font-size: 20px !important; }
   .use-cases-grid p, .proof-grid p { font-size: 15px !important; line-height: 1.6 !important; min-height: auto !important; }
 
   .faq-section { grid-template-columns: 1fr !important; gap: 30px !important; padding-top: 60px !important; }
-  .faq-item button { font-size: 16px !important; padding: 18px 0 !important; }
+  .faq-item button { font-size: 19px !important; padding: 18px 0 !important; }
   .faq-item p { font-size: 15px !important; line-height: 1.65 !important; }
 
   .final-cta h2 { font-size: clamp(28px, 6vw, 38px) !important; }
@@ -202,6 +204,7 @@ button { font: inherit; }
   .footer-grid { grid-template-columns: 1fr 1fr !important; gap: 32px 18px !important; }
   .footer-brand { grid-column: span 2 !important; }
   .footer-brand p { font-size: 15px !important; }
+  .footer-grid strong { font-size: 18px !important; }
   .footer-grid a, .footer-grid button { font-size: 13px !important; }
   .footer-bottom { flex-direction: column !important; gap: 12px !important; }
   .footer-bottom span { font-size: 12px !important; }
@@ -576,7 +579,7 @@ button { font: inherit; }
   .squeeze-autofill-btn { position: static; align-self: flex-start; margin-top: 10px; }
   .squeeze-form-card { padding: 22px 18px !important; border-radius: 12px !important; }
   .squeeze-pitch h1 { font-size: clamp(30px, 7.5vw, 38px) !important; }
-  .squeeze-subheading { font-size: 15px !important; }
+  .squeeze-subheading { font-size: 17px !important; }
   .commitment-card { padding: 16px 18px !important; }
   .commitment-card h4 { font-size: 15px !important; }
   .commitment-card p { font-size: 14px !important; }
