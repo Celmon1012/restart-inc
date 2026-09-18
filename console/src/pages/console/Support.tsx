@@ -35,7 +35,22 @@ interface Proposal {
 async function invoke<T = any>(name: string, options: { body?: unknown; query?: string } = {}): Promise<T> {
   const path = options.query ? `${name}?${options.query}` : name;
   const { data, error } = await supabase.functions.invoke(path, options.body ? { body: options.body } : undefined);
-  if (error) throw error;
+  if (error) {
+    // supabase-js's own error.message is just "Edge Function returned a
+    // non-2xx status code" -- the function's actual {error} body (which is
+    // what we want to show) is only reachable via error.context, the raw
+    // Response object, and has to be read out explicitly.
+    const context = (error as { context?: Response }).context;
+    if (context) {
+      try {
+        const body = await context.json();
+        if (body?.error) throw new Error(body.error);
+      } catch {
+        // fall through to the generic error below
+      }
+    }
+    throw error;
+  }
   if (data?.error) throw new Error(data.error);
   return data;
 }
