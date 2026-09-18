@@ -11,6 +11,7 @@ import Systems from "./pages/console/Systems";
 import Delivery from "./pages/console/Delivery";
 import Activity from "./pages/console/Activity";
 import Leads from "./pages/console/Leads";
+import Support from "./pages/console/Support";
 import ProfileSecurity from "./pages/console/ProfileSecurity";
 import ConsoleSettings from "./pages/console/ConsoleSettings";
 import ApiKeyVault from "./pages/console/ApiKeyVault";
@@ -57,6 +58,11 @@ function Router() {
           <AdminRoute>
             <Leads />
           </AdminRoute>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/console/support">
+        <ProtectedRoute>
+          <Support />
         </ProtectedRoute>
       </Route>
       <Route path="/console/profile">

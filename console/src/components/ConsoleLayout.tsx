@@ -63,12 +63,7 @@ const NAV_GROUPS: Array<{
       { href: "/console/keys", label: "API Keys", icon: Key },
       { href: "/console/settings", label: "Settings", icon: Settings },
       { href: "/console/billing", label: "Billing & SLA", icon: CreditCard },
-      {
-        href: "mailto:billing@restart.ng?subject=" + encodeURIComponent("Help & Support"),
-        label: "Help & Support",
-        icon: LifeBuoy,
-        external: true
-      }
+      { href: "/console/support", label: "Help & Support", icon: LifeBuoy }
     ]
   }
 ];
