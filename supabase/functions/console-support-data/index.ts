@@ -105,12 +105,19 @@ Deno.serve(async (req) => {
       const row = rows.find((r) => r.id === conversationId);
       if (!row) return json({ error: "Not found" }, 404);
 
+      // The "show conversation" endpoint only embeds a single-message
+      // preview, not full history -- confirmed against a real conversation
+      // where it silently returned just the most recent message. The
+      // dedicated messages endpoint (wrapped in {meta, payload}) is what
+      // actually returns the full thread.
       const conversation = await chatwootFetch(`/conversations/${row.chatwoot_conversation_id}`);
+      const messagesRes = await chatwootFetch(`/conversations/${row.chatwoot_conversation_id}/messages`);
+      conversation.messages = messagesRes.payload ?? [];
       // Private notes are staff-only by construction in Chatwoot -- this
       // function must enforce that too, since it's the only thing standing
       // between a client and the raw Chatwoot payload (which includes them).
       if (!caller.isAdmin) {
-        conversation.messages = (conversation.messages ?? []).filter((m: any) => !m.private);
+        conversation.messages = conversation.messages.filter((m: any) => !m.private);
       }
       // Likewise, a pending draft is only ever surfaced to admins (RLS on
       // support_proposals already returns [] for a non-admin, but be explicit).
