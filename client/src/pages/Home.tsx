@@ -16,12 +16,15 @@ const stackLogos: Record<string, string> = {
   "Medusa": "/logos/stacks/medusa.svg",
   "Next.js": "/logos/stacks/nextdotjs.svg",
   "Claude API": "/logos/stacks/anthropic.svg",
+  "Supabase": "/logos/stacks/supabase.svg",
+  "n8n": "/logos/stacks/n8n.svg",
+  "Chatwoot": "/logos/stacks/chatwoot.svg",
 };
 
 const lanes = [
-  { number: "01", slug: "saas-platforms", title: "Build a platform your team can operate.", accent: "teal", icon: Code2, text: "Multi-tenant B2B platforms designed around clear boundaries, resilient jobs, secure access, observable workflows, and the operational detail that makes production sustainable.", tags: ["Laravel", "PostgreSQL", "Octane", "Filament", "Horizon", "Observability"], action: "Explore SaaS builds" },
-  { number: "02", slug: "commerce", title: "Make commerce operations work harder.", accent: "blue", icon: Layers3, text: "Custom commerce platforms built on Medusa — admin workflows, billing, protected data, resilient webhooks, and the realities of high-volume commerce.", tags: ["Medusa", "Next.js", "PostgreSQL", "Admin API", "Workflows"], action: "Explore commerce builds" },
-  { number: "03", slug: "ai-engineering", title: "Put AI where it can earn trust.", accent: "violet", icon: BrainCircuit, text: "We turn models, retrieval, tools, and agents into useful product capabilities — with evaluation, observability, and cost controls built in from the start.", tags: ["Claude API", "MCP", "RAG", "pgvector", "Evaluation harnesses"], action: "Explore AI engineering" },
+  { number: "01", slug: "saas-platforms", title: "Build a platform your team can operate.", accent: "teal", icon: Code2, text: "Multi-tenant B2B platforms designed around clear boundaries, resilient jobs, secure access, observable workflows, and the operational detail that makes production sustainable.", tags: ["Laravel", "PostgreSQL", "Supabase", "Filament", "Horizon", "Lago"], action: "Explore SaaS builds" },
+  { number: "02", slug: "commerce", title: "Make commerce operations work harder.", accent: "blue", icon: Layers3, text: "Custom commerce platforms built on Medusa — admin workflows, billing, protected data, resilient webhooks, and the realities of high-volume commerce.", tags: ["Medusa", "Next.js", "PostgreSQL", "n8n", "Chatwoot"], action: "Explore commerce builds" },
+  { number: "03", slug: "ai-engineering", title: "Put AI where it can earn trust.", accent: "violet", icon: BrainCircuit, text: "We turn models, retrieval, tools, and agents into useful product capabilities — with evaluation, observability, and cost controls built in from the start.", tags: ["Claude API", "MCP", "Supabase", "pgvector", "Evaluation harnesses"], action: "Explore AI engineering" },
   { number: "04", slug: "architecture-leadership", title: "Bring experience to the decisions that matter.", accent: "amber", icon: Network, text: "Architecture reviews, fractional technical leadership, hiring support, and hands-on mentorship for teams that need a clearer path from complexity to execution.", tags: ["Architecture reviews", "Domain modeling", "Testing strategy", "Technical leadership", "Mentorship"], action: "Talk to an engineer" },
 ];
 
