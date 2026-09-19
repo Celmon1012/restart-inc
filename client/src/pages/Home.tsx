@@ -271,9 +271,6 @@ export default function Home() {
               </div>
               <h3>{study.title}</h3>
               <p>{study.summary}</p>
-              <div className="case-tags">
-                {study.tags.map((tag) => <span key={tag}>{tag}</span>)}
-              </div>
               <div className="outcome-grid">
                 {study.metrics.map((metric) => (
                   <div key={metric.label}>
