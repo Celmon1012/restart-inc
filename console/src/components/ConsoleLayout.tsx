@@ -163,11 +163,12 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
       <aside className={`console-sidebar ${sidebarCollapsed ? "collapsed" : ""} ${mobileSidebarOpen ? "mobile-open" : ""}`}>
         <div className="console-sidebar-brand-row">
           <a href={MARKETING_URL} className="console-sidebar-brand" aria-label="Restart home">
-            <span className="restart-mark" aria-hidden="true"><span /></span>
-            <span className="console-sidebar-brand-text">
-              <span className="console-sidebar-brand-name">RESTART INC<span className="logo-dot">.</span></span>
-              <span className="dash-tag">CONSOLE</span>
-            </span>
+            {sidebarCollapsed ? (
+              <img src="/brand/restart-mark.png" alt="Restart Inc." className="console-sidebar-mark-img" />
+            ) : (
+              <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />
+            )}
+            <span className="dash-tag">CONSOLE</span>
           </a>
           <button
             onClick={toggleSidebar}

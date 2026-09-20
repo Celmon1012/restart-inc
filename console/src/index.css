@@ -20,10 +20,8 @@ button { font: inherit; }
 .site-header { height: 78px; width: min(1340px, calc(100% - 64px)); margin: 0 auto; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,.07); position: relative; z-index: 20; }
 .site-logo { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; letter-spacing: .13em; font-weight: 800; }
 .logo-dot { color: var(--teal); }
-.restart-mark { width: 24px; height: 24px; display: inline-block; border: 2px solid var(--teal); border-radius: 50%; position: relative; }
-.restart-mark::after, .restart-mark span { content: ""; position: absolute; background: var(--teal); border-radius: 999px; }
-.restart-mark::after { width: 9px; height: 2px; top: 9px; left: 6px; transform: rotate(-44deg); }
-.restart-mark span { width: 2px; height: 8px; top: 4px; left: 10px; transform: rotate(45deg); }
+.site-logo-img { height: 28px; width: auto; display: block; }
+.console-sidebar-mark-img { width: 24px; height: 24px; display: block; }
 .site-header nav { display: flex; align-items: center; gap: 31px; margin-left: 92px; }
 .site-header nav > a, .login-link, .mobile-nav-actions > a:first-child { font-family: "DM Sans", sans-serif !important; font-size: 12px !important; font-weight: 600 !important; letter-spacing: .08em; color: #9aa1b2; transition: color .18s ease-out; }
 .site-header nav > a { position: relative; padding: 6px 0; display: inline-flex; flex-direction: column; align-items: center; }

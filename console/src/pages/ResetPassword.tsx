@@ -62,8 +62,7 @@ export default function ResetPassword() {
     <div className="simple-login-shell">
       <header className="simple-login-topbar">
         <a href={MARKETING_URL} className="site-logo" aria-label="Restart home">
-          <span className="restart-mark" aria-hidden="true"><span /></span>
-          <span>RESTART<span className="logo-dot">.</span></span>
+          <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />
         </a>
         <a href={MARKETING_URL} className="squeeze-back-link">
           <ArrowLeft size={14} /> Back to Site
