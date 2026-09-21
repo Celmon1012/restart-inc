@@ -110,9 +110,9 @@ export default function Systems() {
                         <span className="system-version">{resource.uuid}</span>
                       </div>
                       <div className="system-meta-line">
-                        <span>{resourceSubtitle(resource)}</span>
-                        <span className="meta-sep">·</span>
                         <span>Server: <strong>{activeWorkspace.server?.name ?? "—"}</strong></span>
+                        <span className="meta-sep">·</span>
+                        <span>{resourceSubtitle(resource)}</span>
                         {resource.lastOnlineAt && (
                           <>
                             <span className="meta-sep">·</span>
