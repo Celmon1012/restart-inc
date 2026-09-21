@@ -120,6 +120,28 @@ function firstFqdn(fqdn: string | null | undefined): string {
   return fqdn.split(",")[0].replace(/^https?:\/\//, "");
 }
 
+// Coolify stores this in UTC but formats it as "YYYY-MM-DD HH:MM:SS" (no
+// offset), unlike its created_at/updated_at fields which come back full ISO
+// -- normalize so the frontend can hand it straight to `new Date()`.
+function normalizeCoolifyTimestamp(ts: string | null | undefined): string | null {
+  if (!ts) return null;
+  const iso = ts.includes("T") ? ts : `${ts.replace(" ", "T")}Z`;
+  const parsed = new Date(iso);
+  return isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+// A service is a group of containers (app.applications + app.databases in
+// Coolify's model), not one process, so it has no last_online_at of its own
+// -- the most recent heartbeat among its containers is the closest honest
+// equivalent to "when this resource was last confirmed up."
+function serviceLastOnlineAt(svc: Record<string, any>): string | null {
+  const containers = [...(svc.applications ?? []), ...(svc.databases ?? [])];
+  const timestamps = containers
+    .map((c: Record<string, any>) => normalizeCoolifyTimestamp(c.last_online_at))
+    .filter((t): t is string => t !== null);
+  return timestamps.length === 0 ? null : timestamps.sort().at(-1)!;
+}
+
 const STANDALONE_DB_KEYS: Record<string, string> = {
   postgresqls: "standalone-postgresql",
   mysqls: "standalone-mysql",
@@ -147,6 +169,7 @@ function mapResources(env: Record<string, any>) {
       gitBranch: app.git_branch,
       gitCommitSha: app.git_commit_sha,
       buildPack: app.build_pack,
+      lastOnlineAt: normalizeCoolifyTimestamp(app.last_online_at),
     });
   }
 
@@ -158,6 +181,7 @@ function mapResources(env: Record<string, any>) {
       name: svc.name,
       status: svc.status,
       serviceType: svc.service_type,
+      lastOnlineAt: serviceLastOnlineAt(svc),
     });
   }
 
@@ -171,6 +195,7 @@ function mapResources(env: Record<string, any>) {
         status: db.status,
         databaseType,
         isPublic: Boolean(db.is_public),
+        lastOnlineAt: normalizeCoolifyTimestamp(db.last_online_at),
       });
     }
   }

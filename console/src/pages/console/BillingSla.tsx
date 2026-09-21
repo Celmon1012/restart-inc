@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
+import { Sparkline } from "@/components/Sparkline";
 import { ArrowUpRight, ArrowRight, ChevronDown, ExternalLink, CreditCard, ShieldCheck, Tag, Wallet } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
@@ -316,10 +317,15 @@ export default function BillingSla() {
                                 </div>
                               )}
                               <div className="billing-detail-expanded-actions">
-                                <Link href="/console/systems?tab=infrastructure" className="overview-section-link">
-                                  <span>View details</span>
-                                  <ArrowRight size={12} />
-                                </Link>
+                                {/* Only server plans have anything to show on the Systems page --
+                                    a retainer/labor plan has no infrastructure to view, so linking
+                                    there unconditionally was misleading (confirmed 2026-09-18). */}
+                                {sub.planCode.startsWith("dedicated-server-") && (
+                                  <Link href="/console/systems?tab=infrastructure" className="overview-section-link">
+                                    <span>View server details</span>
+                                    <ArrowRight size={12} />
+                                  </Link>
+                                )}
                                 <a href="mailto:billing@restart.ng" className="overview-section-link">
                                   <span>Contact billing</span>
                                   <ArrowUpRight size={12} />
@@ -387,6 +393,16 @@ export default function BillingSla() {
                 <div className="console-card">
                   <div className="card-top-header card-top-header-spaced">
                     <span className="card-kicker card-kicker-lg">INVOICE HISTORY</span>
+                    {data.invoices && data.invoices.length > 1 && (
+                      <div className="invoice-trend">
+                        <Sparkline
+                          // Lago returns invoices newest-first; reverse so the chart reads oldest to newest, left to right.
+                          values={[...data.invoices].reverse().map((inv) => inv.totalAmountCents)}
+                          className="text-teal"
+                        />
+                        <span className="invoice-trend-label">Last {data.invoices.length} invoices</span>
+                      </div>
+                    )}
                   </div>
 
                   {!data.invoices || data.invoices.length === 0 ? (

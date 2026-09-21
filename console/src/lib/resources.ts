@@ -42,6 +42,7 @@ interface BaseResource {
   uuid: string;
   name: string;
   status: ResourceStatus;
+  lastOnlineAt: string | null;
 }
 
 export interface ApplicationResource extends BaseResource {
@@ -143,6 +144,12 @@ const DEPLOYMENT_STATUS_LABEL: Record<string, string> = {
 
 export function deploymentStatusLabel(status: string): string {
   return DEPLOYMENT_STATUS_LABEL[status] ?? status;
+}
+
+export function deploymentTone(status: string): "healthy" | "warning" | "down" {
+  if (status === "failed") return "down";
+  if (status === "in_progress" || status === "running" || status === "queued") return "warning";
+  return "healthy";
 }
 
 export function formatRelativeTime(iso: string): string {
