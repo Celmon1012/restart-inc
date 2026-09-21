@@ -6,6 +6,12 @@
 dist/
 build/
 *.dist
+out/
+next-env.d.ts
+
+# This project uses pnpm (pnpm-lock.yaml) -- an npm lockfile here is always
+# accidental (someone ran npm instead of pnpm) and would fight the real one.
+package-lock.json
 
 # Environment variables
 .env

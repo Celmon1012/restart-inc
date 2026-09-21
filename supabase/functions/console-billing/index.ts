@@ -71,13 +71,19 @@ async function lagoFetch(path: string) {
   return res.json();
 }
 
-async function lagoPost(path: string) {
+// Lago's Rails backend rejects a POST that declares Content-Type: application/json
+// but sends no body -- confirmed 2026-09-18: this was the actual reason
+// payment_url kept coming back null even after the Flutterwave provider-link
+// fix, while Lago's own dashboard button (which sends "{}") worked fine.
+async function lagoPost(path: string): Promise<{ ok: true; body: unknown } | { ok: false; status: number; error: unknown }> {
   const res = await fetch(`${LAGO_API_URL}/api/v1${path}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${LAGO_API_KEY}`, "Content-Type": "application/json" },
+    body: "{}",
   });
-  if (!res.ok) return null;
-  return res.json();
+  const body = await res.json().catch(() => null);
+  if (!res.ok) return { ok: false, status: res.status, error: body };
+  return { ok: true, body };
 }
 
 interface LagoSubscription {
@@ -123,9 +129,18 @@ interface LagoAppliedCoupon {
 // don't need one. Best-effort: if Lago can't generate a link for some reason
 // (e.g. the payment provider rejects it), the invoice still shows, just
 // without a "Pay Now" button, rather than failing the whole billing fetch.
-async function fetchPaymentUrl(lagoInvoiceId: string): Promise<string | null> {
-  const body = await lagoPost(`/invoices/${encodeURIComponent(lagoInvoiceId)}/payment_url`);
-  return body?.invoice?.payment_url ?? body?.payment_url ?? null;
+async function fetchPaymentUrl(lagoInvoiceId: string): Promise<{ url: string | null; error: string | null }> {
+  const result = await lagoPost(`/invoices/${encodeURIComponent(lagoInvoiceId)}/payment_url`);
+  if (!result.ok) {
+    return { url: null, error: `Lago ${result.status}: ${JSON.stringify(result.error)}` };
+  }
+  // Confirmed against Lago's actual controller/serializer source
+  // (Api::V1::InvoicesController#payment_url ->
+  // V1::PaymentProviders::InvoicePaymentSerializer): the response root is
+  // "invoice_payment_details", not "invoice" -- the previous keys here never
+  // matched anything, so this returned null even on a 200 success.
+  const body = result.body as { invoice_payment_details?: { payment_url?: string } };
+  return { url: body?.invoice_payment_details?.payment_url ?? null, error: null };
 }
 
 async function fetchBilling(externalCustomerId: string) {
@@ -156,7 +171,9 @@ async function fetchBilling(externalCustomerId: string) {
   // Only fetch a payment link for invoices that actually need paying --
   // no point generating one for an already-succeeded invoice.
   const paymentUrls = await Promise.all(
-    invoices.map((inv) => (inv.payment_status === "succeeded" ? Promise.resolve(null) : fetchPaymentUrl(inv.lago_id)))
+    invoices.map((inv) =>
+      inv.payment_status === "succeeded" ? Promise.resolve({ url: null, error: null }) : fetchPaymentUrl(inv.lago_id)
+    )
   );
 
   return {
@@ -164,7 +181,10 @@ async function fetchBilling(externalCustomerId: string) {
       ? {
           externalId: externalCustomerId,
           name: customerRes.customer.name,
-          paymentProvider: customerRes.customer.payment_provider ?? null,
+          // Confirmed 2026-09-18: this lives under billing_configuration, not
+          // as a top-level field -- customer.payment_provider is always
+          // undefined regardless of whether a provider is actually connected.
+          paymentProvider: customerRes.customer.billing_configuration?.payment_provider ?? null,
         }
       : null,
     subscriptions: subscriptions.map((s) => {
@@ -187,7 +207,10 @@ async function fetchBilling(externalCustomerId: string) {
       totalAmountCents: inv.total_amount_cents,
       currency: inv.currency,
       fileUrl: inv.file_url,
-      paymentUrl: paymentUrls[i],
+      paymentUrl: paymentUrls[i].url,
+      // Diagnostic only -- surfaces why a link failed to generate instead of
+      // silently showing no "Pay Now" button with no way to tell why.
+      paymentUrlError: paymentUrls[i].error,
     })),
     appliedCoupons: appliedCoupons.map((c) => ({
       name: c.coupon_name,

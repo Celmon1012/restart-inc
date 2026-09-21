@@ -1,6 +1,6 @@
 # Restart Inc — Positioning, Revenue & Pricing Strategy (Planning Doc)
 
-Status: planning only — no pricing is live in Lago or on the site yet. This captures the reasoning so implementation (Lago plans, `/pricing`, console gating) can follow later without re-deriving the logic.
+Status (updated 2026-09-18): the Lago catalog is live in production with real customers (YATA), Flutterwave payment collection is confirmed working end-to-end, and the console billing page shows real subscriptions/invoices/payment links. What started as a planning doc now doubles as the operational record of how billing was actually wired up — see §7 for the catalog and §8 for a real, confirmed Lago core bug and its fix, which will recur for every new Flutterwave customer until Lago patches it upstream.
 
 ## 1. Positioning summary
 
@@ -125,3 +125,63 @@ Still open, for whenever pricing goes live in the console:
 - Pricing visibility should key off the client's workspace currency/region, not just "logged in," otherwise every client sees both lists — undercuts the "your price is scoped to you" positioning.
 - If pricing surfaces inside a "Delivery Milestones & Roadmaps" tab, that framing fits retainer/change-order pricing well (cost of remaining work) but is an odd frame for the initial Audit/Build sale — likely want Audit/Build pricing visible pre-engagement (site or proposal) and reserve the console tab for retainer and milestone-linked pricing.
 - VAT registration status and the small-company classification (§4) should be resolved before the NGN add-ons are ever invoiced against a real client, even though the catalog entries are safe to seed now.
+
+## 8. Flutterwave payment collection — confirmed working, with a real Lago bug and its fix (2026-09-18)
+
+**Verified end-to-end**: YATA's ₦1,500,000 invoice generated a real, live Flutterwave hosted checkout page (`checkout.flutterwave.com`) via Lago's own native "Open payment link" button — correct merchant (Restart Integrated Systems Ltd), correct customer, correct amount, all payment methods rendering. This confirms the entire chain works: Lago customer → Flutterwave provider link → `payment_url` generation → real Flutterwave checkout.
+
+**The bug, root-caused by reading Lago's own source** (`getlago/lago-api`, not a separate community repo — Flutterwave support lives in Lago's core codebase, just labeled "Built by community" in the UI for support-disclaimer purposes):
+
+- The dashboard's "Connect to external apps" customer form saves `customer.billing_configuration.payment_provider` correctly, but never creates the actual link record (`PaymentProviderCustomers::FlutterwaveCustomer`) that `Invoices::Payments::GeneratePaymentUrlService` and `Customers::GenerateCheckoutUrlService` both require — no toggle exists in that UI to trigger it.
+- Calling the customer API with `billing_configuration.sync_with_provider: true` (documented in `Customers::UpsertFromApiService`) **does** create that link record — but `PaymentProviders::CreateCustomerFactory` creates it with **`payment_provider_id` left `nil`**, never pointing at the org's actual Flutterwave provider row. Confirmed at the database level via Coolify's Terminal tab on the `restart-billing` service, `api` container:
+  ```bash
+  bundle exec rails runner 'pp Customer.find_by(external_id:"yata").payment_provider_customers.pluck(:type,:payment_provider_id,:provider_customer_id)'
+  # => [["PaymentProviderCustomers::FlutterwaveCustomer", nil, nil]]
+  ```
+  Since `GeneratePaymentUrlService` looks up the link via `customer.payment_provider_customers.find_by(payment_provider_id: <real provider id>)`, a `nil` FK always misses, always returning `missing_payment_provider_customer` ("customer is not linked to a valid payment provider") — even though the link record technically exists and the customer's config looks fully correct.
+- This is why **both** my code's call and Lago's own native "Open payment link" button failed identically — same core service, same broken FK, regardless of which surface calls it. Confirmed this also means Lago's own customer self-service portal (`portal_url` → `checkout_url`) would hit the exact same wall the moment a client tried to pay from inside it — this bug is universal across every payment-collection entry point in Lago, not specific to our console or Supabase layer.
+
+**The fix** — a one-row, one-column correction once the broken record is identified:
+```bash
+bundle exec rails runner 'c = Customer.find_by(external_id:"yata"); fc = c.payment_provider_customers.find_by(type:"PaymentProviderCustomers::FlutterwaveCustomer"); fc.update!(payment_provider_id:"<org flutterwave provider id>"); pp fc.reload.attributes'
+```
+Get the org's real Flutterwave provider id via:
+```bash
+bundle exec rails runner 'pp PaymentProviders::FlutterwaveProvider.pluck(:id,:code,:organization_id)'
+```
+For Restart Inc, that id is `950a90ff-b58d-4ffe-ada5-3dad4637b5d1` (code `flw_main`) — stable across customers, only the `external_id` in the first command changes per customer.
+
+**This will recur for every new Flutterwave customer** until Lago patches the factory bug upstream — the API sync step (`sync_with_provider: true`, via [supabase/functions/sync-lago-payment-provider/index.ts](supabase/functions/sync-lago-payment-provider/index.ts)) is still a required first step (it creates the link record), but must always be followed by this manual FK correction via Coolify's Terminal. Treat both steps as one standing runbook entry for onboarding any Flutterwave customer, not two independent fixes. Worth filing as a GitHub issue against `getlago/lago-api` given it's core-repo code with a clear, reproducible defect — the evidence trail above (source reading + DB-level confirmation) is a strong basis for a bug report.
+
+**Webhook registered** (2026-09-18): the Flutterwave webhook URL (from Lago's connection page, `https://billing-api.restart.ng/webhooks/flutterwave/c1a3dc95-8ec8-47f7-a1e9-38488085e119?code=flw_main`) is now registered in Flutterwave's dashboard. Not yet confirmed against a real transaction that it correctly flips a Lago invoice to paid — that's still an open verification step.
+
+**Two unrelated bugs in our own `console-billing` edge function** (2026-09-18, found after the above was already fixed) — the Lago-side fix alone didn't make the "Pay Now" button appear, because [supabase/functions/console-billing/index.ts](supabase/functions/console-billing/index.ts)'s own `payment_url` POST had two separate mistakes:
+1. `lagoPost` sent `Content-Type: application/json` with no request body at all — Lago's Rails backend rejects that as malformed JSON, while the dashboard's own button sends `"{}"`. Fixed by sending `body: "{}"`.
+2. Even after (1), the code read `body.invoice.payment_url` / top-level `body.payment_url`, neither of which exist. Reading `Api::V1::InvoicesController#payment_url` and `V1::PaymentProviders::InvoicePaymentSerializer` in Lago's source showed the real response root is `invoice_payment_details.payment_url`. Fixed the key.
+
+Both silent-`null` failure modes were made loud (`paymentUrlError` field per invoice, `lagoPost` returning the real status/body) rather than swallowed, so a future regression here won't require re-deriving this from scratch. Verified end-to-end 2026-09-18: the ₦1,500,000 pending invoice now shows a working "Pay Now" button that opens a real Flutterwave checkout.
+
+## 9. Pricing exposure to agentic-AI price compression (opened 2026-09-19)
+
+Raised question: with agentic coding tools now widely available, is the offer ladder (§2–3) dated? Answer: the *positioning* (§1) already hedges against this correctly — "compete on ownership and continuity, not price" and "agentic tooling is the margin engine, not the sales pitch" is the right defense. The exposure is uneven across the ladder, not uniform:
+
+- **Lead-in (Audit) and Compounding (Retainer) are largely insulated.** Nobody undercuts "the console/SLA/continuity that survives you being unavailable" with a cheaper AI-augmented freelancer — that's an institutional-trust product, not a coding-throughput product.
+- **Core (MVP Build, Medusa Build, AI Integration Sprint) is where the price crash actually bites.** A generic "build me an app" quote is now directly comparable to what any competitor running Claude Code/similar can offer at a fraction of the price. The **AI Integration Sprint** ($15k–$30k) is the single most commoditized line on the ladder — "AI integration" is now a crowded, cheap-to-fake service category.
+
+**Recommendation (not yet actioned — needs Ademola's sign-off on actual figures):** don't cut Core-tier prices to chase commoditized competitors; that concedes the "don't compete on price" wedge we've built everything else around. Instead:
+1. Reframe Core-tier sales language so the deliverable is explicitly "production discipline bundled into the build" (console, audit trail, review gates), not "an app" — the same distinction Founding Engineer's own operating instructions now encode for delivery work.
+2. Weight the sales narrative toward Compounding/Enterprise sooner in the funnel — since agentic tooling has lowered Restart's own internal delivery cost, margin on Core-tier work should be improving even if headline prices hold, which strengthens the case for using Core as a loss-leader into the Retainer rather than a standalone profit center.
+3. Revisit the AI Integration Sprint specifically — either narrow its scope to something harder to replicate (e.g., building on Restart's own agentic-ops tooling now that Paperclip is live internally) or fold it further into Core builds as a line item rather than a standalone sale, since standalone "AI integration" is the most exposed SKU on the list.
+
+Actual price-band changes are **not yet made** — this section records the analysis and direction, not a repriced §3.
+
+## 10. Lead generation channel strategy (opened 2026-09-19)
+
+The Growth/BD hire (RES-6) is scoped to *inbound* lead triage and qualification — it does not address top-of-funnel lead generation. For Restart's actual deal shape ($10k–$100k+, relationship/trust-driven, long sales cycle), channel priority should be:
+
+1. **Referrals from existing clients** (YATA, TaxIQ, Lubcon, Kumoda) — highest-converting channel for this kind of sale; the "continuity" pitch is most persuasive to someone who's already lived it.
+2. **Content/SEO**, leveraging the already-chosen "Operator's Field Notes" editorial brand direction — case studies and audit-style writeups compound over time and pre-sell the "evidence before hype" positioning before a prospect ever talks to sales.
+3. **Targeted outbound** for the $50k+ tiers specifically — a narrow, well-defined ICP outreach beats broad reach at this deal size.
+4. **Paid ads deliberately last, if at all** — high-ticket relationship sales convert poorly off cold ad clicks, and ad-driven traffic skews toward price-shoppers, which directly fights the "don't compete on price" wedge.
+
+Not yet actioned — see the follow-up task assigned to the COO for turning this into a concrete referral/content/outbound plan.
