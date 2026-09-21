@@ -2,7 +2,14 @@ import { useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { ResourceIcon } from "@/components/ResourceIcon";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { getResources, getPrimaryApplication, statusMeta, resourceSubtitle, RESOURCE_KIND_LABEL } from "@/lib/resources";
+import {
+  getResources,
+  getPrimaryApplication,
+  statusMeta,
+  resourceSubtitle,
+  formatRelativeTime,
+  RESOURCE_KIND_LABEL
+} from "@/lib/resources";
 import { Server, Boxes, ArrowUpRight, Info, Rocket } from "lucide-react";
 import { toast } from "sonner";
 
@@ -102,9 +109,16 @@ export default function Systems() {
                         <span className="system-kind-tag">{RESOURCE_KIND_LABEL[resource.kind]}</span>
                         <span className="system-version">{resource.uuid}</span>
                       </div>
-                      <p>{resourceSubtitle(resource)}</p>
-                      <div className="system-metrics-inline">
+                      <div className="system-meta-line">
+                        <span>{resourceSubtitle(resource)}</span>
+                        <span className="meta-sep">·</span>
                         <span>Server: <strong>{activeWorkspace.server?.name ?? "—"}</strong></span>
+                        {resource.lastOnlineAt && (
+                          <>
+                            <span className="meta-sep">·</span>
+                            <span>Checked: <strong>{formatRelativeTime(resource.lastOnlineAt)}</strong></span>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="system-actions">
