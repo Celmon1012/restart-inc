@@ -7,7 +7,7 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Cpu, Database, Gauge, Layers3, Menu, Network, Orbit, ShieldCheck, Sparkles, X, Zap, ExternalLink } from "lucide-react";
 import CaseStudyModal from "@/components/CaseStudyModal";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
-import { insightsData } from "@/data/insights";
+import { useInsights } from "@/hooks/useInsights";
 
 const stackLogos: Record<string, string> = {
   "Laravel": "/logos/stacks/laravel.svg",
@@ -80,6 +80,7 @@ export default function Home() {
   const session = useAuthSession();
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
   const consoleLabel = session ? "Dashboard" : "Console Login";
+  const { insights } = useInsights();
 
   const openOnboarding = (lane?: string) => {
     setLocation(lane ? `/start-project?tier=${encodeURIComponent(lane)}` : "/start-project");
@@ -308,7 +309,7 @@ export default function Home() {
 
       <section className="proof-section" id="process"><div className="container"><div className="section-intro centered"><SectionLabel>SIMPLE 4 STEPS PROCESS</SectionLabel><h2>A straightforward path<br /><span>from constraint to production.</span></h2><p>No lengthy proposals or open-ended retainers — just a clear sequence from your first message to a system your team can run.</p></div><div className="proof-grid"><div><CircleCheck size={18} /><strong>01. Start the conversation.</strong><p>Tell us what you are building and where it is stuck. We reply quickly with whether the timing and fit make sense.</p></div><div><ShieldCheck size={18} /><strong>02. Scope the real work.</strong><p>A short technical review turns your constraint into a concrete plan — deliverables, timeline, and cost, with no surprises later.</p></div><div><Layers3 size={18} /><strong>03. Build in the open.</strong><p>Weekly checkpoints, visible progress, and decisions made together — not a black box that reappears at the deadline.</p></div><div><Network size={18} /><strong>04. Launch and hand off.</strong><p>Ship to production with documentation and context your team can operate without us.</p></div></div></div></section>
 
-      <section className="insights-section container" id="insights"><div className="section-intro centered"><SectionLabel>INSIGHTS</SectionLabel><h2>Insights for people making<br /><span>consequential product decisions.</span></h2><p>Practical perspectives on architecture, operations, AI, cloud infrastructure, and the decisions that determine whether a system holds up under pressure.</p></div><div className="insight-grid">{insightsData.slice(0, 3).map((insight) => { const Icon = insight.icon; return <Link key={insight.id} href="/insights" className="insight-card"><div className={`insight-image ${insight.image}`}><Icon size={40} /></div><span>{insight.kicker}</span><h3>{insight.title}</h3><ArrowUpRight size={15} /></Link>; })}</div><Link className="button outline small center-button" href="/insights">Read all insights <ArrowRight size={14} /></Link></section>
+      <section className="insights-section container" id="insights"><div className="section-intro centered"><SectionLabel>INSIGHTS</SectionLabel><h2>Insights for people making<br /><span>consequential product decisions.</span></h2><p>Practical perspectives on architecture, operations, AI, cloud infrastructure, and the decisions that determine whether a system holds up under pressure.</p></div><div className="insight-grid">{insights.slice(0, 3).map((insight) => { const Icon = insight.icon; return <Link key={insight.id} href={`/insights/${insight.id}`} className="insight-card"><div className={`insight-image ${insight.image}`}><Icon size={40} /></div><span>{insight.kicker}</span><h3>{insight.title}</h3><ArrowUpRight size={15} /></Link>; })}</div><Link className="button outline small center-button" href="/insights">Read all insights <ArrowRight size={14} /></Link></section>
 
       <section className="faq-section container" id="faq"><div className="faq-heading"><SectionLabel>FAQS</SectionLabel><h2>Good questions.<br /><span>Useful answers.</span></h2><p>The questions we hear most from founders and operators before their first project — answered plainly, no sales language.</p><Link href="/contact" className="button outline small">Still have a question? Get in touch <ArrowRight size={14} /></Link></div><div className="faq-list">{faqs.map(([question, answer], i) => <div className={`faq-item ${openFaq === i ? "open" : ""}`} key={question}><button onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i}><span>{question}</span><ChevronDown size={20} strokeWidth={2.75} /></button>{openFaq === i && <p>{answer}</p>}</div>)}</div></section>
 

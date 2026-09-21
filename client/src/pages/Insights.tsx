@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { ArrowRight, ArrowUpRight, ChevronRight, Menu, X } from "lucide-react";
-import { insightsData } from "@/data/insights";
+import { useInsights } from "@/hooks/useInsights";
 
 export default function Insights() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -12,17 +12,18 @@ export default function Insights() {
   const session = useAuthSession();
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
   const consoleLabel = session ? "Dashboard" : "Console Login";
+  const { insights } = useInsights();
 
   const categories = [
-    { id: "all", label: "All Insights", count: insightsData.length },
-    { id: "engineering", label: "Engineering", count: insightsData.filter(i => i.category === "engineering").length },
-    { id: "operations", label: "Operations", count: insightsData.filter(i => i.category === "operations").length },
-    { id: "architecture", label: "Architecture", count: insightsData.filter(i => i.category === "architecture").length },
+    { id: "all", label: "All Insights", count: insights.length },
+    { id: "engineering", label: "Engineering", count: insights.filter(i => i.category === "engineering").length },
+    { id: "operations", label: "Operations", count: insights.filter(i => i.category === "operations").length },
+    { id: "architecture", label: "Architecture", count: insights.filter(i => i.category === "architecture").length },
   ];
 
   const filteredInsights = activeCategory === "all"
-    ? insightsData
-    : insightsData.filter((i) => i.category === activeCategory);
+    ? insights
+    : insights.filter((i) => i.category === activeCategory);
 
   return (
     <div className="page-shell">
@@ -102,12 +103,12 @@ export default function Insights() {
             {filteredInsights.map((insight) => {
               const Icon = insight.icon;
               return (
-                <a key={insight.id} href="#" className="insight-card" onClick={(e) => e.preventDefault()}>
+                <Link key={insight.id} href={`/insights/${insight.id}`} className="insight-card">
                   <div className={`insight-image ${insight.image}`}><Icon size={40} /></div>
                   <span>{insight.kicker}</span>
                   <h3>{insight.title}</h3>
                   <ArrowUpRight size={15} />
-                </a>
+                </Link>
               );
             })}
           </div>

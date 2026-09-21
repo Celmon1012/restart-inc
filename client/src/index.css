@@ -2888,3 +2888,93 @@ button { font: inherit; }
     align-items: flex-start;
   }
 }
+
+/* Insight article (single post) */
+.insight-article {
+  max-width: 760px;
+  padding: 64px 0 40px;
+}
+.insight-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-decoration: none;
+  margin-bottom: 24px;
+  transition: color 0.18s ease-out;
+}
+.insight-back-link:hover {
+  color: var(--teal);
+}
+.insight-article h1 {
+  font-size: clamp(30px, 4.5vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 16px 0 12px;
+}
+.insight-article-date {
+  display: block;
+  font-size: 12px;
+  color: var(--dim);
+  letter-spacing: 0.02em;
+  margin-bottom: 40px;
+}
+.insight-article-body {
+  font-family: "DM Sans", sans-serif;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #c4c9d6;
+}
+.insight-article-body p {
+  margin: 0 0 22px;
+}
+.insight-article-body h2 {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin: 40px 0 16px;
+}
+.insight-article-body h3 {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 32px 0 14px;
+}
+.insight-article-body a {
+  color: var(--teal);
+  text-decoration: underline;
+  text-decoration-color: rgba(46, 229, 193, 0.4);
+}
+.insight-article-body ul,
+.insight-article-body ol {
+  margin: 0 0 22px 20px;
+  padding: 0;
+}
+.insight-article-body li {
+  margin-bottom: 8px;
+}
+.insight-article-body blockquote {
+  margin: 28px 0;
+  padding: 4px 0 4px 20px;
+  border-left: 2px solid var(--teal);
+  color: var(--muted);
+  font-style: italic;
+}
+.insight-article-body img {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 24px 0;
+}
+.insight-article-body-placeholder {
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px;
+  color: var(--dim);
+  font-style: italic;
+}
