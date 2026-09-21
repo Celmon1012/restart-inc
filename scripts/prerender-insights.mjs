@@ -129,11 +129,15 @@ function buildSidebar(allPosts, currentSlug) {
 function buildShareRow(url, title) {
   const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
   const li = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+  const fb = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+  const wa = `https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`;
   return `
     <div class="insight-share-row">
       <span class="insight-share-label">Share</span>
       <a href="${tw}" target="_blank" rel="noreferrer" aria-label="Share on X" class="insight-share-btn">X</a>
       <a href="${li}" target="_blank" rel="noreferrer" aria-label="Share on LinkedIn" class="insight-share-btn">in</a>
+      <a href="${fb}" target="_blank" rel="noreferrer" aria-label="Share on Facebook" class="insight-share-btn">f</a>
+      <a href="${wa}" target="_blank" rel="noreferrer" aria-label="Share on WhatsApp" class="insight-share-btn">wa</a>
     </div>
   `;
 }

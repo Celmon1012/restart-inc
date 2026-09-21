@@ -2990,11 +2990,11 @@ button { font: inherit; }
   padding: 20px;
 }
 .insight-widget-title {
-  font-size: 11px;
+  font-size: 18px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--teal);
+  color: #d8dced;
   margin: 0 0 14px;
 }
 .insight-widget-list {
