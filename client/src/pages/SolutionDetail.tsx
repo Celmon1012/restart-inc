@@ -117,13 +117,16 @@ export default function SolutionDetail({ params }: { params: { slug: string } })
         </section>
 
         {/* Bottom CTA Section */}
-        <section className="final-cta container">
-          <span className={`section-label ${solution.accent}`}>NEXT STEP</span>
-          <h2>Ready to scope<br /><span>{solution.kicker.toLowerCase()}?</span></h2>
-          <p>Tell us what you are building and where the constraint sits. We will tell you quickly whether the timing and fit make sense.</p>
-          <div className="hero-buttons">
-            <Link href={`/start-project?tier=${encodeURIComponent(solution.tierId)}`} className="button solid">Start a project <ArrowUpRight size={15} /></Link>
-            <Link href="/" className="button outline">Explore all solutions <ChevronRight size={15} /></Link>
+        <section className="final-cta" id="contact">
+          <div className="final-cta-grid" />
+          <div className="container final-cta-content">
+            <span className={`section-label ${solution.accent}`}>NEXT STEP</span>
+            <h2>Ready to scope<br /><span>{solution.kicker.toLowerCase()}?</span></h2>
+            <p>Tell us what you are building and where the constraint sits. We will tell you quickly whether the timing and fit make sense.</p>
+            <div className="final-cta-buttons">
+              <Link href={`/start-project?tier=${encodeURIComponent(solution.tierId)}`} className="button solid">Start a project <ArrowUpRight size={15} /></Link>
+              <Link href="/" className="button outline">Explore all solutions <ChevronRight size={15} /></Link>
+            </div>
           </div>
         </section>
       </main>

@@ -182,13 +182,16 @@ export default function CaseStudies() {
         </section>
 
         {/* Bottom CTA Section */}
-        <section className="final-cta container">
-          <span className="section-label teal">START A CONVERSATION</span>
-          <h2>Build your system with<br /><span>senior engineering rigor.</span></h2>
-          <p>Tell us what you are building, where your architecture is feeling pressure, or which migration you need to execute with zero downtime.</p>
-          <div className="hero-buttons">
-            <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
-            <Link href="/" className="button outline">Back to Home <ChevronRight size={15} /></Link>
+        <section className="final-cta" id="contact">
+          <div className="final-cta-grid" />
+          <div className="container final-cta-content">
+            <span className="section-label teal">START A CONVERSATION</span>
+            <h2>Build your system with<br /><span>senior engineering rigor.</span></h2>
+            <p>Tell us what you are building, where your architecture is feeling pressure, or which migration you need to execute with zero downtime.</p>
+            <div className="final-cta-buttons">
+              <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
+              <Link href="/" className="button outline">Back to Home <ChevronRight size={15} /></Link>
+            </div>
           </div>
         </section>
       </main>
