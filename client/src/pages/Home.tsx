@@ -326,9 +326,9 @@ export default function Home() {
       <section className="final-cta" id="contact">
         <div className="final-cta-grid" />
         <div className="container final-cta-content">
-          <SectionLabel>READY FOR YOUR NEXT MOVE?</SectionLabel>
+          <SectionLabel>READY FOR THE NEXT STAGE?</SectionLabel>
           <h2>Bring us <span>the hard part.</span></h2>
-          <p>Restart will help you turn it into a system that can ship, scale, and keep its promises.</p>
+          <p>Restart will help you build systems your growth can depend on—reliable enough for today, structured enough for tomorrow, and clear enough for your team to keep improving.</p>
           <div className="final-cta-buttons">
             <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
             <a className="button outline" href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Explore solutions <ChevronRight size={15} /></a>
