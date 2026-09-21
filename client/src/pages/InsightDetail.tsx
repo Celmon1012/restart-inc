@@ -1,15 +1,63 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { ArrowUpRight, ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
+import { useInsights } from "@/hooks/useInsights";
+import { ArrowUpRight, ChevronLeft, ChevronRight, Copy, Check, Linkedin, Menu, Twitter, X } from "lucide-react";
 import { fetchInsightBySlug, InsightDetail as InsightDetailData } from "@/lib/wp";
-import { applyArticleSeo, resetSeoToDefault } from "@/lib/seo";
+import { applyArticleSeo, resetSeoToDefault, SITE_URL } from "@/lib/seo";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  engineering: "Engineering",
+  operations: "Operations",
+  architecture: "Architecture",
+};
+
+function ShareRow({ url, title }: { url: string; title: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard API unavailable -- no-op, link is still visible in the address bar
+    }
+  }
+
+  return (
+    <div className="insight-share-row">
+      <span className="insight-share-label">Share</span>
+      <a
+        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Share on X"
+        className="insight-share-btn"
+      >
+        <Twitter size={14} />
+      </a>
+      <a
+        href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Share on LinkedIn"
+        className="insight-share-btn"
+      >
+        <Linkedin size={14} />
+      </a>
+      <button type="button" onClick={copyLink} aria-label="Copy link" className="insight-share-btn">
+        {copied ? <Check size={14} /> : <Copy size={14} />}
+      </button>
+    </div>
+  );
 }
 
 export default function InsightDetail({ params }: { params: { slug: string } }) {
@@ -18,12 +66,14 @@ export default function InsightDetail({ params }: { params: { slug: string } }) 
   const session = useAuthSession();
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
   const consoleLabel = session ? "Dashboard" : "Console Login";
+  const { insights } = useInsights();
 
   const [insight, setInsight] = useState<InsightDetailData | null | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
     setInsight(undefined);
+    window.scrollTo(0, 0);
 
     fetchInsightBySlug(params.slug)
       .then((data) => {
@@ -44,13 +94,24 @@ export default function InsightDetail({ params }: { params: { slug: string } }) 
     applyArticleSeo({
       title: insight.title,
       description,
-      url: `https://restart.ng/insights/${insight.id}`,
+      url: `${SITE_URL}/insights/${insight.id}`,
       category: insight.kicker,
       datePublished: insight.date,
       dateModified: insight.modified || insight.date,
+      image: insight.featuredImage,
     });
     return () => resetSeoToDefault();
   }, [insight]);
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { engineering: 0, operations: 0, architecture: 0 };
+    for (const i of insights) counts[i.category] = (counts[i.category] ?? 0) + 1;
+    return counts;
+  }, [insights]);
+
+  const recentPosts = useMemo(() => {
+    return insights.filter((i) => i.id !== params.slug).slice(0, 5);
+  }, [insights, params.slug]);
 
   const nav = (
     <header className="site-header">
@@ -134,28 +195,76 @@ export default function InsightDetail({ params }: { params: { slug: string } }) 
     );
   }
 
+  const shareUrl = `${SITE_URL}/insights/${insight.id}`;
+
   return (
     <div className="page-shell">
       {nav}
 
       <main>
-        <article className="insight-article container">
-          <Link href="/insights" className="insight-back-link">
-            <ChevronLeft size={14} /> All Insights
-          </Link>
+        <div className="insight-layout container">
+          <article className="insight-article">
+            <Link href="/insights" className="insight-back-link">
+              <ChevronLeft size={14} /> All Insights
+            </Link>
 
-          <span className="section-label teal">{insight.kicker}</span>
-          <h1>{insight.title}</h1>
-          <time className="insight-article-date" dateTime={insight.date}>
-            {formatDate(insight.date)}
-          </time>
+            {insight.featuredImage && (
+              <img
+                src={insight.featuredImage}
+                alt={insight.title}
+                className="insight-featured-image"
+              />
+            )}
 
-          {insight.content ? (
-            <div className="insight-article-body" dangerouslySetInnerHTML={{ __html: insight.content }} />
-          ) : (
-            <p className="insight-article-body-placeholder">Full write-up coming soon.</p>
-          )}
-        </article>
+            <span className="section-label teal">{insight.kicker}</span>
+            <h1>{insight.title}</h1>
+
+            <div className="insight-article-meta">
+              <time className="insight-article-date" dateTime={insight.date}>
+                {formatDate(insight.date)}
+              </time>
+              <ShareRow url={shareUrl} title={insight.title} />
+            </div>
+
+            {insight.content ? (
+              <div className="insight-article-body" dangerouslySetInnerHTML={{ __html: insight.content }} />
+            ) : (
+              <p className="insight-article-body-placeholder">Full write-up coming soon.</p>
+            )}
+          </article>
+
+          <aside className="insight-sidebar">
+            <div className="insight-widget">
+              <h3 className="insight-widget-title">Categories</h3>
+              <ul className="insight-widget-list">
+                {Object.entries(CATEGORY_LABELS).map(([id, label]) => (
+                  <li key={id}>
+                    <Link href={`/insights?category=${id}`} className={insight.category === id ? "active" : ""}>
+                      <span>{label}</span>
+                      <span className="insight-widget-count">{categoryCounts[id] ?? 0}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {recentPosts.length > 0 && (
+              <div className="insight-widget">
+                <h3 className="insight-widget-title">Recent Posts</h3>
+                <ul className="insight-widget-recent">
+                  {recentPosts.map((post) => (
+                    <li key={post.id}>
+                      <Link href={`/insights/${post.id}`}>
+                        <span className="insight-widget-kicker">{post.kicker}</span>
+                        <span className="insight-widget-recent-title">{post.title}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </aside>
+        </div>
 
         <section className="final-cta container">
           <span className="section-label teal">START A CONVERSATION</span>

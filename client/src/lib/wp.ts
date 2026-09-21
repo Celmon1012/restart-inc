@@ -3,18 +3,29 @@ import type { Insight } from "@/data/insights";
 
 export const WPGRAPHQL_ENDPOINT = "https://wp.restart.ng/graphql";
 
+const FEATURED_IMAGE_FIELDS = `
+  featuredImage {
+    node {
+      sourceUrl
+      altText
+    }
+  }
+`;
+
 const INSIGHTS_QUERY = `
   query Insights {
     posts(first: 50) {
       nodes {
         slug
         title
+        date
         categories(first: 1) {
           nodes {
             name
             slug
           }
         }
+        ${FEATURED_IMAGE_FIELDS}
       }
     }
   }
@@ -35,6 +46,7 @@ export const INSIGHT_DETAIL_QUERY = `
           slug
         }
       }
+      ${FEATURED_IMAGE_FIELDS}
     }
   }
 `;
@@ -48,6 +60,7 @@ export interface InsightDetail {
   excerpt: string;
   date: string;
   modified: string;
+  featuredImage: string | null;
 }
 
 const CATEGORY_ICON: Record<Insight["category"], Insight["icon"]> = {
@@ -75,6 +88,10 @@ function resolveCategory(node: any): { category: Insight["category"]; name: stri
   return { category, name };
 }
 
+function resolveFeaturedImage(node: any): string | null {
+  return node.featuredImage?.node?.sourceUrl ?? null;
+}
+
 export async function fetchInsights(): Promise<Insight[]> {
   const res = await fetch(WPGRAPHQL_ENDPOINT, {
     method: "POST",
@@ -96,6 +113,8 @@ export async function fetchInsights(): Promise<Insight[]> {
       title: decodeEntities(node.title),
       icon: CATEGORY_ICON[category],
       image: IMAGE_CLASSES[index % IMAGE_CLASSES.length],
+      date: node.date,
+      featuredImage: resolveFeaturedImage(node),
     };
   });
 }
@@ -124,5 +143,6 @@ export async function fetchInsightBySlug(slug: string): Promise<InsightDetail | 
     excerpt: decodeEntities((node.excerpt ?? "").replace(/<[^>]+>/g, "")),
     date: node.date,
     modified: node.modified,
+    featuredImage: resolveFeaturedImage(node),
   };
 }

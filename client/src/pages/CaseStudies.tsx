@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { ArrowRight, ArrowUpRight, Check, ChevronRight, ShieldCheck, Menu, X, ExternalLink } from "lucide-react";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import CaseStudyModal from "@/components/CaseStudyModal";
+import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
 export default function CaseStudies() {
   const [selectedStudy, setSelectedStudy] = useState<CaseStudy | null>(null);
@@ -14,6 +15,15 @@ export default function CaseStudies() {
   const session = useAuthSession();
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
   const consoleLabel = session ? "Dashboard" : "Console Login";
+
+  useEffect(() => {
+    applyPageSeo({
+      title: "Case Studies",
+      description: "Verified outcomes from Restart Inc. engagements — private cloud migrations, AI engineering, and commerce infrastructure, with the starting constraint and the production result.",
+      path: "/case-studies",
+    });
+    return () => resetSeoToDefault();
+  }, []);
 
   const categories = [
     { id: "all", label: "All Deliveries", count: caseStudiesData.length },

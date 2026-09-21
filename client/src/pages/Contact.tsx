@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { ArrowUpRight, CheckCircle2, Clock, Loader2, Mail, Menu, MapPin, X } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
 export default function Contact() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -11,6 +12,15 @@ export default function Contact() {
   const session = useAuthSession();
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
   const consoleLabel = session ? "Dashboard" : "Console Login";
+
+  useEffect(() => {
+    applyPageSeo({
+      title: "Contact",
+      description: "Tell Restart Inc. what you're building and where it's stuck. We reply quickly with whether the timing and fit make sense.",
+      path: "/contact",
+    });
+    return () => resetSeoToDefault();
+  }, []);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");

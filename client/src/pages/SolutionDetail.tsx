@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { ArrowRight, ArrowUpRight, Check, ChevronRight, Menu, X } from "lucide-react";
 import { solutionsData } from "@/data/solutions";
+import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
 export default function SolutionDetail({ params }: { params: { slug: string } }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -13,6 +14,16 @@ export default function SolutionDetail({ params }: { params: { slug: string } })
   const consoleLabel = session ? "Dashboard" : "Console Login";
 
   const solution = solutionsData.find((s) => s.slug === params.slug);
+
+  useEffect(() => {
+    if (!solution) return;
+    applyPageSeo({
+      title: solution.title,
+      description: solution.intro,
+      path: `/solutions/${solution.slug}`,
+    });
+    return () => resetSeoToDefault();
+  }, [solution]);
 
   if (!solution) {
     return (

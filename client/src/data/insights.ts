@@ -7,6 +7,8 @@ export interface Insight {
   title: string;
   icon: LucideIcon;
   image: "image-one" | "image-two" | "image-three";
+  date?: string;
+  featuredImage?: string | null;
 }
 
 export const insightsData: Insight[] = [

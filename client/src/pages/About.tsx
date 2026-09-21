@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { ArrowRight, ArrowUpRight, Menu, ShieldCheck, X } from "lucide-react";
 import { solutionsData } from "@/data/solutions";
+import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
 const principles = [
   {
@@ -26,6 +27,15 @@ export default function About() {
   const session = useAuthSession();
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
   const consoleLabel = session ? "Dashboard" : "Console Login";
+
+  useEffect(() => {
+    applyPageSeo({
+      title: "About",
+      description: "Restart Inc. is an engineering firm built on senior ownership, production discipline, and scoped delivery — not open-ended retainers.",
+      path: "/about",
+    });
+    return () => resetSeoToDefault();
+  }, []);
 
   return (
     <div className="page-shell">

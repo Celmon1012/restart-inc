@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, ArrowUpRight, Check, CheckCircle2, ChevronRight, Cpu, Database, Loader2, Network, Send, Server, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
 export const objectives = [
   { id: "platform", label: "Build a new product or platform" },
@@ -91,6 +92,15 @@ export const roles = [
 ];
 
 export default function StartProject() {
+  useEffect(() => {
+    applyPageSeo({
+      title: "Start a Project",
+      description: "Scope your build with Restart Inc. — tell us what you're building, where the constraint sits, and what decision you need to make next.",
+      path: "/start-project",
+    });
+    return () => resetSeoToDefault();
+  }, []);
+
   const [selectedObjective, setSelectedObjective] = useState(objectives[0].label);
   const [selectedSystemStage, setSelectedSystemStage] = useState(systemStages[0]);
   const [selectedConstraint, setSelectedConstraint] = useState(constraints[0]);

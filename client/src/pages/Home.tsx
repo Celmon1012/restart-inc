@@ -8,6 +8,7 @@ import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDow
 import CaseStudyModal from "@/components/CaseStudyModal";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import { useInsights } from "@/hooks/useInsights";
+import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
 const stackLogos: Record<string, string> = {
   "Laravel": "/logos/stacks/laravel.svg",
@@ -81,6 +82,15 @@ export default function Home() {
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
   const consoleLabel = session ? "Dashboard" : "Console Login";
   const { insights } = useInsights();
+
+  useEffect(() => {
+    applyPageSeo({
+      title: "Restart Inc.",
+      description: "Restart Inc. is a technology and engineering firm that helps ambitious builders and operators turn complex workflows and product ideas into reliable, scalable systems.",
+      path: "/",
+    });
+    return () => resetSeoToDefault();
+  }, []);
 
   const openOnboarding = (lane?: string) => {
     setLocation(lane ? `/start-project?tier=${encodeURIComponent(lane)}` : "/start-project");

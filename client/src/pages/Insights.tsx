@@ -1,18 +1,57 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { ArrowRight, ArrowUpRight, ChevronRight, Menu, X } from "lucide-react";
 import { useInsights } from "@/hooks/useInsights";
+import { applyPageSeo, applyJsonLd, resetSeoToDefault, SITE_URL } from "@/lib/seo";
+
+function initialCategoryFromUrl(): string {
+  if (typeof window === "undefined") return "all";
+  return new URLSearchParams(window.location.search).get("category") ?? "all";
+}
 
 export default function Insights() {
-  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [activeCategory, setActiveCategory] = useState<string>(initialCategoryFromUrl);
   const [menuOpen, setMenuOpen] = useState(false);
   const [location] = useLocation();
   const session = useAuthSession();
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
   const consoleLabel = session ? "Dashboard" : "Console Login";
   const { insights } = useInsights();
+
+  useEffect(() => {
+    applyPageSeo({
+      title: "Insights",
+      description: "Practical perspectives on architecture, operations, AI, cloud infrastructure, and the decisions that determine whether a system holds up under pressure.",
+      path: "/insights",
+    });
+    return () => resetSeoToDefault();
+  }, []);
+
+  useEffect(() => {
+    if (insights.length === 0) return;
+    applyJsonLd("insights-list-jsonld", {
+      "@context": "https://schema.org",
+      "@type": "Blog",
+      name: "Restart Insights",
+      url: `${SITE_URL}/insights`,
+      blogPost: insights.map((insight) => ({
+        "@type": "BlogPosting",
+        headline: insight.title,
+        url: `${SITE_URL}/insights/${insight.id}`,
+        articleSection: insight.kicker,
+      })),
+    });
+  }, [insights]);
+
+  function selectCategory(id: string) {
+    setActiveCategory(id);
+    const url = new URL(window.location.href);
+    if (id === "all") url.searchParams.delete("category");
+    else url.searchParams.set("category", id);
+    window.history.replaceState({}, "", url);
+  }
 
   const categories = [
     { id: "all", label: "All Insights", count: insights.length },
@@ -88,7 +127,7 @@ export default function Insights() {
               <button
                 key={cat.id}
                 className={`portfolio-filter-btn ${activeCategory === cat.id ? "active" : ""}`}
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => selectCategory(cat.id)}
               >
                 <span>{cat.label}</span>
                 <span className="filter-count">{cat.count}</span>
