@@ -187,7 +187,7 @@ export default function Home() {
         <div className="hero-shell">
           <div className="hero-content">
             <SectionLabel>ENGINEERING SYSTEMS / TECHNICAL OWNERSHIP</SectionLabel>
-            <h1>Build systems <span>your next stage depends on.</span></h1>
+            <h1>Build systems <span>your growth depends on.</span></h1>
             <p>Restart Inc. is a technology and engineering firm that helps ambitious builders and operators turn complex workflows and product ideas into reliable, scalable systems—with senior technical ownership from architecture through production.</p>
             <div className="hero-buttons">
               <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
