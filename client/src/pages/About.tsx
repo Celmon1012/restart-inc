@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { ArrowRight, ArrowUpRight, Menu, ShieldCheck, Target, Users, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Menu, ShieldCheck, X } from "lucide-react";
 import { solutionsData } from "@/data/solutions";
 
 const principles = [
@@ -17,24 +17,6 @@ const principles = [
   {
     title: "Scoped, not open-ended.",
     text: "Time-boxed engagements with a defined outcome — audits, sprints, and builds, not a retainer that never resolves.",
-  },
-];
-
-const facts = [
-  {
-    icon: ShieldCheck,
-    title: "Senior technical ownership",
-    text: "Lead architects and engineers work on your core infrastructure directly — never outsourced or passed to juniors.",
-  },
-  {
-    icon: Target,
-    title: "Registered & scoped to deliver",
-    text: "Restart operates as Restart Integrated Systems Ltd, a CAC-registered engineering firm based in Nigeria, working with operators globally.",
-  },
-  {
-    icon: Users,
-    title: "Direct access, no relay",
-    text: "You talk to the engineer building your system — not an account manager passing along notes.",
   },
 ];
 
@@ -132,28 +114,6 @@ export default function About() {
               <div className="art-ring ring-b" />
               <div className="art-label"><ShieldCheck size={14} />OWNERSHIP / 01</div>
             </div>
-          </div>
-        </section>
-
-        {/* How we work / facts */}
-        <section className="about-facts-section container">
-          <div className="section-intro centered">
-            <span className="section-label teal">HOW WE WORK</span>
-            <h2>Founded and led by <span>Ademola Usuf.</span></h2>
-            <p>
-              Restart is founded and led by Ademola Usuf, and operates as Restart Integrated Systems Ltd — a
-              CAC-registered engineering firm based in Nigeria, working with ambitious builders and operators
-              globally.
-            </p>
-          </div>
-          <div className="about-facts-grid">
-            {facts.map((fact) => (
-              <div className="about-fact-card" key={fact.title}>
-                <fact.icon size={20} className="text-teal" />
-                <h4>{fact.title}</h4>
-                <p>{fact.text}</p>
-              </div>
-            ))}
           </div>
         </section>
 
