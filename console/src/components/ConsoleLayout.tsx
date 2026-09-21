@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import {
   ArrowUpRight,
-  RefreshCw,
+  Briefcase,
   User,
   ChevronDown,
   LayoutGrid,
@@ -90,17 +90,30 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   // Per-viewer convenience only (which promo they've already dismissed) --
   // bump the key if the promo copy changes so it resurfaces once.
-  const [promoDismissed, setPromoDismissed] = useState(() => {
+  const [aiPromoDismissed, setAiPromoDismissed] = useState(() => {
     try {
       return localStorage.getItem("console.promoDismissed.ai-engineering") === "1";
     } catch {
       return false;
     }
   });
-  const dismissPromo = () => {
-    setPromoDismissed(true);
+  const dismissAiPromo = () => {
+    setAiPromoDismissed(true);
     try {
       localStorage.setItem("console.promoDismissed.ai-engineering", "1");
+    } catch {}
+  };
+  const [operatorPromoDismissed, setOperatorPromoDismissed] = useState(() => {
+    try {
+      return localStorage.getItem("console.promoDismissed.operator-as-a-service") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const dismissOperatorPromo = () => {
+    setOperatorPromoDismissed(true);
+    try {
+      localStorage.setItem("console.promoDismissed.operator-as-a-service", "1");
     } catch {}
   };
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -135,14 +148,6 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
     await signOut();
     toast.success("Signed out of console session");
     setLocation("/login");
-  };
-
-  const handleRefreshClick = () => {
-    if (onRefresh) {
-      onRefresh();
-    } else {
-      toast.info("Refreshed console state");
-    }
   };
 
   const toggleSidebar = () => {
@@ -218,9 +223,26 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
         </nav>
 
         <div className="console-sidebar-footer">
-          {!promoDismissed && !sidebarCollapsed && (
+          {!operatorPromoDismissed && !sidebarCollapsed && (
             <div className="sidebar-promo-card">
-              <button className="sidebar-promo-close" onClick={dismissPromo} aria-label="Dismiss">
+              <button className="sidebar-promo-close" onClick={dismissOperatorPromo} aria-label="Dismiss">
+                <X size={12} />
+              </button>
+              <span className="sidebar-promo-kicker">
+                <Briefcase size={11} />
+                BUSINESS OPERATOR AS A SERVICE
+              </span>
+              <h5>Let a Restart operator run your web assets</h5>
+              <p>Ongoing management of your sites, domains, and vendors — one operator accountable for all of it.</p>
+              <a href={`${MARKETING_URL}/start-project`} className="sidebar-promo-cta">
+                Explore the offer
+                <ArrowUpRight size={12} />
+              </a>
+            </div>
+          )}
+          {!aiPromoDismissed && !sidebarCollapsed && (
+            <div className="sidebar-promo-card">
+              <button className="sidebar-promo-close" onClick={dismissAiPromo} aria-label="Dismiss">
                 <X size={12} />
               </button>
               <span className="sidebar-promo-kicker">
@@ -326,14 +348,6 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
               title="Notifications (not connected yet)"
             >
               <Bell size={15} />
-            </button>
-
-            <button
-              onClick={handleRefreshClick}
-              className={`dash-icon-btn ${isRefreshing ? "spin" : ""}`}
-              title="Refresh"
-            >
-              <RefreshCw size={15} />
             </button>
 
             <a href={`${MARKETING_URL}/start-project`} className="dash-action-btn">
