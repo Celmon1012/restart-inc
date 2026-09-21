@@ -160,10 +160,10 @@ export default function Home() {
           <span>INSIGHTS</span>
           <span className="nav-indicator" />
         </a>
-        <a href="#about" className={activeSection === "about" ? "active" : ""} onClick={(e) => handleScrollTo(e, "about")}>
+        <Link href="/about">
           <span>ABOUT</span>
           <span className="nav-indicator" />
-        </a>
+        </Link>
           <div className="mobile-nav-actions">
 <a href={consoleHref}>{consoleLabel}</a>
             <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
@@ -186,16 +186,16 @@ export default function Home() {
         <div className="hero-shell">
           <div className="hero-content">
             <SectionLabel>ENGINEERING SYSTEMS / TECHNICAL OWNERSHIP</SectionLabel>
-            <h1>Build for <span>what’s next.</span></h1>
-            <p>Restart Inc. is a technology and engineering firm that helps ambitious operators turn complex workflows and product ideas into reliable, scalable systems.</p>
+            <h1>Build systems <span>your next stage depends on.</span></h1>
+            <p>Restart Inc. is a technology and engineering firm that helps ambitious builders and operators turn complex workflows and product ideas into reliable, scalable systems—with senior technical ownership from architecture through production.</p>
             <div className="hero-buttons">
               <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
               <a className="button outline" href="#process" onClick={(e) => handleScrollTo(e, "process")}>See how we build <ChevronRight size={15} /></a>
             </div>
             <div className="hero-proof-row">
               <span><Check size={13} /> Senior technical ownership</span>
-              <span><Check size={13} /> Built for production</span>
-              <span><Check size={13} /> Clear next steps</span>
+              <span><Check size={13} /> Production-ready delivery</span>
+              <span><Check size={13} /> Clear, time-boxed scope</span>
             </div>
           </div>
           <SignalPanel />
@@ -304,7 +304,20 @@ export default function Home() {
 
       <section className="integration-section"><div className="container integration-wrap"><div className="section-copy"><SectionLabel>SEAMLESS INTEGRATION FOR</SectionLabel><h2>Make the work lighter <span>—not more connected for its own sake.</span></h2><p>Your tools should reduce friction, not create another system to manage. Restart connects the product, platform, automation, and operational surfaces that keep your business moving.</p></div><div className="integration-wall">{[Zap, Database, Network, Orbit, Layers3, ShieldCheck, BrainCircuit, Gauge, Sparkles, Code2, CircleCheck, CpuIcon].map((Icon, i) => <div key={i} className={`integration-icon icon-${i % 5}`}><Icon size={40} /></div>)}</div></div></section>
 
-      <section className="saas-section" id="about"><div className="container saas-wrap"><div className="saas-copy"><SectionLabel>PLATFORM</SectionLabel><h2>Turn operational friction into <span>technical leverage.</span></h2><p>Restart combines architecture, automation, and product thinking to turn messy operational work into a system your team can understand, improve, and rely on.</p><div className="saas-points"><div><strong>See the system clearly.</strong><span>Map the workflows, constraints, dependencies, and costs that are shaping the business.</span></div><div><strong>Remove the repeatable friction.</strong><span>Automate the work that slows good teams down and build interfaces around the decisions that matter.</span></div><div><strong>Create capacity for the next stage.</strong><span>Build a foundation that supports growth without forcing a full rewrite every time the business changes direction.</span></div></div></div><div className="saas-art"><div className="art-grid" /><div className="art-ring ring-a" /><div className="art-ring ring-b" /><div className="art-label"><Sparkles size={14} />SYSTEMS / 01</div></div></div></section>
+      <section className="saas-section"><div className="container saas-wrap"><div className="saas-copy"><SectionLabel>PLATFORM</SectionLabel><h2>Turn operational friction into <span>technical leverage.</span></h2><p>Restart combines architecture, automation, and product thinking to turn messy operational work into a system your team can understand, improve, and rely on.</p><div className="saas-points"><div><strong>See the system clearly.</strong><span>Map the workflows, constraints, dependencies, and costs that are shaping the business.</span></div><div><strong>Remove the repeatable friction.</strong><span>Automate the work that slows good teams down and build interfaces around the decisions that matter.</span></div><div><strong>Create capacity for the next stage.</strong><span>Build a foundation that supports growth without forcing a full rewrite every time the business changes direction.</span></div></div></div><div className="saas-art"><div className="art-grid" /><div className="art-ring ring-a" /><div className="art-ring ring-b" /><div className="art-label"><Sparkles size={14} />SYSTEMS / 01</div></div></div></section>
+
+      <section className="about-section container" id="about">
+        <div className="section-intro centered">
+          <SectionLabel>ABOUT RESTART</SectionLabel>
+          <h2>The engineering partner <span>for the hard parts.</span></h2>
+        </div>
+        <div className="about-body">
+          <p>Restart exists for the point where a good product idea meets real-world complexity. Workflows become tangled, systems stop communicating, AI gets added without the controls to make it trustworthy, and growth exposes assumptions no one documented.</p>
+          <p>We help ambitious builders and operators make the next technical decision with confidence—and then execute it. Our work spans SaaS platforms, commerce infrastructure, AI engineering, automation, and architecture leadership. We scope the real problem, build with senior ownership, measure what changes, and hand over systems your team can understand and operate.</p>
+          <p>The goal is not more software for its own sake. It is a stronger operating foundation for the business you are building: reliable enough for today, structured enough for tomorrow, and clear enough for your team to keep improving.</p>
+        </div>
+        <Link href="/about" className="button outline small center-button">Read our full story <ArrowRight size={14} /></Link>
+      </section>
 
       <section className="proof-section" id="process"><div className="container"><div className="section-intro centered"><SectionLabel>SIMPLE 4 STEPS PROCESS</SectionLabel><h2>A straightforward path<br /><span>from constraint to production.</span></h2><p>No lengthy proposals or open-ended retainers — just a clear sequence from your first message to a system your team can run.</p></div><div className="proof-grid"><div><CircleCheck size={18} /><strong>01. Start the conversation.</strong><p>Tell us what you are building and where it is stuck. We reply quickly with whether the timing and fit make sense.</p></div><div><ShieldCheck size={18} /><strong>02. Scope the real work.</strong><p>A short technical review turns your constraint into a concrete plan — deliverables, timeline, and cost, with no surprises later.</p></div><div><Layers3 size={18} /><strong>03. Build in the open.</strong><p>Weekly checkpoints, visible progress, and decisions made together — not a black box that reappears at the deadline.</p></div><div><Network size={18} /><strong>04. Launch and hand off.</strong><p>Ship to production with documentation and context your team can operate without us.</p></div></div></div></section>
 
@@ -326,7 +339,7 @@ export default function Home() {
       </section>
     </main>
 
-    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")}><LogoMark /></a><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><a href="#platform" onClick={(e) => handleScrollTo(e, "platform")}>Platform</a><a href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Solutions</a><a href="#case-studies" onClick={(e) => handleScrollTo(e, "case-studies")}>Case Studies</a><a href="#insights" onClick={(e) => handleScrollTo(e, "insights")}>Insights</a></div><div><strong>COMPANY</strong><a href="#about" onClick={(e) => handleScrollTo(e, "about")}>About</a><Link href="/contact">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
+    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")}><LogoMark /></a><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><a href="#platform" onClick={(e) => handleScrollTo(e, "platform")}>Platform</a><a href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Solutions</a><a href="#case-studies" onClick={(e) => handleScrollTo(e, "case-studies")}>Case Studies</a><a href="#insights" onClick={(e) => handleScrollTo(e, "insights")}>Insights</a></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
   </div>;
 }
 

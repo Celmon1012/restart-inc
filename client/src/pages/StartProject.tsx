@@ -133,7 +133,7 @@ export default function StartProject() {
         </Link>
         <div className="squeeze-trust-pill">
           <ShieldCheck size={13} className="text-teal" />
-          <span>Senior Engineering Pod · 99.99% SLA Guarantee</span>
+          <span>Senior Engineering Pod · Production Reliability Targets</span>
         </div>
         <Link href="/" className="squeeze-back-link">
           <ArrowLeft size={14} /> Back to Overview
@@ -162,7 +162,7 @@ export default function StartProject() {
               <div className="commitment-card">
                 <span className="commitment-num">02</span>
                 <div>
-                  <h4>Zero-Downtime Guarantee</h4>
+                  <h4>Zero-Downtime Migration Practices</h4>
                   <p>Idempotent migrations, parallel replication, and health probes ensure your business operations never miss a beat.</p>
                 </div>
               </div>
@@ -179,7 +179,7 @@ export default function StartProject() {
             <div className="squeeze-reassurance-box">
               <div className="reassurance-row">
                 <Check size={14} className="text-teal" />
-                <span>NDPA &amp; GDPR Compliant Engineering Standards</span>
+                <span>Privacy-Conscious Engineering Standards (NDPA &amp; GDPR Aligned)</span>
               </div>
               <div className="reassurance-row">
                 <Check size={14} className="text-teal" />
@@ -400,7 +400,7 @@ export default function StartProject() {
         </div>
       </main>
 
-      <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" /></Link><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><Link href="/#platform">Platform</Link><Link href="/#solutions">Solutions</Link><Link href="/#case-studies">Case Studies</Link><Link href="/#insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/#about">About</Link><Link href="/contact">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
+      <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" /></Link><p>Engineering growth systems for serious operators.</p><a href="mailto:hello@restart.ng">hello@restart.ng</a></div><div><strong>PLATFORM</strong><Link href="/#platform">Platform</Link><Link href="/#solutions">Solutions</Link><Link href="/#case-studies">Case Studies</Link><Link href="/#insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
     </div>
   );
 }
