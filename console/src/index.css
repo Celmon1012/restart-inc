@@ -3147,6 +3147,19 @@ button { font: inherit; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.overview-systems-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--teal);
+  text-decoration: none;
+}
+.overview-systems-more:hover {
+  text-decoration: underline;
+}
 .overview-not-connected {
   display: flex;
   align-items: center;

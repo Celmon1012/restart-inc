@@ -219,7 +219,7 @@ export default function Overview() {
               <div className="dash-empty-state">No resources deployed to this workspace's server yet.</div>
             ) : (
               <div className="overview-systems-grid">
-                {resources.map((r) => {
+                {resources.slice(0, 10).map((r) => {
                   const { label, tone } = statusMeta(r.status);
                   return (
                     <div className="overview-system-card" key={r.uuid}>
@@ -237,6 +237,11 @@ export default function Overview() {
                   );
                 })}
               </div>
+            )}
+            {resources.length > 10 && (
+              <Link href="/console/systems" className="overview-systems-more">
+                +{resources.length - 10} more <ArrowRight size={12} />
+              </Link>
             )}
           </div>
 
