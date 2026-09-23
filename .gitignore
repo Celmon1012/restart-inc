@@ -13,6 +13,9 @@ next-env.d.ts
 # accidental (someone ran npm instead of pnpm) and would fight the real one.
 package-lock.json
 
+# Supabase CLI local cache
+supabase/.temp/
+
 # Environment variables
 .env
 .env.local

@@ -126,6 +126,39 @@ function buildSidebar(allPosts, currentSlug) {
   `;
 }
 
+function buildPostNav(allPosts, currentSlug) {
+  const index = allPosts.findIndex((p) => p.slug === currentSlug);
+  if (index === -1) return "";
+  // allPosts is date-desc (newest first): the next array entry is older (Previous), the prior entry is newer (Next).
+  const previous = allPosts[index + 1];
+  const next = allPosts[index - 1];
+  if (!previous && !next) return "";
+
+  const item = (post, dir) => {
+    if (!post) return `<div class="insight-post-nav-item${dir === "next" ? " next" : ""}"></div>`;
+    const label =
+      dir === "next"
+        ? `Next <span aria-hidden="true">&rarr;</span>`
+        : `<span aria-hidden="true">&larr;</span> Previous`;
+    return `
+      <div class="insight-post-nav-item${dir === "next" ? " next" : ""}">
+        <a href="/insights/${post.slug}">
+          <span class="insight-post-nav-label">${label}</span>
+          <span class="insight-post-nav-title">${escapeAttr(decodeEntities(post.title))}</span>
+        </a>
+      </div>
+    `;
+  };
+
+  return `
+    <nav class="insight-post-nav" aria-label="Post navigation">
+      ${item(previous, "prev")}
+      <div class="insight-post-nav-divider"></div>
+      ${item(next, "next")}
+    </nav>
+  `;
+}
+
 function buildShareRow(url, title) {
   const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
   const li = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
@@ -206,9 +239,12 @@ function buildInsightPage(template, post, allPosts) {
             <h1>${title}</h1>
             <div class="insight-article-meta">
               <time class="insight-article-date" datetime="${published}">${formatDate(published)}</time>
-              ${buildShareRow(url, title)}
             </div>
             ${bodyHtml ? `<div class="insight-article-body">${bodyHtml}</div>` : `<p class="insight-article-body-placeholder">Full write-up coming soon.</p>`}
+            <div class="insight-article-footer">
+              ${buildShareRow(url, title)}
+              ${buildPostNav(allPosts, post.slug)}
+            </div>
           </article>
           ${buildSidebar(allPosts, post.slug)}
         </div>

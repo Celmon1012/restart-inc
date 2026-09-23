@@ -5,6 +5,7 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import { useInsights } from "@/hooks/useInsights";
 import { ArrowUpRight, ChevronLeft, ChevronRight, Copy, Check, Facebook, Linkedin, Menu, Twitter, X } from "lucide-react";
 import { fetchInsightBySlug, InsightDetail as InsightDetailData } from "@/lib/wp";
+import type { Insight } from "@/data/insights";
 import { applyArticleSeo, resetSeoToDefault, SITE_URL } from "@/lib/seo";
 
 function formatDate(iso: string): string {
@@ -86,6 +87,31 @@ function ShareRow({ url, title }: { url: string; title: string }) {
   );
 }
 
+function PostNav({ previous, next }: { previous?: Insight; next?: Insight }) {
+  if (!previous && !next) return null;
+  return (
+    <nav className="insight-post-nav" aria-label="Post navigation">
+      <div className="insight-post-nav-item">
+        {previous && (
+          <Link href={`/insights/${previous.id}`}>
+            <span className="insight-post-nav-label"><ChevronLeft size={13} /> Previous</span>
+            <span className="insight-post-nav-title">{previous.title}</span>
+          </Link>
+        )}
+      </div>
+      <div className="insight-post-nav-divider" />
+      <div className="insight-post-nav-item next">
+        {next && (
+          <Link href={`/insights/${next.id}`}>
+            <span className="insight-post-nav-label">Next <ChevronRight size={13} /></span>
+            <span className="insight-post-nav-title">{next.title}</span>
+          </Link>
+        )}
+      </div>
+    </nav>
+  );
+}
+
 export default function InsightDetail({ params }: { params: { slug: string } }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [location] = useLocation();
@@ -137,6 +163,13 @@ export default function InsightDetail({ params }: { params: { slug: string } }) 
 
   const recentPosts = useMemo(() => {
     return insights.filter((i) => i.id !== params.slug).slice(0, 5);
+  }, [insights, params.slug]);
+
+  const { previousPost, nextPost } = useMemo(() => {
+    const index = insights.findIndex((i) => i.id === params.slug);
+    if (index === -1) return { previousPost: undefined, nextPost: undefined };
+    // insights is date-desc (newest first): the next array entry is older (Previous), the prior entry is newer (Next).
+    return { previousPost: insights[index + 1], nextPost: insights[index - 1] };
   }, [insights, params.slug]);
 
   const nav = (
@@ -249,7 +282,6 @@ export default function InsightDetail({ params }: { params: { slug: string } }) 
               <time className="insight-article-date" dateTime={insight.date}>
                 {formatDate(insight.date)}
               </time>
-              <ShareRow url={shareUrl} title={insight.title} />
             </div>
 
             {insight.content ? (
@@ -257,6 +289,11 @@ export default function InsightDetail({ params }: { params: { slug: string } }) 
             ) : (
               <p className="insight-article-body-placeholder">Full write-up coming soon.</p>
             )}
+
+            <div className="insight-article-footer">
+              <ShareRow url={shareUrl} title={insight.title} />
+              <PostNav previous={previousPost} next={nextPost} />
+            </div>
           </article>
 
           <aside className="insight-sidebar">
