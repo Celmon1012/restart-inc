@@ -7,7 +7,7 @@
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: "Plus Jakarta Sans", sans-serif; -webkit-font-smoothing: antialiased; }
-p { font-family: "DM Sans", sans-serif !important; }
+p { font-family: "Outfit", sans-serif !important; }
 h3, .lane-card h3, .case-study-card h3, .insight-card h3 { font-size: 22px !important; }
 .lane-card h3 { font-size: 24px !important; font-weight: 600 !important; }
 .lane-card p { font-size: 17px !important; min-height: auto !important; line-height: 1.65 !important; }
@@ -563,7 +563,7 @@ button { font: inherit; }
 .tier-radio-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(88, 118, 212, .4); position: relative; }
 .premium-tier-card.selected .tier-radio-dot { border-color: var(--teal); background: var(--teal); }
 .premium-tier-card strong { font-size: 13px; color: #f2f5ff; font-weight: 700; letter-spacing: -.02em; }
-.premium-tier-card small { font-size: 10px; color: #8fa2cd; }
+.premium-tier-card small { font-size: 10px; color: #a4acbd; }
 
 .squeeze-success-state { display: flex; flex-direction: column; gap: 18px; text-align: center; padding: 12px 0; }
 .squeeze-success-state h2 { font-size: 24px; font-weight: 800; letter-spacing: -.03em; color: #f5f8ff; margin: 0; }
@@ -628,7 +628,7 @@ button { font: inherit; }
 }
 .back-to-site-link {
   font-size: 12px;
-  color: #8fa2cd;
+  color: #a4acbd;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.18s;
@@ -1975,7 +1975,7 @@ button { font: inherit; }
 }
 .dash-header-row p {
   font-size: 14px;
-  color: #8fa2cd;
+  color: #a4acbd;
   margin: 0;
 }
 .dash-header-meta {
