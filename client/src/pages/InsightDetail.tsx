@@ -20,7 +20,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   architecture: "Architecture",
 };
 
-function WhatsAppIcon({ size = 14 }: { size?: number }) {
+function WhatsAppIcon({ size = 17 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.39 1.26 4.82L2 22l5.38-1.41a9.86 9.86 0 0 0 4.66 1.18h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm0 18.11h-.01a8.18 8.18 0 0 1-4.17-1.14l-.3-.18-3.1.81.83-3.02-.2-.31a8.19 8.19 0 0 1-1.26-4.36c0-4.53 3.69-8.22 8.22-8.22 2.2 0 4.26.86 5.82 2.42a8.17 8.17 0 0 1 2.41 5.82c0 4.53-3.69 8.18-8.24 8.18Zm4.52-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.13-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.22-1.46-1.37-1.7-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.42h-.48c-.17 0-.43.06-.66.31-.23.25-.86.84-.86 2.05s.88 2.38 1 2.55c.12.17 1.73 2.64 4.2 3.7.59.25 1.05.4 1.41.51.59.19 1.13.16 1.55.1.47-.07 1.47-.6 1.68-1.18.2-.58.2-1.08.14-1.18-.06-.1-.22-.16-.47-.28Z" />
@@ -51,7 +51,7 @@ function ShareRow({ url, title }: { url: string; title: string }) {
         aria-label="Share on X"
         className="insight-share-btn"
       >
-        <Twitter size={14} />
+        <Twitter size={17} />
       </a>
       <a
         href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`}
@@ -60,7 +60,7 @@ function ShareRow({ url, title }: { url: string; title: string }) {
         aria-label="Share on LinkedIn"
         className="insight-share-btn"
       >
-        <Linkedin size={14} />
+        <Linkedin size={17} />
       </a>
       <a
         href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`}
@@ -69,7 +69,7 @@ function ShareRow({ url, title }: { url: string; title: string }) {
         aria-label="Share on Facebook"
         className="insight-share-btn"
       >
-        <Facebook size={14} />
+        <Facebook size={17} />
       </a>
       <a
         href={`https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`}
@@ -81,7 +81,7 @@ function ShareRow({ url, title }: { url: string; title: string }) {
         <WhatsAppIcon />
       </a>
       <button type="button" onClick={copyLink} aria-label="Copy link" className="insight-share-btn">
-        {copied ? <Check size={14} /> : <Copy size={14} />}
+        {copied ? <Check size={17} /> : <Copy size={17} />}
       </button>
     </div>
   );
