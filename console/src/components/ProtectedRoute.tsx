@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
 import { MfaChallenge } from "./MfaChallenge";
 
@@ -10,8 +11,19 @@ import { MfaChallenge } from "./MfaChallenge";
 // it. Every entry point into the console goes through this one guard, so
 // checking it here (rather than in Login.tsx) is what actually makes 2FA
 // enforced instead of just enrollable.
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+//
+// It's also where a brand-new account (no workspace yet) gets sent to
+// onboarding, so no console page ever renders "no workspace assigned".
+// /onboarding itself passes allowWithoutWorkspace to skip that redirect.
+export function ProtectedRoute({
+  children,
+  allowWithoutWorkspace = false
+}: {
+  children: React.ReactNode;
+  allowWithoutWorkspace?: boolean;
+}) {
   const { session, loading } = useAuth();
+  const { loaded: workspaceLoaded, needsOnboarding, error: workspaceError } = useWorkspace();
   const [, setLocation] = useLocation();
   const [aalChecked, setAalChecked] = useState(false);
   const [needsMfa, setNeedsMfa] = useState(false);
@@ -21,6 +33,12 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       setLocation("/login");
     }
   }, [loading, session, setLocation]);
+
+  useEffect(() => {
+    if (!allowWithoutWorkspace && needsOnboarding) {
+      setLocation("/onboarding");
+    }
+  }, [allowWithoutWorkspace, needsOnboarding, setLocation]);
 
   useEffect(() => {
     if (!session) return;
@@ -50,6 +68,17 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
         <div className="simple-login-card">
           <MfaChallenge onVerified={() => setNeedsMfa(false)} />
         </div>
+      </div>
+    );
+  }
+
+  // Hold the page until the first workspace load settles, so a new account
+  // doesn't see a flash of the empty console before the onboarding redirect.
+  if ((!workspaceLoaded && !workspaceError) || (!allowWithoutWorkspace && needsOnboarding)) {
+    return (
+      <div className="auth-loading-shell">
+        <span className="live-status-dot" />
+        <span>Loading your workspace…</span>
       </div>
     );
   }

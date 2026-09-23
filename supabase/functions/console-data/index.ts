@@ -49,7 +49,9 @@ interface WorkspaceRow {
   id: string;
   name: string;
   tier_label: string | null;
-  coolify_project_uuid: string;
+  // NULL for a workspace created through console onboarding that staff
+  // haven't provisioned infrastructure for yet.
+  coolify_project_uuid: string | null;
 }
 
 async function getUser(jwt: string): Promise<{ id: string; isAdmin: boolean } | null> {
@@ -297,13 +299,16 @@ Deno.serve(async (req) => {
   if (!target) return json({ error: "Not a member of that workspace" }, 403);
 
   try {
-    const live = await fetchWorkspaceLiveData(target.coolify_project_uuid);
+    const live = target.coolify_project_uuid
+      ? await fetchWorkspaceLiveData(target.coolify_project_uuid)
+      : { server: null, environments: [{ name: "production", resources: [] }], deployments: [] };
     return json({
       workspaces: workspaces.map((w) => ({ id: w.id, name: w.name, tier: w.tier_label })),
       active: {
         id: target.id,
         name: target.name,
         tier: target.tier_label,
+        provisioning: !target.coolify_project_uuid,
         ...live,
       },
       isAdmin: caller.isAdmin,

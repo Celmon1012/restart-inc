@@ -6,6 +6,7 @@ import { WorkspaceProvider, useWorkspace } from "./contexts/WorkspaceContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
+import Onboarding from "./pages/Onboarding";
 import Overview from "./pages/console/Overview";
 import Systems from "./pages/console/Systems";
 import Delivery from "./pages/console/Delivery";
@@ -32,6 +33,11 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/onboarding">
+        <ProtectedRoute allowWithoutWorkspace>
+          <Onboarding />
+        </ProtectedRoute>
+      </Route>
       {/* Kept as a compatibility redirect -- bookmarks and any external
           links still pointing at the old dashboard route land on the page
           that replaced it, instead of a dead end. */}

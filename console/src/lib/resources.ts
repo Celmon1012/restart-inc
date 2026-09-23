@@ -88,6 +88,10 @@ export interface Workspace {
   server: DedicatedServer | null;
   environments: Environment[];
   deployments: Deployment[];
+  // True for a workspace created through console onboarding that has no
+  // Coolify project attached yet -- empty resources are expected, not an
+  // outage.
+  provisioning?: boolean;
 }
 
 export interface WorkspaceSummary {

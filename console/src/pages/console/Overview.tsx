@@ -101,12 +101,33 @@ export default function Overview() {
         <>
           <div className="dash-header-row">
             <div>
-              <span className="overview-greeting">Welcome back, {getDisplayName(user)}</span>
+              <span className="overview-greeting">
+                {activeWorkspace.provisioning ? "Welcome" : "Welcome back"}, {getDisplayName(user)}
+              </span>
               <span className="dash-kicker">OVERVIEW</span>
               <h1>Systems Overview</h1>
               <p>{headline} — here's the state of {activeWorkspace.name}'s systems and delivery right now.</p>
             </div>
           </div>
+
+          {activeWorkspace.provisioning && (
+            <div className="overview-provisioning-card">
+              <div className="overview-card-icon">
+                <Clock size={16} className="text-amber" />
+              </div>
+              <div>
+                <h3>Your workspace is set up. Infrastructure comes next.</h3>
+                <p>
+                  A Restart engineer reviews your answers and replies to {user?.email} with a fit assessment and
+                  proposed scope. Your dedicated server, systems, and delivery milestones appear here once the
+                  engagement starts.
+                </p>
+                <Link href="/console/support" className="overview-section-link">
+                  Ask a question now <ArrowRight size={12} />
+                </Link>
+              </div>
+            </div>
+          )}
 
           <div className="overview-stats-row">
             <div className="overview-stat-tile">

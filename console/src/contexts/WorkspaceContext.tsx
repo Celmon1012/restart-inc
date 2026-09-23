@@ -12,10 +12,14 @@ interface WorkspaceContextType {
   // rather than re-derived -- this is a UX-only gate for nav/routes, never
   // the real authorization boundary (RLS on console.* tables is).
   isAdmin: boolean;
+  // A signed-in, non-admin account with no workspace membership at all --
+  // routed to /onboarding to create one instead of an empty console.
+  needsOnboarding: boolean;
+  loaded: boolean;
   loading: boolean;
   error: string | null;
   setActiveWorkspaceId: (id: string) => void;
-  refresh: () => void;
+  refresh: () => Promise<void>;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
@@ -27,6 +31,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [requestedId, setRequestedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (workspaceId: string | null) => {
@@ -43,6 +48,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setWorkspaces(data?.workspaces ?? []);
       setActiveWorkspace(data?.active ?? null);
       setIsAdmin(Boolean(data?.isAdmin));
+      setLoaded(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load workspace data");
     } finally {
@@ -53,6 +59,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (authLoading) return;
     if (!session) {
+      setWorkspaces([]);
+      setActiveWorkspace(null);
+      setIsAdmin(false);
+      setLoaded(false);
       setLoading(false);
       return;
     }
@@ -65,6 +75,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         workspaces,
         activeWorkspace,
         isAdmin,
+        needsOnboarding: loaded && !error && !isAdmin && workspaces.length === 0,
+        loaded,
         loading,
         error,
         setActiveWorkspaceId: setRequestedId,

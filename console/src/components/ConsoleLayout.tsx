@@ -71,7 +71,7 @@ const NAV_GROUPS: Array<{
 export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: ConsoleLayoutProps) {
   const [location, setLocation] = useLocation();
   const { user, signOut } = useAuth();
-  const { workspaces, activeWorkspace, isAdmin, setActiveWorkspaceId } = useWorkspace();
+  const { workspaces, activeWorkspace, isAdmin, loading: workspaceLoading, setActiveWorkspaceId } = useWorkspace();
   const displayName = getDisplayName(user);
   const displayEmail = user?.email || "";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -281,8 +281,10 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
                 title="Switch workspace"
                 aria-expanded={workspaceMenuOpen}
               >
-                <span className={`org-dot ${activeWorkspace?.server?.isReachable ? "" : "down"}`} />
-                <span className="org-name">{activeWorkspace?.name ?? "Loading…"}</span>
+                <span
+                  className={`org-dot ${activeWorkspace?.server?.isReachable ? "" : activeWorkspace?.provisioning ? "pending" : "down"}`}
+                />
+                <span className="org-name">{activeWorkspace?.name ?? (workspaceLoading ? "Loading…" : "No workspace")}</span>
                 {activeWorkspace?.tier && <span className="org-pod">{activeWorkspace.tier}</span>}
                 <ChevronDown size={12} className={`dash-user-chevron ${workspaceMenuOpen ? "rotate" : ""}`} />
               </button>

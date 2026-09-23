@@ -1321,6 +1321,11 @@ button { font: inherit; }
   color: #fca5a5;
 }
 
+.org-dot.pending {
+  background: var(--amber);
+  box-shadow: 0 0 8px rgba(229, 176, 97, 0.6);
+}
+
 .org-dot.down {
   background: #f87171;
   box-shadow: 0 0 8px rgba(248, 113, 113, 0.7);
@@ -2224,49 +2229,8 @@ button { font: inherit; }
   color: #636878;
 }
 
-.dash-footer-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  color: #8fa2cd;
-}
-
-.dash-footer-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--teal);
-  box-shadow: 0 0 8px rgba(46, 229, 193, 0.7);
-  flex-shrink: 0;
-}
-
-.dash-footer-dot.down {
-  background: #f87171;
-  box-shadow: 0 0 8px rgba(248, 113, 113, 0.7);
-}
-
 .dash-footer-sep {
   color: #3a3f4c;
-}
-
-.dash-footer-links {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.dash-footer-links a {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: #8b93a7;
-  text-decoration: none;
-  transition: color 0.15s;
-}
-
-.dash-footer-links a:hover {
-  color: var(--teal);
 }
 
 .dash-footer-meta {
@@ -3655,4 +3619,161 @@ button { font: inherit; }
   .hosting-overview-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Console onboarding (/onboarding) -- a new account's first stop. Reuses
+   the simple-login shell; only the step/option pieces are new. */
+.onboard-card {
+  width: min(520px, 100%);
+}
+.onboard-progress {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.onboard-progress-seg {
+  flex: 1;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  transition: background 0.25s var(--ease-out);
+}
+.onboard-progress-seg.done {
+  background: var(--teal);
+}
+.onboard-step-count {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--teal);
+  margin-bottom: 14px;
+}
+.onboard-field-gap {
+  margin-top: 20px;
+}
+.onboard-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.onboard-options.compact {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.onboard-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #111114;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f2f6ff;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+}
+.onboard-options.compact .onboard-option {
+  width: auto;
+  padding: 9px 12px;
+}
+.onboard-option:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.onboard-option.selected {
+  border-color: rgba(46, 229, 193, 0.6);
+  background: rgba(46, 229, 193, 0.06);
+}
+.onboard-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.onboard-option-label {
+  font-size: 13px;
+  font-weight: 700;
+}
+.onboard-option-hint {
+  font-size: 12px;
+  color: #8c95a8;
+}
+.onboard-option-check {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  display: grid;
+  place-items: center;
+  color: #04080d;
+}
+.onboard-option.selected .onboard-option-check {
+  background: var(--teal);
+  border-color: var(--teal);
+}
+.onboard-options.compact .onboard-option-check {
+  display: none;
+}
+.onboard-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 28px;
+}
+.onboard-next-btn {
+  flex: 1;
+  margin-top: 0;
+}
+.onboard-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 18px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #c4cad8;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.onboard-back-btn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #fff;
+}
+.onboard-signout {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.onboard-signed-in-as {
+  margin: 22px 0 0;
+  font-size: 12px;
+  color: #636d80;
+  text-align: center;
+}
+.overview-provisioning-card {
+  display: flex;
+  gap: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+  background: rgba(229, 176, 97, 0.04);
+  border: 1px solid rgba(229, 176, 97, 0.22);
+  border-radius: 10px;
+}
+.overview-provisioning-card h3 {
+  font-size: 15px !important;
+  font-weight: 700;
+  color: #f2f6ff;
+  margin: 0 0 6px;
+}
+.overview-provisioning-card p {
+  font-size: 13px;
+  color: #a4acbd;
+  margin: 0 0 10px;
+  line-height: 1.55;
+  max-width: 720px;
 }
