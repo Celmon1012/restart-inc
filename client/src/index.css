@@ -1151,3 +1151,59 @@
   .ty-wrap{ gap: 24px; }
   .ty-sla, .ty-contact{ padding: 18px 16px; }
 }
+
+/* ------------------------------------------------------------------ *
+ * Footer CTA panel
+ *
+ * The closing CTA was a full-bleed band with its own flat background
+ * (#050508) and a faint grid. That made it read as a different kind of
+ * surface from the rest of the page, and the grid competed with the
+ * headline rather than supporting it.
+ *
+ * It now uses the same surface treatment as the case study columns —
+ * linear-gradient(155deg, #0e0e13, #060609), 1px hairline border, 8px
+ * radius — so the closing CTA reads as one of the page's cards, sitting
+ * on the page background rather than replacing it.
+ *
+ * These rules come after the originals in the cascade, so they win at
+ * equal specificity. Applies to every page that uses .final-cta
+ * (Home, About, Careers, CaseStudies, Insights, InsightDetail,
+ * SolutionDetail, and LegalPageLayout).
+ * ------------------------------------------------------------------ */
+
+.final-cta{
+  min-height: 0;
+  padding: 88px 0;
+  background: #030305;
+}
+
+/* Pull the grid inside the panel instead of behind the whole band. */
+.final-cta-grid{
+  inset: 0;
+  opacity: .28;
+  border-radius: 8px;
+}
+
+.final-cta-content{
+  padding: 58px 44px 54px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px;
+  background: linear-gradient(155deg, #0e0e13, #060609);
+  box-shadow: 0 24px 60px rgba(0,0,0,.5);
+}
+
+/* Slightly stronger hairline on hover reads as "this is a surface",
+   matching how the case study cards respond. */
+.final-cta-content:hover{
+  border-color: rgba(46,229,193,.28);
+}
+
+@media (max-width: 900px){
+  .final-cta{ padding: 64px 0; }
+  .final-cta-content{ padding: 40px 24px 38px; }
+}
+
+@media (max-width: 560px){
+  .final-cta{ padding: 52px 0; }
+  .final-cta-content{ padding: 32px 18px 30px; border-radius: 7px; }
+}
