@@ -950,3 +950,44 @@
 @media (max-width: 560px) {.careers-hero{ padding: 64px 0 40px; }.careers-roles, .careers-principles{ padding: 44px 0; }
 }
 .lane-card .card-link:focus-visible{outline:2px solid currentColor;outline-offset:4px;border-radius:3px;}
+
+/* ------------------------------------------------------------------ *
+ * Multi-step project intake (restructured /start-project)
+ *
+ * Scoped under .sp-* (start-project) so nothing here collides with the
+ * console styles or the rest of the marketing site.
+ * ------------------------------------------------------------------ */
+
+.sp-progress{ display: flex; align-items: center; gap: 6px; margin: 0 0 22px; padding: 0; list-style: none; }
+.sp-progress-step{ display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid rgba(255,255,255,.07); border-radius: 6px; background: rgba(255,255,255,.015); transition: border-color .2s ease-out, background .2s ease-out; }
+.sp-progress-step .sp-progress-kicker{ display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 18px; height: 18px; border-radius: 50%; font-size: 0.5625rem; font-weight: 800; letter-spacing: .04em; color: #7e8595; border: 1px solid rgba(255,255,255,.12); }
+.sp-progress-step .sp-progress-label{ font-size: 0.6875rem; font-weight: 600; letter-spacing: .01em; color: #7e8595; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-progress-step.active{ border-color: rgba(46,229,193,.45); background: rgba(46,229,193,.06); }
+.sp-progress-step.active .sp-progress-kicker{ color: #04080d; background: var(--teal); border-color: var(--teal); }
+.sp-progress-step.active .sp-progress-label{ color: #eaf1ff; }
+.sp-progress-step.done{ border-color: rgba(46,229,193,.22); }
+.sp-progress-step.done .sp-progress-kicker{ color: var(--teal); border-color: rgba(46,229,193,.4); }
+
+.sp-meter{ display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.sp-meter-bar{ position: relative; flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.07); overflow: hidden; }
+.sp-meter-fill{ display: block; height: 100%; width: 0; border-radius: 2px; background: var(--teal); opacity: .55; transition: width .25s var(--ease-out), opacity .2s ease-out; }
+.sp-meter.ok .sp-meter-fill{ opacity: 1; }
+.sp-meter-text{ flex: 0 0 auto; font-size: 0.6875rem; color: #7e8595; }
+.sp-meter.ok .sp-meter-text{ color: var(--teal); }
+
+.sp-hint{ margin: 8px 0 0; font-size: 0.6875rem; line-height: 1.55; color: #7e8595; }
+
+.sp-nav{ display: flex; align-items: stretch; gap: 10px; }
+.sp-next-btn{ flex: 1; }
+.sp-back-btn{ display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex: 0 0 auto; padding: 16px 18px; font-size: 0.875rem; font-weight: 700; color: #9aa1b2; background: transparent; border: 1px solid rgba(255,255,255,.12); border-radius: 7px; transition: color .18s ease-out, border-color .18s ease-out; }
+.sp-back-btn:hover{ color: #eaf1ff; border-color: rgba(255,255,255,.28); }
+
+/* Honeypot: moved off-canvas rather than display:none -- many bots skip
+   display:none fields, which defeats the purpose. aria-hidden keeps it out
+   of the accessibility tree and tabIndex={-1} keeps it out of tab order. */
+.sp-honeypot{ position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+@media (max-width: 700px) {
+  .sp-progress-label{ display: none; }
+  .sp-progress-step{ justify-content: center; }
+}
