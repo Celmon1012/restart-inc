@@ -12,14 +12,16 @@
 // since that's the only step allowed to hold RESEND_API_KEY and actually
 // contact the prospect.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { ActivityTimeline, type AgentActivity } from "@/components/ActivityTimeline";
 import { useAuth } from "@/contexts/AuthContext";
 import { consoleSchema, supabase } from "@/lib/supabase";
 import { Mail, Building2, Clock, Send } from "lucide-react";
 import { formatDate } from "@/lib/format";
-import { ErrorAlert, StatusRegion } from "@/components/AsyncStates";
+import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
+import { useAsyncResource } from "@/hooks/useAsyncResource";
+import { toast } from "sonner";
 
 type InquiryStatus = "new" | "contacted" | "qualified" | "won" | "lost" | "archived";
 
@@ -76,62 +78,60 @@ function StagePill({ status }: { status: InquiryStatus }) {
 
 export default function Leads() {
   const { user } = useAuth();
-  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [stageFilter, setStageFilter] = useState<"all" | InquiryStatus>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [activities, setActivities] = useState<InquiryActivity[]>([]);
-  const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [stageSaving, setStageSaving] = useState(false);
 
-  const loadInquiries = () => {
-    setLoading(true);
-    setError(null);
-    (async () => {
-      try {
-        const { data, error: dbError } = await consoleSchema()
-          .from("inquiries")
-          .select("*")
-          .order("created_at", { ascending: false });
-        if (dbError) throw dbError;
-        setInquiries(data ?? []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load inquiries");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  };
+  // Both resources load through the shared hook, which supplies retry(),
+  // race-safe cancellation, and one loading/error contract per resource
+  // instead of the two hand-rolled effects this page used to carry.
+  const {
+    data: inquiryData,
+    loading,
+    error,
+    retry: retryInquiries,
+    refresh: refreshInquiries,
+    refreshing,
+  } = useAsyncResource<Inquiry[]>(
+    async (signal) => {
+      const { data, error: dbError } = await consoleSchema()
+        .from("inquiries")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (signal.aborted) return [];
+      if (dbError) throw dbError;
+      return data ?? [];
+    },
+    [],
+    { errorMessage: "Failed to load inquiries" }
+  );
+  const inquiries = inquiryData ?? [];
+  // Named so the existing call sites (stage change, note, proposal decisions)
+  // keep re-reading after a write without knowing about the hook.
+  const loadInquiries = refreshInquiries;
 
-  useEffect(() => {
-    loadInquiries();
-  }, []);
-
-  const loadActivities = (inquiryId: string) => {
-    setActivitiesLoading(true);
-    (async () => {
-      try {
+  // The selected lead's thread is its own resource keyed by selection, so
+  // switching leads aborts the previous request rather than letting it race.
+  const { data: activityData, loading: activitiesLoading, refresh: refreshActivities } =
+    useAsyncResource<InquiryActivity[]>(
+      async (signal) => {
+        if (!selectedId) return [];
         const { data, error: dbError } = await consoleSchema()
           .from("inquiry_activities")
           .select("*")
-          .eq("inquiry_id", inquiryId)
+          .eq("inquiry_id", selectedId)
           .order("created_at", { ascending: true });
+        if (signal.aborted) return [];
         if (dbError) throw dbError;
-        setActivities(data ?? []);
-      } catch {
-        setActivities([]);
-      } finally {
-        setActivitiesLoading(false);
-      }
-    })();
-  };
-
-  useEffect(() => {
-    if (selectedId) loadActivities(selectedId);
-  }, [selectedId]);
+        return data ?? [];
+      },
+      [selectedId],
+      { enabled: Boolean(selectedId), errorMessage: "Failed to load activity" }
+    );
+  const activities = activityData ?? [];
+  const loadActivities = refreshActivities;
 
   const filtered = inquiries.filter((i) => stageFilter === "all" || i.status === stageFilter);
   const selected = inquiries.find((i) => i.id === selectedId) ?? null;
@@ -157,9 +157,13 @@ export default function Leads() {
           payload: { from: previous, to: next }
         });
       loadInquiries();
-      loadActivities(selected.id);
+      void loadActivities();
+      toast.success(`Moved to ${next}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update stage");
+      // A failed write is not a failed load. It must not replace the page's
+      // data state, so it reports through a toast and leaves the loaded list
+      // on screen -- the alert channel is reserved for the load itself.
+      toast.error(err instanceof Error ? err.message : "Failed to update stage");
     } finally {
       setStageSaving(false);
     }
@@ -180,9 +184,10 @@ export default function Leads() {
         });
       if (insertError) throw insertError;
       setNoteDraft("");
-      loadActivities(selected.id);
+      void loadActivities();
+      toast.success("Note added");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add note");
+      toast.error(err instanceof Error ? err.message : "Failed to add note");
     } finally {
       setSavingNote(false);
     }
@@ -196,9 +201,10 @@ export default function Leads() {
       });
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
-      loadActivities(selected.id);
+      void loadActivities();
+      toast.success("Follow-up sent");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send follow-up email");
+      toast.error(err instanceof Error ? err.message : "Failed to send follow-up email");
     }
   };
 
@@ -210,21 +216,24 @@ export default function Leads() {
         .update({ status: "rejected", decided_by: user.id, decided_at: new Date().toISOString() })
         .eq("id", activity.id);
       if (updateError) throw updateError;
-      loadActivities(selected.id);
+      void loadActivities();
+      toast.success("Proposal rejected");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reject proposal");
+      toast.error(err instanceof Error ? err.message : "Failed to reject proposal");
     }
   };
 
   return (
-    <ConsoleLayout onRefresh={loadInquiries} isRefreshing={loading}>
+    <ConsoleLayout onRefresh={() => void refreshInquiries()} isRefreshing={refreshing}>
       <StatusRegion
         message={
           loading
             ? "Loading leads"
             : error
               ? `Could not load leads: ${error}`
-              : `${inquiries.length} lead${inquiries.length === 1 ? "" : "s"} loaded`
+              : refreshing
+                ? "Refreshing leads"
+                : `${inquiries.length} lead${inquiries.length === 1 ? "" : "s"} loaded`
         }
       />
       <div className="dash-header-row">
@@ -235,10 +244,15 @@ export default function Leads() {
         </div>
       </div>
 
-      {error && <ErrorAlert message={`Couldn't load leads: ${error}`} onRetry={() => window.location.reload()} retryLabel="Reload" />}
+      {error && <ErrorAlert message={`Couldn't load leads: ${error}`} onRetry={retryInquiries} retryLabel="Reload leads" />}
 
       {loading && inquiries.length === 0 ? (
-        <div className="dash-empty-state">Loading leads…</div>
+        <LoadingState label="Loading leads…" />
+      ) : inquiries.length === 0 ? (
+        <EmptyState
+          title="No leads yet"
+          hint="Every enquiry submitted through the website lands here, with its own activity thread you can triage and leave notes on."
+        />
       ) : (
         <>
           <div className="dash-tabs-bar">

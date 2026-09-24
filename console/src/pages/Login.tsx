@@ -19,8 +19,14 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Name the field that is actually missing rather than reporting both, and
+    // move focus to it so the correction is one keystroke away.
     if (!email || !password) {
-      setErrorMessage("Please enter your work email and password");
+      const message = !email
+        ? "Enter your work email to continue"
+        : "Enter your password to continue";
+      setErrorMessage(message);
+      document.getElementById(!email ? "login-email" : "login-password")?.focus();
       return;
     }
     setIsLoading(true);
@@ -73,27 +79,36 @@ export default function Login() {
       </header>
 
       <div className="simple-login-page">
-      <div className="simple-login-card">
-        <h1>Welcome back</h1>
+      <div className="simple-login-card" aria-labelledby="login-heading">
+        <h1 id="login-heading">Welcome back</h1>
         <p className="simple-login-subtitle">Enter your credentials to access your console.</p>
 
+        {/* role=alert so a failed sign-in is spoken rather than silently
+            rendered. Without it a screen-reader user submitting wrong
+            credentials got an unchanged page and no explanation. */}
         {!isSupabaseConfigured && (
-          <div className="login-error-banner">
-            <AlertCircle size={15} />
+          <div className="login-error-banner" role="alert">
+            <AlertCircle size={15} aria-hidden="true" />
             <span>Auth is not configured yet. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.</span>
           </div>
         )}
 
         {errorMessage && (
-          <div className="login-error-banner">
-            <AlertCircle size={15} />
+          <div className="login-error-banner" role="alert">
+            <AlertCircle size={15} aria-hidden="true" />
             <span>{errorMessage}</span>
           </div>
         )}
 
+        {/* Polite, not assertive: this is a success confirmation, so it should
+            wait its turn rather than interrupt. */}
         {resetSent && (
-          <div className="login-error-banner" style={{ borderColor: "rgba(46,229,193,.3)", background: "rgba(46,229,193,.06)" }}>
-            <CheckCircle2 size={15} className="text-teal" />
+          <div
+            className="login-error-banner login-success-banner"
+            role="status"
+            aria-live="polite"
+          >
+            <CheckCircle2 size={15} className="text-teal" aria-hidden="true" />
             <span>Check your inbox for a link to set your password.</span>
           </div>
         )}
@@ -129,7 +144,19 @@ export default function Login() {
           <span>or</span>
         </div>
 
-        <form onSubmit={handleSubmit} className="simple-login-form">
+        {/* noValidate lets this form own its validation flow.
+            With `required` alone the browser intercepted the submit and showed
+            its own unstyled, inconsistently-announced bubble -- which meant the
+            handler below (and the accessible role="alert" message it sets) could
+            never run. The `required` attributes stay in place because they tell
+            assistive technology the fields are mandatory; noValidate only stops
+            the native bubble from pre-empting our own, better-reported checks. */}
+        <form
+          onSubmit={handleSubmit}
+          className="simple-login-form"
+          aria-label="Sign in to Restart Console"
+          noValidate
+        >
           <div className="simple-field-group">
             <label htmlFor="login-email">Email Address</label>
             <div className="simple-input-wrap">
@@ -170,20 +197,30 @@ export default function Login() {
                 className="simple-input"
                 required
               />
+              {/* Was tabIndex={-1} with no label: mouse-only, and silent about
+                  which state it was in. Now announced and keyboard reachable. */}
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="simple-toggle-password-btn"
-                tabIndex={-1}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                title={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                {showPassword ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
               </button>
             </div>
           </div>
 
-          <button type="submit" className="simple-submit-btn" disabled={isLoading || oauthLoading !== null || !isSupabaseConfigured}>
+          <button
+            type="submit"
+            className="simple-submit-btn"
+            disabled={isLoading || oauthLoading !== null || !isSupabaseConfigured}
+            aria-busy={isLoading}
+            aria-disabled={isLoading || oauthLoading !== null || !isSupabaseConfigured}
+          >
             {isLoading ? (
-              <span>Signing In...</span>
+              <span>Signing In…</span>
             ) : (
               <>
                 <span>Sign In</span>

@@ -80,7 +80,8 @@ function finish(events: TimelineEvent[]): TimelineEvent[] {
  */
 export async function loadTimeline(
   workspace: Workspace,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  options: { isAdmin?: boolean } = {}
 ): Promise<{ events: TimelineEvent[]; degradedSources: string[] }> {
   const events: TimelineEvent[] = [];
   const degraded: string[] = [];
@@ -206,6 +207,54 @@ export async function loadTimeline(
       detail: str(a.body) || undefined,
       actor: str(a.actor) === "agent" ? "Agent" : "Admin",
     });
+  }
+
+  // --- agent runs (admin-only) ---
+  //
+  // console.agent_runs records every invocation of the follow-up agent: when it
+  // ran, which model answered, how much it looked at, and what it created. That
+  // is the whole audit trail for autonomous action, and it is the most direct
+  // answer to "what has this thing been doing on my behalf?".
+  //
+  // Two constraints shape how it is surfaced:
+  //   * RLS restricts it to admins, so it is only queried for an admin. A member
+  //     query would fail and be reported as a degraded source -- noise for what
+  //     is actually a correct permission boundary, not a fault.
+  //   * The table has no workspace_id: runs are deployment-wide. Attributing one
+  //     to a workspace would be inventing data, so they are labelled as such.
+  if (options.isAdmin) {
+    const runs = await guarded("agent_runs", () =>
+      supabase
+        .schema("console")
+        .from("agent_runs")
+        .select("*")
+        .order("started_at", { ascending: false })
+        .limit(50)
+    );
+    for (const r of runs) {
+      const scanned = Number(r.inquiries_scanned ?? 0) + Number(r.deliverables_scanned ?? 0);
+      const created = Number(r.actions_created ?? 0);
+      const failed = Boolean(r.error);
+      const running = !r.finished_at && !failed;
+      events.push({
+        id: `agent-run-${String(r.id)}`,
+        at: str(r.started_at),
+        kind: "agent",
+        tone: failed ? "down" : running ? "warning" : created > 0 ? "healthy" : "neutral",
+        title: failed
+          ? "Agent run failed"
+          : running
+            ? "Agent run started"
+            : created > 0
+              ? `Agent run created ${created} action${created === 1 ? "" : "s"}`
+              : "Agent run completed — nothing needed action",
+        detail: failed
+          ? str(r.error)
+          : `Reviewed ${scanned} item${scanned === 1 ? "" : "s"}` +
+            (created > 0 ? ` and raised ${created} for review.` : "; nothing needed escalating."),
+        actor: r.model ? `Agent · ${str(r.model)}` : "Agent",
+      });
+    }
   }
 
   // --- current health snapshot (NOT historical -- label it) ---

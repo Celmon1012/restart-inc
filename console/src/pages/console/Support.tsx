@@ -10,7 +10,9 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
 import { Clock, Plus, Send, Check, X, Lock } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { ErrorAlert, StatusRegion } from "@/components/AsyncStates";
+import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
+import { useAsyncResource } from "@/hooks/useAsyncResource";
+import { toast } from "sonner";
 
 interface ConversationSummary {
   id: string;
@@ -64,13 +66,7 @@ async function invoke<T = any>(name: string, options: { body?: unknown; query?: 
 
 export default function Support() {
   const { activeWorkspace, isAdmin } = useWorkspace();
-  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [thread, setThread] = useState<{ messages: ChatwootMessage[]; status: string } | null>(null);
-  const [proposal, setProposal] = useState<Proposal | null>(null);
-  const [threadLoading, setThreadLoading] = useState(false);
   const [replyDraft, setReplyDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [showNewTicket, setShowNewTicket] = useState(false);
@@ -79,37 +75,56 @@ export default function Support() {
   const [creating, setCreating] = useState(false);
   const [proposalDraft, setProposalDraft] = useState("");
 
-  const loadConversations = () => {
-    setLoading(true);
-    setError(null);
-    invoke<{ conversations: ConversationSummary[] }>("console-support-data")
-      .then((data) => setConversations(data.conversations ?? []))
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load conversations"))
-      .finally(() => setLoading(false));
-  };
+  // Conversations and the open thread are two resources, each with its own
+  // loading/error state and its own retry. Both previously shared one error
+  // variable, which meant a failed thread load could blank the conversation
+  // list's error state and vice versa.
+  const {
+    data: conversationData,
+    loading,
+    error,
+    retry: retryConversations,
+    refresh: refreshConversations,
+    refreshing,
+  } = useAsyncResource<ConversationSummary[]>(
+    async (signal) => {
+      const data = await invoke<{ conversations: ConversationSummary[] }>("console-support-data");
+      if (signal.aborted) return [];
+      return data.conversations ?? [];
+    },
+    [],
+    { errorMessage: "Failed to load conversations" }
+  );
+  const conversations = conversationData ?? [];
+  const loadConversations = refreshConversations;
 
+  // The open thread is keyed by selection, so switching conversations aborts the
+  // previous request rather than racing it. Messages and any pending proposal
+  // arrive from the same call and must stay in step, so they travel together.
+  const { data: threadData, loading: threadLoading, refresh: refreshThread } = useAsyncResource<{
+    conversation: { messages: ChatwootMessage[]; status: string };
+    proposal: Proposal | null;
+  }>(
+    async (signal) => {
+      const data = await invoke<{
+        conversation: { messages: ChatwootMessage[]; status: string };
+        proposal: Proposal | null;
+      }>("console-support-data", { query: `conversation_id=${selectedId}` });
+      if (signal.aborted) throw new Error("cancelled");
+      return data;
+    },
+    [selectedId],
+    { enabled: Boolean(selectedId), errorMessage: "Failed to load conversation" }
+  );
+  const thread = threadData?.conversation ?? null;
+  const proposal = threadData?.proposal ?? null;
+  const loadThread = refreshThread;
+
+  // Seed the reply-to-proposal draft once a proposal loads, so the operator
+  // edits the agent's text instead of retyping it.
   useEffect(() => {
-    loadConversations();
-  }, []);
-
-  const loadThread = (id: string) => {
-    setThreadLoading(true);
-    invoke<{ conversation: { messages: ChatwootMessage[]; status: string }; proposal: Proposal | null }>(
-      "console-support-data",
-      { query: `conversation_id=${id}` }
-    )
-      .then((data) => {
-        setThread(data.conversation);
-        setProposal(data.proposal);
-        setProposalDraft(data.proposal?.body ?? "");
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load conversation"))
-      .finally(() => setThreadLoading(false));
-  };
-
-  useEffect(() => {
-    if (selectedId) loadThread(selectedId);
-  }, [selectedId]);
+    setProposalDraft(threadData?.proposal?.body ?? "");
+  }, [threadData?.proposal?.id]);
 
   const handleCreateTicket = async () => {
     if (!activeWorkspace || !newMessage.trim()) return;
@@ -124,7 +139,7 @@ export default function Support() {
       loadConversations();
       setSelectedId(result.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to open ticket");
+      toast.error(err instanceof Error ? err.message : "Failed to open ticket");
     } finally {
       setCreating(false);
     }
@@ -136,9 +151,9 @@ export default function Support() {
     try {
       await invoke("console-support-reply", { body: { conversation_id: selectedId, body: replyDraft.trim() } });
       setReplyDraft("");
-      loadThread(selectedId);
+      void loadThread();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send reply");
+      toast.error(err instanceof Error ? err.message : "Failed to send reply");
     } finally {
       setSending(false);
     }
@@ -149,9 +164,9 @@ export default function Support() {
     setSending(true);
     try {
       await invoke("console-support-send", { body: { proposal_id: proposal.id, body: proposalDraft.trim() } });
-      loadThread(selectedId);
+      void loadThread();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send reply");
+      toast.error(err instanceof Error ? err.message : "Failed to send reply");
     } finally {
       setSending(false);
     }
@@ -167,16 +182,16 @@ export default function Support() {
         .update({ status: "rejected", decided_at: new Date().toISOString() })
         .eq("id", proposal.id);
       if (updateError) throw updateError;
-      if (selectedId) loadThread(selectedId);
+      if (selectedId) void loadThread();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reject draft");
+      toast.error(err instanceof Error ? err.message : "Failed to reject draft");
     } finally {
       setSending(false);
     }
   };
 
   return (
-    <ConsoleLayout onRefresh={loadConversations} isRefreshing={loading}>
+    <ConsoleLayout onRefresh={() => void refreshConversations()} isRefreshing={refreshing}>
       <StatusRegion
         message={
           loading
@@ -198,7 +213,13 @@ export default function Support() {
         </button>
       </div>
 
-      {error && <ErrorAlert message={'{error}'} onRetry={() => window.location.reload()} retryLabel="Reload" />}
+      {error && (
+        <ErrorAlert
+          message={`Couldn't load conversations: ${error}`}
+          onRetry={retryConversations}
+          retryLabel="Reload conversations"
+        />
+      )}
 
       {showNewTicket && (
         <div className="console-card mb-4">
@@ -227,12 +248,17 @@ export default function Support() {
       )}
 
       {loading ? (
-        <div className="dash-empty-state">Loading conversations…</div>
+        <LoadingState label="Loading conversations…" />
+      ) : conversations.length === 0 ? (
+        <EmptyState
+          title="No support conversations yet"
+          hint="Open a ticket and it appears here, alongside anything the support desk replies with."
+        />
       ) : (
         <div className="console-grid-layout leads-layout">
           <div className="console-col leads-list-col">
             {conversations.length === 0 ? (
-              <div className="dash-empty-state">No support conversations yet.</div>
+              <div className="dash-empty-state">No conversations in this view.</div>
             ) : (
               <div className="leads-list">
                 {conversations.map((c) => (

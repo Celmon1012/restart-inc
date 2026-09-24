@@ -5,7 +5,8 @@ import { ResourceIcon } from "@/components/ResourceIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { getResources, statusMeta, deploymentStatusLabel, deploymentTone, formatRelativeTime } from "@/lib/resources";
-import { ErrorAlert, StatusRegion } from "@/components/AsyncStates";
+import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
+import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { consoleSchema } from "@/lib/supabase";
 import { getCurrentDeliverable, type Deliverable } from "@/lib/deliverables";
 import { getDisplayName } from "@/lib/utils";
@@ -48,29 +49,43 @@ export default function Overview() {
   const { user } = useAuth();
   const { activeWorkspace, loading: workspaceLoading, error: workspaceError, refresh } = useWorkspace();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const resources = activeWorkspace ? getResources(activeWorkspace) : [];
   const attention = resources.filter((r) => statusMeta(r.status).tone !== "healthy");
   const downCount = attention.filter((r) => statusMeta(r.status).tone === "down").length;
   const warningCount = attention.length - downCount;
-  const currentMilestone = getCurrentDeliverable(deliverables);
-  const completedMilestones = deliverables.filter((d) => d.status === "completed").length;
   const deployments = activeWorkspace?.deployments ?? [];
   const deploysLast24h = deployments.filter(
     (d) => Date.now() - new Date(d.createdAt).getTime() < 24 * 60 * 60 * 1000
   ).length;
 
-  useEffect(() => {
-    if (!activeWorkspace) return;
-    (async () => {
-      try {
-        const { data } = await consoleSchema().from("deliverables").select("*").eq("workspace_id", activeWorkspace.id);
-        setDeliverables(data ?? []);
-      } catch {
-        setDeliverables([]);
-      }
-    })();
-  }, [activeWorkspace?.id]);
+  // Deliverables load through the shared hook so a failed read is reported and
+  // retryable. This previously swallowed every error into an empty array, which
+  // rendered exactly like "no milestones" -- the dashboard told an operator they
+  // had no delivery milestones when the truth was that we could not read them.
+  const {
+    data: deliverableData,
+    error: deliverablesError,
+    retry: retryDeliverables,
+  } = useAsyncResource<Deliverable[]>(
+    async (signal) => {
+      if (!activeWorkspace) return [];
+      const { data, error: dbError } = await consoleSchema()
+        .from("deliverables")
+        .select("*")
+        .eq("workspace_id", activeWorkspace.id);
+      if (signal.aborted) return [];
+      if (dbError) throw dbError;
+      return data ?? [];
+    },
+    [activeWorkspace?.id],
+    { enabled: Boolean(activeWorkspace), errorMessage: "Failed to load delivery milestones" }
+  );
+  const deliverables = deliverableData ?? [];
+
+  // Derived from the loaded milestones, so they must sit after the hook rather
+  // than above it.
+  const currentMilestone = getCurrentDeliverable(deliverables);
+  const completedMilestones = deliverables.filter((d) => d.status === "completed").length;
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -96,17 +111,24 @@ export default function Overview() {
             ? "Loading your workspace"
             : workspaceError
               ? `Could not load workspace data: ${workspaceError}`
-              : `${resources.length} systems loaded`
+              : deliverablesError
+                ? `${resources.length} systems loaded; delivery milestones could not be read`
+                : `${resources.length} systems and ${deliverables.length} delivery milestones loaded`
         }
       />
       {workspaceLoading && !activeWorkspace ? (
-        <div className="dash-empty-state">Loading your workspace…</div>
+        <LoadingState label="Loading your workspace…" />
       ) : workspaceError ? (
-        <div className="dash-empty-state">Couldn't load workspace data: {workspaceError}</div>
+        <ErrorAlert
+          message={workspaceError}
+          onRetry={() => void refresh()}
+          retryLabel="Reload dashboard"
+        />
       ) : !activeWorkspace ? (
-        <div className="dash-empty-state">
-          No workspace has been assigned to your account yet. Contact Restart Inc to get set up.
-        </div>
+        <EmptyState
+          title="No workspace assigned yet"
+          hint="No workspace has been assigned to your account. Contact Restart Inc to get set up, or start a project from the marketing site."
+        />
       ) : (
         <>
           <div className="dash-header-row">
@@ -219,7 +241,15 @@ export default function Overview() {
                 View all milestones <ArrowRight size={12} />
               </Link>
             </div>
-            {currentMilestone ? (
+            {deliverablesError ? (
+              <div className="overview-not-connected">
+                <AlertTriangle size={16} />
+                <span>Couldn't read delivery milestones: {deliverablesError}</span>
+                <button type="button" className="console-retry-btn" onClick={retryDeliverables}>
+                  Retry
+                </button>
+              </div>
+            ) : currentMilestone ? (
               <div className="overview-card">
                 <div className="overview-card-icon">
                   <Clock size={16} className="text-amber" />
@@ -298,8 +328,8 @@ export default function Overview() {
           <div className="overview-section">
             <div className="overview-section-head">
               <h2 className="overview-section-title">Recent activity</h2>
-              <Link href="/console/activity" className="overview-section-link">
-                Open activity log <ArrowRight size={12} />
+              <Link href="/console/timeline" className="overview-section-link">
+                Open full timeline <ArrowRight size={12} />
               </Link>
             </div>
             {(activeWorkspace.deployments ?? []).length === 0 ? (

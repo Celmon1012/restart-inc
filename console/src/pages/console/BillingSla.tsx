@@ -7,6 +7,8 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
 import { formatAmount, formatDate } from "@/lib/format";
 import { ErrorAlert, StatusRegion } from "@/components/AsyncStates";
+import { EmptyState, LoadingState } from "@/components/AsyncStates";
+import { useAsyncResource } from "@/hooks/useAsyncResource";
 
 type Tone = "healthy" | "warning" | "down";
 
@@ -180,38 +182,32 @@ const PROVIDER_LABEL: Record<string, string> = {
 
 export default function BillingSla() {
   const { activeWorkspace } = useWorkspace();
-  const [data, setData] = useState<BillingData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const [nonce, setNonce] = useState(0);
-  // Extracted so the retry control can re-run exactly the same load the
-  // effect runs, instead of duplicating the request logic.
-  const reload = () => setNonce((n) => n + 1);
-
-  useEffect(() => {
-    if (!activeWorkspace) return;
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    supabase.functions
-      .invoke(`console-billing?workspace_id=${activeWorkspace.id}`)
-      .then(({ data: result, error: fnError }) => {
-        if (cancelled) return;
-        if (fnError) throw fnError;
-        if (result?.error) throw new Error(result.error);
-        setData(result);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load billing data");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeWorkspace?.id, nonce]);
+  // Billing loads through the shared hook. This page previously hand-rolled the
+  // most careful version of the pattern in the console -- its own `cancelled`
+  // guard and a `nonce` to force a re-run from the retry button -- which is
+  // exactly the machinery the shared hook now provides for every page.
+  const {
+    data,
+    loading,
+    error,
+    retry: reload,
+    refresh: refreshBilling,
+    refreshing,
+  } = useAsyncResource<BillingData>(
+    async (signal) => {
+      if (!activeWorkspace) throw new Error("No workspace selected");
+      const { data: result, error: fnError } = await supabase.functions.invoke(
+        `console-billing?workspace_id=${activeWorkspace.id}`
+      );
+      if (signal.aborted) throw new Error("cancelled");
+      if (fnError) throw fnError;
+      if (result?.error) throw new Error(result.error);
+      return result as BillingData;
+    },
+    [activeWorkspace?.id],
+    { enabled: Boolean(activeWorkspace), errorMessage: "Failed to load billing data" }
+  );
 
   const [priceModalOpen, setPriceModalOpen] = useState(false);
   const primarySubscription = data?.subscriptions?.find((s) => s.status === "active") ?? data?.subscriptions?.[0];
@@ -239,17 +235,19 @@ export default function BillingSla() {
         </div>
 
         {loading ? (
-          <div className="dash-empty-state">Loading billing data…</div>
+          <LoadingState label="Loading billing data…" />
         ) : error ? (
           <ErrorAlert message={error} onRetry={reload} retryLabel="Reload billing" />
         ) : !data?.billingConfigured ? (
-          <div className="dash-empty-state">
-            Billing isn't set up for this workspace yet.{" "}
-            <a href="mailto:billing@restart.ng" className="text-teal">
-              Contact billing@restart.ng
-            </a>{" "}
-            to get it configured.
-          </div>
+          <EmptyState
+            title="Billing isn't set up for this workspace yet"
+            hint="Plans, invoices, and coupons will appear here once billing is configured. You can ask us to set it up now."
+            action={
+              <a href="mailto:billing@restart.ng" className="console-retry-btn">
+                Contact billing@restart.ng
+              </a>
+            }
+          />
         ) : (
           <>
             {primarySubscription && (

@@ -6,7 +6,7 @@
 // supabase/migrations/20260917200000_console_deliverable_activities.sql
 // for why this table is staff-only even though deliverables itself isn't.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { ActivityTimeline, type AgentActivity } from "@/components/ActivityTimeline";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,7 +14,9 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { consoleSchema, supabase } from "@/lib/supabase";
 import type { Deliverable } from "@/lib/deliverables";
 import { Check, Plus, Send, Trash2 } from "lucide-react";
-import { ErrorAlert, StatusRegion } from "@/components/AsyncStates";
+import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
+import { useAsyncResource } from "@/hooks/useAsyncResource";
+import { toast } from "sonner";
 
 interface DeliverableTask {
   id: string;
@@ -182,12 +184,9 @@ function DeliverableCard({
 export default function Delivery() {
   const { user } = useAuth();
   const { activeWorkspace, isAdmin } = useWorkspace();
-  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [tasksByDeliverable, setTasksByDeliverable] = useState<Record<string, DeliverableTask[]>>({});
   const [activitiesByDeliverable, setActivitiesByDeliverable] = useState<Record<string, DeliverableActivity[]>>({});
-  const [loading, setLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const loadDetails = async (ids: string[]) => {
     if (ids.length === 0 || !isAdmin) {
@@ -214,33 +213,37 @@ export default function Delivery() {
     setDetailsLoading(false);
   };
 
-  const load = () => {
-    if (!activeWorkspace) return;
-    setLoading(true);
-    setError(null);
-    (async () => {
-      try {
-        const { data, error: dbError } = await consoleSchema()
-          .from("deliverables")
-          .select("*")
-          .eq("workspace_id", activeWorkspace.id)
-          .order("sort_order", { ascending: true });
-        if (dbError) throw dbError;
-        const rows: Deliverable[] = data ?? [];
-        setDeliverables(rows);
-        await loadDetails(rows.map((d) => d.id));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load delivery data");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  };
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWorkspace?.id]);
+  // Milestones load through the shared hook, keyed on the active workspace and
+  // aborting the previous request on a switch. The effect this replaces needed
+  // an eslint-disable and had no cancellation at all, so switching workspaces
+  // mid-flight could land one workspace's milestones under another's name.
+  const {
+    data: deliverableData,
+    loading,
+    error,
+    retry: retryDeliverables,
+    refresh: refreshDeliverables,
+    refreshing,
+  } = useAsyncResource<Deliverable[]>(
+    async (signal) => {
+      if (!activeWorkspace) return [];
+      const { data, error: dbError } = await consoleSchema()
+        .from("deliverables")
+        .select("*")
+        .eq("workspace_id", activeWorkspace.id)
+        .order("sort_order", { ascending: true });
+      if (signal.aborted) return [];
+      if (dbError) throw dbError;
+      const rows: Deliverable[] = data ?? [];
+      await loadDetails(rows.map((d) => d.id));
+      return rows;
+    },
+    [activeWorkspace?.id],
+    { enabled: Boolean(activeWorkspace), errorMessage: "Failed to load delivery data" }
+  );
+  const deliverables = deliverableData ?? [];
+  // Aliased so the existing post-write call sites keep working unchanged.
+  const load = refreshDeliverables;
 
   const reloadDeliverableDetails = (deliverableId: string) => loadDetails(deliverables.map((d) => d.id));
 
@@ -285,7 +288,7 @@ export default function Delivery() {
       if (data?.error) throw new Error(data.error);
       await loadDetails(deliverables.map((d) => d.id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send client update");
+      toast.error(err instanceof Error ? err.message : "Failed to send client update");
     }
   };
 
@@ -318,11 +321,14 @@ export default function Delivery() {
       </div>
 
       {loading ? (
-        <div className="dash-empty-state">Loading delivery milestones…</div>
+        <LoadingState label="Loading delivery milestones…" />
       ) : error ? (
-        <ErrorAlert message={`Couldn't load delivery data: ${error}`} onRetry={() => window.location.reload()} retryLabel="Reload" />
+        <ErrorAlert message={`Couldn't load delivery data: ${error}`} onRetry={retryDeliverables} retryLabel="Reload milestones" />
       ) : deliverables.length === 0 ? (
-        <div className="dash-empty-state">No delivery milestones recorded for this workspace yet.</div>
+        <EmptyState
+          title="No delivery milestones yet"
+          hint="Milestones appear here as soon as your engagement starts, each with its own checklist and activity thread."
+        />
       ) : (
         <div className="dash-sprints-view">
           {deliverables.map((milestone, idx) => (

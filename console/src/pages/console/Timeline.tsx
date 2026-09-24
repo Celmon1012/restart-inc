@@ -67,20 +67,21 @@ function toneIcon(kind: TimelineKind) {
 }
 
 export default function Timeline() {
-  const { activeWorkspace, loading: wsLoading, error: wsError } = useWorkspace();
+  const { activeWorkspace, loading: wsLoading, error: wsError, isAdmin } = useWorkspace();
   const [kind, setKind] = useState<TimelineKind | "all">("all");
   const [rangeDays, setRangeDays] = useState<number>(30);
 
   const loader = useCallback(
     (signal: AbortSignal) =>
       activeWorkspace
-        ? loadTimeline(activeWorkspace, signal)
+        ? loadTimeline(activeWorkspace, signal, { isAdmin })
         : Promise.resolve({ events: [], degradedSources: [] }),
-    [activeWorkspace]
+    [activeWorkspace, isAdmin]
   );
 
   const { data, loading, error, retry, refresh, refreshing } = useAsyncResource(loader, [
     activeWorkspace?.id,
+    isAdmin,
   ], { enabled: Boolean(activeWorkspace), errorMessage: "Failed to load activity" });
 
   const all = data?.events ?? [];
@@ -100,6 +101,20 @@ export default function Timeline() {
   }, [all, kind, rangeDays]);
 
   const days = useMemo(() => groupByDay(filtered), [filtered]);
+
+  // What the follow-up agent has done in this window, surfaced as a count rather
+  // than left for the operator to tally from the feed. Only shown to admins,
+  // since agent_runs is admin-only and a member would otherwise see a permanent
+  // zero that reads as "the agent never runs".
+  const agentRuns = useMemo(() => all.filter((e) => e.kind === "agent"), [all]);
+  const agentSummary = useMemo(() => {
+    const failed = agentRuns.filter((e) => e.tone === "down").length;
+    return {
+      total: agentRuns.length,
+      failed,
+      clean: agentRuns.length - failed,
+    };
+  }, [agentRuns]);
 
   const summary =
     loading || refreshing
@@ -142,6 +157,31 @@ export default function Timeline() {
               <span>
                 Some sources could not be read ({degraded.join(", ")}). Everything else is shown below.
               </span>
+            </div>
+          )}
+
+          {isAdmin && agentSummary.total > 0 && (
+            <div className="timeline-agent-summary">
+              <div className="timeline-agent-summary-head">
+                <Sparkles size={14} className="text-teal" aria-hidden="true" />
+                <strong>Automated activity</strong>
+                <span className="timeline-agent-scope">
+                  all projects — the agent runs across the whole deployment, not one workspace
+                </span>
+              </div>
+              <div className="timeline-agent-stats">
+                <span>
+                  <strong>{agentSummary.total}</strong> run{agentSummary.total === 1 ? "" : "s"}
+                </span>
+                <span>
+                  <strong>{agentSummary.clean}</strong> completed
+                </span>
+                {agentSummary.failed > 0 && (
+                  <span className="down">
+                    <strong>{agentSummary.failed}</strong> failed
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
