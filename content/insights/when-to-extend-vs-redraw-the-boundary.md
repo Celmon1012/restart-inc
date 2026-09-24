@@ -72,6 +72,16 @@ Take the last five incidents or delayed releases and ask: what shared a deploy, 
 
 Then choose one seam and write its contract: the authoritative write, idempotency key, retry rule, eventual side effects, and rollback condition. If it cannot be described without hand-waving, the boundary is not ready to move. If it can, size the change honestly — as an extension or as a migration that temporarily requires two systems.
 
+---
+
+> **The boundary is the decision. The amount of code you rewrite is downstream of it.**
+>
+> The **Architecture Audit** is a one-week technical deep dive that ends in a prioritised 12-week remediation plan. It is the fastest way to get an outside read on where the boundary actually sits before you commit a team to either path.
+>
+> **[Scope this with a senior engineer →](https://restart.ng/start-project?tier=ARCHITECTURE%20AUDIT)**
+>
+> Three short steps. A senior engineer reads your brief — not a sales queue — and replies within 24 hours with whether there is a fit and the clearest next step.
+
 ## References
 
 [1]: https://restart.ng/resources/case-studies/logistics-firm-saas-spend "A global logistics firm cut SaaS spend by 70%"

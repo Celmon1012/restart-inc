@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   ArrowLeft,
   ArrowRight,
@@ -238,6 +238,7 @@ export default function StartProject() {
   // Honeypot: never shown to a person, never focusable, never autofilled.
   const [trap, setTrap] = useState("");
 
+  const [, navigate] = useLocation();
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [referenceId, setReferenceId] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -365,9 +366,11 @@ export default function StartProject() {
     // Silent discard. A bot that fills the honeypot sees the normal
     // success screen; nothing reaches the database.
     if (trap.trim()) {
-      // Deliberately not reported as a conversion: this is a bot.
-      setReferenceId(`RST-${Date.now().toString(36).toUpperCase()}`);
+      // Deliberately not reported as a conversion: this is a bot. It still
+      // gets the confirmation page so the response looks identical to a real
+      // submission, but without a reference ID.
       setStatus("success");
+      navigate("/thank-you");
       return;
     }
 
@@ -447,6 +450,9 @@ export default function StartProject() {
 
     setReferenceId(generatedRef);
     setStatus("success");
+    // The reference travels in the URL so the confirmation page survives a
+    // reload and can be shared with a colleague.
+    navigate(`/thank-you?ref=${encodeURIComponent(generatedRef)}`);
   };
 
   return (

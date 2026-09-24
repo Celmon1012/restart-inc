@@ -10,6 +10,7 @@ import CaseStudies from "./pages/CaseStudies";
 import Insights from "./pages/Insights";
 import InsightDetail from "./pages/InsightDetail";
 import StartProject from "./pages/StartProject";
+import InquirySubmitted from "./pages/InquirySubmitted";
 import Contact from "./pages/Contact";
 import SolutionDetail from "./pages/SolutionDetail";
 import Privacy from "./pages/Privacy";
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/solutions/:slug" component={SolutionDetail} />
       <Route path="/contact" component={Contact} />
       <Route path="/start-project" component={StartProject} />
+      <Route path="/thank-you" component={InquirySubmitted} />
       <Route path="/onboarding" component={StartProject} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />

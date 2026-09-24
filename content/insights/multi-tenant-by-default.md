@@ -55,6 +55,8 @@ A repository-level guard can require a tenant context before it builds a query. 
 
 RLS is not free. Policies add row-visibility checks and can complicate query plans, joins, bulk operations, pooling, and administrative access. Measure the actual workload, especially reconciliation and reporting. A little per-query work can be cheaper than relying on every engineer to remember one predicate.
 
+The failure mode described here is not hypothetical — it is what a Pan-African treasury platform hit at 15,000 organisations. [That case is documented here](https://restart.ng/case-studies).
+
 ## Reversal means moving data while running two systems
 
 Changing isolation later is not a rename. It is data movement while two models are live: provision the target, backfill rows, preserve relationships and audit history, replay concurrent writes, and prove agreement before cutover. Dual writes add retries, ordering gaps, partial commits, and divergent indexes. Rollback must account for writes made during migration.
@@ -74,6 +76,16 @@ The compliance question is whether the system can demonstrate that access is lim
 This week, inspect one production-shaped path rather than reviewing an architecture diagram. Pick an invoice, order, or user record and trace its tenant key through the schema, unique constraints, indexes, repository methods, queue payloads, exports, and audit trail. Search for raw queries that can run without an explicit tenant context. Then run a negative test: authenticate as tenant A and verify that a deliberately omitted predicate cannot return tenant B’s rows.
 
 Record the point at which shared-schema contention, backup requirements, noisy-neighbour impact, or compliance evidence becomes unacceptable. If that point is approaching, model the migration now, while backfills and dual-operation windows are still affordable. The decision is nearly free in the first schema. It is a programme once the data is live.
+
+---
+
+> **Tenancy is the one decision you cannot defer.**
+>
+> The **MVP Build** engagement is a 4–12 week path that settles the tenancy boundary, the schema, and the access model before there is data to migrate. If you are still at the point where the blast radius is a choice rather than a fact, that is the moment this work is worth doing.
+>
+> **[Scope this with a senior engineer →](https://restart.ng/start-project?tier=MVP%20BUILD)**
+>
+> Three short steps. A senior engineer reads your brief — not a sales queue — and replies within 24 hours with whether there is a fit and the clearest next step.
 
 ## References
 

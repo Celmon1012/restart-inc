@@ -125,18 +125,8 @@ export default function NamedClients() {
 
   return (
     <section className="nc-section container" id="named-clients">
-      <div className="section-intro centered">
-        <span className="section-label teal">CLIENTS WE CAN NAME</span>
-        <h2>
-          Referenceable work,<br />
-          <span>with the client still standing behind it.</span>
-        </h2>
-        <p>
-          Most of our case studies are anonymised, because most clients ask for that. These two are
-          different: the companies are named, the systems are live, and you can open them yourself.
-          If you want a reference before you commit to anything, this is where to start.
-        </p>
-      </div>
+      {/* Header copy now lives in the parent proof-stage so the two proof
+          sets read as one sequence rather than two competing sections. */}
 
       <div className="nc-grid">
         {namedClients.map((client, i) => (

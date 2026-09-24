@@ -47,3 +47,13 @@ After the incident, write down the failed assumption as a measurable condition. 
 ## Check the habit this week
 
 Pick the last production incident and ask three questions: which number would have shown the failure first, which number would have located it, and which expected event never arrived? If the team cannot answer within a few minutes, add those signals before buying another observability product. Then inspect your alerts: for each page, name the owner, immediate action, and success condition. Anything without all three is not operational observability yet; it is an interesting chart waiting to be ignored.
+
+---
+
+> **If you cannot answer which number would have shown the failure first, that is the gap.**
+>
+> The **Architecture Audit** examines what your system actually emits, what it pages on, and which absences are currently invisible. It includes a reliability and cost report and a prioritised plan, so the panel set you end up with is one your team will keep maintaining.
+>
+> **[Scope this with a senior engineer →](https://restart.ng/start-project?tier=ARCHITECTURE%20AUDIT)**
+>
+> Three short steps. A senior engineer reads your brief — not a sales queue — and replies within 24 hours with whether there is a fit and the clearest next step.

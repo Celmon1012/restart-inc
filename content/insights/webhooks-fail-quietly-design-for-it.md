@@ -66,3 +66,13 @@ Metric absence is also a metric. If this integration normally receives events an
 Take one production webhook and trace it from raw request to committed side effect. Confirm that a database uniqueness constraint, not a check-then-act branch, owns deduplication; that the claim and effect share a transaction or an explicit outbox; that signatures expire; and that a 20-minute silence would page someone. If you cannot answer who replays a dead-lettered event at 3am, the failure mode is already present.
 
 > Design the consumer for duplicate, delayed, reordered, and absent events. Then make each condition observable.
+
+---
+
+> **If you cannot say who replays a dead-lettered event at 3am, the failure mode is already present.**
+>
+> The **Medusa Commerce Build** treats idempotent webhook processing as a first-class deliverable, alongside protected customer data review and resilient order flows. It is built for commerce teams whose event volume makes silent failure expensive.
+>
+> **[Scope this with a senior engineer →](https://restart.ng/start-project?tier=MEDUSA%20COMMERCE%20BUILD)**
+>
+> Three short steps. A senior engineer reads your brief — not a sales queue — and replies within 24 hours with whether there is a fit and the clearest next step.

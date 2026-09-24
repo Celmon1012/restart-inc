@@ -23,6 +23,8 @@ The result was a simultaneous improvement: p99 fell from 2,400ms to under 150ms 
 
 The important lesson is architectural. When the system is searching too much, calling too many services, or sending too much context, the best cost optimisation is often a performance optimisation. Remove the work first. Cache or scale the remaining work only after you know it is necessary.
 
+The AI case referenced here cut P99 latency below 150ms and token cost by 48% by moving work out of the request path — [the breakdown is here](https://restart.ng/case-studies).
+
 ### Semantic caching has an honest price
 
 A semantic cache can return a previous answer for a new request that is sufficiently similar. That saves model tokens and wait time, but it gives up freshness.
@@ -50,6 +52,16 @@ Cost guardrails belong in engineering. Set per-tenant budget caps where usage ca
 Take one high-volume request path and write down its latency ladder: in-process cache, local cache, network round trip, disk seek, or cross-region call. Mark the p50, p99, cache-hit rate, dependency time, and cost per request for each meaningful branch. Do not optimise the mean before you can explain the tail.
 
 Then price the next millisecond. If the next improvement requires more memory, an index, another region, more queue capacity, or fewer model tokens, record that cost beside the expected user benefit. Set a tenant cap and a drift alert before the change ships.
+
+---
+
+> **Latency and cost come out of the same budget.**
+>
+> The **AI Integration Sprint** is a 2–4 week engagement that includes cost and latency guardrails, evaluation harnesses, and regression checks as deliverables rather than afterthoughts. It is scoped for teams that have an AI feature running and need it to hold its operating point under real traffic.
+>
+> **[Scope this with a senior engineer →](https://restart.ng/start-project?tier=AI%20INTEGRATION%20SPRINT)**
+>
+> Three short steps. A senior engineer reads your brief — not a sales queue — and replies within 24 hours with whether there is a fit and the clearest next step.
 
 ## References
 

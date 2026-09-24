@@ -273,10 +273,16 @@ export default function Home() {
         <div className="section-intro centered">
           <SectionLabel>CASE STUDIES / PROOF SYSTEM</SectionLabel>
           <h2>Show the constraint.<br /><span>Prove the change.</span></h2>
-          <p>The strongest technical work is measurable. See the starting condition, the intervention, and the production result behind selected Restart engagements.</p>
+          <p>Two kinds of proof, in sequence. First the measurable results on anonymised engagements. Then the two clients we can name, with systems you can open yourself.</p>
         </div>
 
-        {/* Case Study Cards */}
+        <div className="proof-sequence">
+        <div className="proof-stage">
+        <div className="proof-stage-head">
+          <h3>Measurable results, anonymised</h3>
+          <p>Enterprise-scale engagements where the client asked not to be named. The starting condition, the intervention, and the production result are all documented.</p>
+        </div>
+
         <div className="case-study-grid">
           {caseStudiesData.slice(0, 3).map((study, i) => (
             <article
@@ -329,15 +335,31 @@ export default function Home() {
           <ShieldCheck size={16} />
           <span>Verified outcomes are sourced from published technical case files. Additional project metrics are available during architecture review.</span>
         </div>
-      </section>
+        </div>
 
-      {/*
-        Placed directly after the anonymised studies and before the platform
-        section. The ordering is the argument: the anonymised work shows the
-        scale, then these two show the work is checkable. In a
-        referral-driven market, the named reference is what a buyer acts on.
-      */}
-      <NamedClients />
+        {/*
+          The interstitial is doing real work: it turns two grids that
+          previously read as duplicate "case studies" sections into one
+          sequence. Numbering them 01/02 lets the anonymised work establish
+          scale and the named work establish that it is checkable -- which is
+          the claim a referral-driven buyer actually acts on.
+        */}
+        <div className="proof-interstitial">
+          <span className="proof-interstitial-rule" />
+          <span className="proof-interstitial-mark">THEN, THE CLIENTS WE CAN NAME</span>
+          <span className="proof-interstitial-rule" />
+        </div>
+
+        <div className="proof-stage">
+          <div className="proof-stage-head">
+            <h3>Referenceable engagements</h3>
+            <p>Live systems, named clients, open to inspection. If you want a reference before committing to anything, start here.</p>
+          </div>
+
+          <NamedClients />
+        </div>
+        </div>
+      </section>
 
 
       {/*

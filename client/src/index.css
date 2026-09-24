@@ -1058,3 +1058,96 @@
   .nc-metrics{ grid-template-columns: 1fr 1fr; }
   .nc-card{ padding: 22px 18px 18px; }
 }
+
+/* ------------------------------------------------------------------ *
+ * Proof sequence
+ *
+ * One numbered flow for both anonymised and named proof. The previous
+ * layout put two identically-styled grids under two different headers,
+ * which read as two competing "case studies" sections. The numbering and
+ * interstitials now make it one argument: scale, then verifiability.
+ * ------------------------------------------------------------------ */
+
+.proof-sequence{ display: flex; flex-direction: column; gap: 0; }
+.proof-stage{ padding: 54px 0 0; }
+.proof-stage:first-child{ padding-top: 46px; }
+.proof-stage-foot{ display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 40px; text-align: center; }
+.proof-interstitial{ display: flex; align-items: center; justify-content: center; gap: 16px; margin: 58px 0 -6px; }
+.proof-interstitial-rule{ flex: 1; height: 1px; max-width: 220px; background: linear-gradient(90deg, transparent, rgba(46,229,193,.32), transparent); }
+.proof-interstitial-mark{ display: inline-flex; align-items: center; gap: 9px; padding: 8px 16px; font-size: 0.625rem; font-weight: 800; letter-spacing: .14em; color: var(--teal); border: 1px solid rgba(46,229,193,.26); background: rgba(46,229,193,.045); border-radius: 30px; }
+.proof-stage-head{ display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.proof-stage-head h3{ margin: 0; font-size: 1.375rem !important; font-weight: 700; letter-spacing: -.03em; color: #f4f7ff; }
+.proof-stage-head p{ margin: 0; max-width: 620px; font-size: 0.875rem; line-height: 1.7; color: #8c93a4; }
+
+/* The named section is a stage, not a standalone section */
+.proof-stage .nc-section{ padding: 0; }
+.proof-stage .nc-grid{ margin-top: 34px; }
+
+@media (max-width: 900px) {
+  .proof-stage{ padding-top: 44px; }
+  .proof-interstitial{ margin: 40px 0 0; }
+  .proof-interstitial-rule{ max-width: 90px; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Inquiry confirmation page (/thank-you)
+ *
+ * Scoped under .ty-* so nothing collides with the form or console.
+ * ------------------------------------------------------------------ */
+
+.ty-wrap{ max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 30px; }
+
+.ty-hero{ display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+.ty-check{ display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; color: #04080d; background: var(--teal); box-shadow: 0 0 40px rgba(46,229,193,.35); }
+.ty-hero h1{ margin: 4px 0 0; font-size: clamp(1.875rem, 4.2vw, 2.75rem); line-height: 1.1; letter-spacing: -.04em; font-weight: 800; }
+.ty-hero h1 span{ color: var(--teal); }
+.ty-lede{ margin: 0; max-width: 660px; font-size: 1.0625rem; line-height: 1.7; color: #9aa1b2; }
+
+.ty-ref{ display: flex; flex-direction: column; gap: 4px; margin-top: 6px; padding: 15px 20px; border: 1px solid rgba(46,229,193,.28); background: rgba(46,229,193,.05); border-radius: 8px; }
+.ty-ref-label{ font-size: 0.5625rem; font-weight: 800; letter-spacing: .13em; color: var(--teal); }
+.ty-ref-code{ font-family: "SFMono-Regular", Consolas, monospace; font-size: 1.125rem; font-weight: 700; color: #f4f7ff; letter-spacing: .01em; }
+.ty-ref-sub{ font-size: 0.6875rem; color: #8c93a4; }
+
+/* The commitment, stated as an obligation rather than a reassurance */
+.ty-sla{ display: flex; flex-direction: column; gap: 14px; padding: 22px 24px; border: 1px solid rgba(255,255,255,.1); border-left: 3px solid var(--teal); background: linear-gradient(160deg, rgba(15,15,20,.96), rgba(8,8,11,.98)); border-radius: 0 10px 10px 0; }
+.ty-sla-badge{ display: flex; align-items: center; gap: 12px; color: var(--teal); }
+.ty-sla-badge div{ display: flex; flex-direction: column; gap: 3px; }
+.ty-sla-badge strong{ font-size: 1rem; font-weight: 800; color: #f4f7ff; letter-spacing: -.01em; }
+.ty-sla-badge span{ font-size: 0.6875rem; color: #8c93a4; }
+.ty-sla p{ margin: 0; font-size: 0.9375rem; line-height: 1.7; color: #9aa1b2; }
+
+.ty-steps-section h2, .ty-prep h2, .ty-contact h2{ margin: 0 0 20px; font-size: 1.5rem !important; font-weight: 700; letter-spacing: -.03em; color: #f4f7ff; }
+
+.ty-steps{ display: flex; flex-direction: column; }
+.ty-step{ padding: 20px 0; border-top: 1px solid rgba(255,255,255,.08); }
+.ty-step:last-child{ padding-bottom: 0; }
+.ty-step-head{ display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.ty-step-icon{ display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; color: var(--teal); border: 1px solid rgba(46,229,193,.3); background: rgba(46,229,193,.06); }
+.ty-step-kicker{ font-size: 0.5625rem; font-weight: 800; letter-spacing: .13em; color: #7d818f; }
+.ty-step-timing{ margin-left: auto; padding: 4px 10px; font-size: 0.625rem; font-weight: 700; color: var(--teal); border: 1px solid rgba(46,229,193,.25); background: rgba(46,229,193,.05); border-radius: 20px; white-space: nowrap; }
+.ty-step h3{ margin: 0 0 7px; font-size: 1.0625rem !important; font-weight: 700; letter-spacing: -.02em; color: #eef3ff; }
+.ty-step p{ margin: 0; max-width: 700px; font-size: 0.875rem; line-height: 1.7; color: #9aa1b2; }
+
+.ty-prep-grid{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.ty-prep-grid div{ padding: 18px 18px 20px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.015); border-radius: 7px; }
+.ty-prep-grid h3{ margin: 0 0 8px; font-size: 0.875rem !important; font-weight: 700; color: #eef3ff; }
+.ty-prep-grid p{ margin: 0; font-size: 0.8125rem; line-height: 1.65; color: #9aa1b2; }
+
+.ty-contact{ padding: 22px 24px; border: 1px solid rgba(255,255,255,.09); border-radius: 9px; background: linear-gradient(160deg, #0e0e13, #060609); }
+.ty-contact p{ margin: 0 0 16px; max-width: 620px; font-size: 0.875rem; line-height: 1.7; color: #9aa1b2; }
+.ty-contact-row{ display: flex; flex-wrap: wrap; gap: 10px; }
+.ty-contact-link{ display: inline-flex; align-items: center; gap: 9px; padding: 12px 18px; font-size: 0.875rem; font-weight: 700; color: #e6e9f5; border: 1px solid rgba(255,255,255,.14); background: rgba(14,14,18,.6); border-radius: 7px; transition: border-color .18s ease-out, color .18s ease-out, transform .18s var(--ease-out); }
+.ty-contact-link:hover{ border-color: rgba(46,229,193,.7); color: var(--teal); transform: translateY(-2px); }
+.ty-contact-link svg{ color: var(--teal); }
+
+.ty-actions{ display: flex; flex-wrap: wrap; gap: 10px; padding-top: 6px; }
+
+@media (max-width: 900px) {
+  .ty-prep-grid{ grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .ty-step-timing{ margin-left: 0; }
+  .ty-step-head{ flex-wrap: wrap; }
+  .ty-wrap{ gap: 24px; }
+  .ty-sla, .ty-contact{ padding: 18px 16px; }
+}

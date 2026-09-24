@@ -40,6 +40,8 @@ The result was a 70% reduction in ongoing software licensing and infrastructure 
 
 An infrastructure migration is a risk-management exercise with a business clock. Replication, shadow traffic, and reconciliation turn a commercial decision into a safe production change.
 
+We went through exactly this on a logistics migration that moved 7TB+ off a legacy SaaS platform onto dedicated bare metal with no downtime; the [full write-up is here](https://restart.ng/case-studies).
+
 ## The physical environment is part of the architecture
 
 The industrial fleet case had a different constraint: sporadic cellular connectivity across remote transit corridors. The operator had 20,000 connected assets and was losing 12% of telemetry packets. Burst uploads could freeze dispatch dashboards.
@@ -61,6 +63,16 @@ Map primary storage, replicas, backups, telemetry, logs, support access, keys, a
 This week, write a one-page infrastructure decision record. Name the availability promise. Define one unit of work and plot its cost at baseline, peak, and sustained utilisation. Draw where each production, backup, log, and support-access copy of sensitive data resides. Mark what happens when the network, power, or an external dependency fails.
 
 Add the exit test: how would you restore the data, move the workload, and keep serving customers if the provider changed its pricing or access terms? If the answers are vague, infrastructure is already making product decisions on your behalf.
+
+---
+
+> **Infrastructure decisions are cheap to make early and expensive to reverse.**
+>
+> The **Architecture Audit** is a one-week senior review of your infrastructure, cost curve, residency posture, and the contracts behind them. You leave with a prioritised remediation plan and a clear read on which decisions are still reversible — whether or not you go on to work with us.
+>
+> **[Scope this with a senior engineer →](https://restart.ng/start-project?tier=ARCHITECTURE%20AUDIT)**
+>
+> Three short steps. A senior engineer reads your brief — not a sales queue — and replies within 24 hours with whether there is a fit and the clearest next step.
 
 ## References
 
