@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { Bot, User as UserIcon, Check, X } from "lucide-react";
+import { formatDateTime } from "@/lib/format";
 
 export interface AgentActivity {
   id: string;
@@ -57,7 +58,7 @@ function ActivityItem({
               {activity.status.toUpperCase()}
             </span>
           )}
-          <span className="activity-item-time">{new Date(activity.created_at).toLocaleString()}</span>
+          <span className="activity-item-time">{formatDateTime(activity.created_at)}</span>
         </div>
         {activity.body && <p>{activity.body}</p>}
         {activity.activity_type === "agent_proposal" && activity.payload?.subject ? (

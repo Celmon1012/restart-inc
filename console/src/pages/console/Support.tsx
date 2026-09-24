@@ -9,6 +9,7 @@ import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
 import { Clock, Plus, Send, Check, X, Lock } from "lucide-react";
+import { formatDate, formatDateTime } from "@/lib/format";
 
 interface ConversationSummary {
   id: string;
@@ -239,7 +240,7 @@ export default function Support() {
                       {c.lastActivityAt && (
                         <span className="lead-row-time">
                           <Clock size={11} />
-                          {new Date(c.lastActivityAt).toLocaleDateString()}
+                          {formatDate(c.lastActivityAt)}
                         </span>
                       )}
                     </div>
@@ -268,7 +269,7 @@ export default function Support() {
                         </span>
                       )}
                       <p>{m.content}</p>
-                      <span className="support-message-time">{new Date(m.created_at * 1000).toLocaleString()}</span>
+                      <span className="support-message-time">{formatDateTime(m.created_at * 1000)}</span>
                     </div>
                   ))}
                 </div>

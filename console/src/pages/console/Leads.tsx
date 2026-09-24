@@ -18,6 +18,7 @@ import { ActivityTimeline, type AgentActivity } from "@/components/ActivityTimel
 import { useAuth } from "@/contexts/AuthContext";
 import { consoleSchema, supabase } from "@/lib/supabase";
 import { Mail, Building2, Clock, Send } from "lucide-react";
+import { formatDate } from "@/lib/format";
 
 type InquiryStatus = "new" | "contacted" | "qualified" | "won" | "lost" | "archived";
 
@@ -268,7 +269,7 @@ export default function Leads() {
                         <StagePill status={inquiry.status} />
                         <span className="lead-row-time">
                           <Clock size={11} />
-                          {new Date(inquiry.created_at).toLocaleDateString()}
+                          {formatDate(inquiry.created_at)}
                         </span>
                       </div>
                     </button>

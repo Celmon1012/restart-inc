@@ -5,6 +5,7 @@ import { Sparkline } from "@/components/Sparkline";
 import { ArrowUpRight, ArrowRight, ChevronDown, ExternalLink, CreditCard, ShieldCheck, Tag, Wallet } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
+import { formatAmount, formatDate } from "@/lib/format";
 
 type Tone = "healthy" | "warning" | "down";
 
@@ -117,14 +118,6 @@ function describeCoupon(c: AppliedCoupon): string {
     return `${value} — month ${Math.max(used, 0) + 1} of ${c.durationTotal}`;
   }
   return value;
-}
-
-function formatAmount(cents: number, currency: string) {
-  try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
-  } catch {
-    return `${(cents / 100).toFixed(2)} ${currency}`;
-  }
 }
 
 function statusTone(status: string): "healthy" | "warning" | "down" {
@@ -254,7 +247,7 @@ export default function BillingSla() {
                   <h2>{primarySubscription.planName}</h2>
                   <p>
                     {primarySubscription.startedAt
-                      ? `Active since ${new Date(primarySubscription.startedAt).toLocaleDateString()}`
+                      ? `Active since ${formatDate(primarySubscription.startedAt)}`
                       : "Plan details for this workspace."}
                   </p>
                 </div>
@@ -271,7 +264,7 @@ export default function BillingSla() {
                   >
                     <span className="b-label">{renewalDate ? "RENEWS" : "NEXT CHARGE"}</span>
                     <div className="b-price">
-                      <span className="val">{renewalDate ? renewalDate.toLocaleDateString() : "—"}</span>
+                      <span className="val">{renewalDate ? formatDate(renewalDate) : "—"}</span>
                     </div>
                     <span className="overview-section-link mt-2">
                       <span>View price & server details</span>
@@ -298,7 +291,7 @@ export default function BillingSla() {
                           statusLabel={sub.status.toUpperCase()}
                           metaItems={[
                             sub.startedAt
-                              ? `Started ${new Date(sub.startedAt).toLocaleDateString()}`
+                              ? `Started ${formatDate(sub.startedAt)}`
                               : "Start date unavailable"
                           ]}
                           expandedContent={
@@ -349,7 +342,7 @@ export default function BillingSla() {
                             metaItems={[
                               ...(appliesTo ? [`Applies to ${appliesTo.planName}`] : []),
                               describeCoupon(c),
-                              ...(endsAround ? [`Ends around ${endsAround.toLocaleDateString()}`] : [])
+                              ...(endsAround ? [`Ends around ${formatDate(endsAround)}`] : [])
                             ]}
                             expandedContent={
                               <div className="billing-detail-expanded-row">
@@ -420,7 +413,7 @@ export default function BillingSla() {
                                   {inv.paymentStatus.toUpperCase()}
                                 </span>
                               </div>
-                              <span className="inv-date">{new Date(inv.issuingDate).toLocaleDateString()}</span>
+                              <span className="inv-date">{formatDate(inv.issuingDate)}</span>
                             </div>
                             <div className="inv-right">
                               <span className="inv-amount">{formatAmount(inv.totalAmountCents, inv.currency)}</span>
@@ -477,13 +470,13 @@ export default function BillingSla() {
                     {primarySubscription.startedAt && (
                       <div className="billing-detail-expanded-row">
                         <span>Started</span>
-                        <span>{new Date(primarySubscription.startedAt).toLocaleDateString()}</span>
+                        <span>{formatDate(primarySubscription.startedAt)}</span>
                       </div>
                     )}
                     {renewalDate && (
                       <div className="billing-detail-expanded-row">
                         <span>Renews</span>
-                        <span>{renewalDate.toLocaleDateString()}</span>
+                        <span>{formatDate(renewalDate)}</span>
                       </div>
                     )}
                     {activeWorkspace?.server && (

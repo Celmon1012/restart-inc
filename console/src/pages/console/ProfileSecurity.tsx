@@ -5,6 +5,7 @@ import { Shield, ShieldOff, Smartphone, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { formatDate, formatDateTime } from "@/lib/format";
 
 interface TotpFactor {
   id: string;
@@ -409,10 +410,10 @@ export default function ProfileSecurity() {
                     </span>
                   </div>
                   <span className="session-meta">
-                    Account created {user?.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}
+                    Account created {user?.created_at ? formatDate(user.created_at) : "—"}
                   </span>
                   <span className="session-time">
-                    Last sign-in {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : "—"}
+                    Last sign-in {user?.last_sign_in_at ? formatDateTime(user.last_sign_in_at) : "—"}
                   </span>
                 </div>
               </div>
