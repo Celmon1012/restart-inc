@@ -7,6 +7,7 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Layers3, Menu, Network, ShieldCheck, X } from "lucide-react";
 import CaseStudyModal from "@/components/CaseStudyModal";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
+import NamedClients from "@/components/NamedClients";
 import { useInsights } from "@/hooks/useInsights";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
@@ -329,6 +330,15 @@ export default function Home() {
           <span>Verified outcomes are sourced from published technical case files. Additional project metrics are available during architecture review.</span>
         </div>
       </section>
+
+      {/*
+        Placed directly after the anonymised studies and before the platform
+        section. The ordering is the argument: the anonymised work shows the
+        scale, then these two show the work is checkable. In a
+        referral-driven market, the named reference is what a buyer acts on.
+      */}
+      <NamedClients />
+
 
       {/*
         Previously two sections ("SEAMLESS INTEGRATION FOR" and "PLATFORM") making

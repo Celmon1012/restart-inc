@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import { Link } from "wouter";
 import {
   ArrowLeft,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
+import { track, FUNNEL, STEP_NAMES } from "@/lib/analytics";
 
 /* ------------------------------------------------------------------ *
  * Intake model
@@ -187,6 +188,20 @@ function scoreLead(input: {
 }
 
 export default function StartProject() {
+  // Funnel reporting.
+  //
+  // Every step view is reported so each step has its own denominator -- the
+  // drop-off rate for step 3 is meaningless without knowing how many people
+  // actually reached step 3. `intake_started` fires once, guarded by a ref,
+  // so the whole-funnel denominator is not inflated by re-renders.
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (!startedRef.current) {
+      startedRef.current = true;
+      track(FUNNEL.STARTED, { entry: "start_project_page" });
+    }
+  }, []);
+
   useEffect(() => {
     applyPageSeo({
       title: "Start a Project",
@@ -226,6 +241,10 @@ export default function StartProject() {
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [referenceId, setReferenceId] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    track(FUNNEL.STEP_VIEW, { step: step, step_name: STEP_NAMES[step] });
+  }, [step]);
 
   useEffect(() => {
     try {
@@ -306,14 +325,26 @@ export default function StartProject() {
     const problem = validateStep(step);
     if (problem) {
       setStepError(problem);
+      // Reported separately from completion so a validation rule that blocks
+      // too many real buyers shows up as its own signal, not as "no drop-off".
+      track(FUNNEL.STEP_BLOCKED, { step: step, step_name: STEP_NAMES[step] });
       return;
     }
     setStepError(null);
+    track(FUNNEL.STEP_COMPLETE, {
+      step: step,
+      step_name: STEP_NAMES[step],
+      // Categorical only -- never the free-text brief itself.
+      outcome_count: step === 2 ? selectedOutcomes.length : undefined,
+      word_count: step === 1 ? briefWords : undefined,
+    });
     setStep((s) => Math.min(3, s + 1));
   };
 
   const goBack = () => {
     setStepError(null);
+    // Stepping backwards is a friction signal worth seeing, not a failure.
+    track(FUNNEL.STEP_BACK, { from_step: step, from_step_name: STEP_NAMES[step] });
     setStep((s) => Math.max(1, s - 1));
   };
 
@@ -334,6 +365,7 @@ export default function StartProject() {
     // Silent discard. A bot that fills the honeypot sees the normal
     // success screen; nothing reaches the database.
     if (trap.trim()) {
+      // Deliberately not reported as a conversion: this is a bot.
       setReferenceId(`RST-${Date.now().toString(36).toUpperCase()}`);
       setStatus("success");
       return;
@@ -393,9 +425,25 @@ export default function StartProject() {
       setError(
         "We couldn't submit your inquiry — please try again, or email hello@restart.ng directly."
       );
+      // A failed write is not a failed lead, but it is worth seeing: if the
+      // insert starts failing, this event outpaces generate_lead and the gap
+      // is the first visible symptom.
+      track("intake_submit_error", { step: step });
       setStatus("idle");
       return;
     }
+
+    // GA4's recommended name for a lead conversion. The fit band is included
+    // so lead quality can be segmented in GA4 without exporting anything from
+    // the console -- categorical, never personal.
+    track(FUNNEL.LEAD, {
+      fit_band: fit.band,
+      fit_score: fit.score,
+      focus_area: selectedObjective,
+      budget_tier: budgetOptions.find((b) => b.label === selectedBudget)?.tier ?? "unknown",
+      timeline: selectedTimeline,
+      referral_source: referral,
+    });
 
     setReferenceId(generatedRef);
     setStatus("success");
