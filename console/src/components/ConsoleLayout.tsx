@@ -17,6 +17,7 @@ import {
   Bell,
   Check,
   Building2,
+  History,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
@@ -31,6 +32,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { MARKETING_URL } from "@/lib/site";
 import { getDisplayName } from "@/lib/utils";
+import { getResources, statusMeta } from "@/lib/resources";
 import { ConsoleFooter } from "./ConsoleFooter";
 
 interface ConsoleLayoutProps {
@@ -49,7 +51,8 @@ const NAV_GROUPS: Array<{
       { href: "/console/overview", label: "Overview", icon: LayoutGrid },
       { href: "/console/systems", label: "Systems", icon: Server },
       { href: "/console/delivery", label: "Delivery", icon: Clock },
-      { href: "/console/activity", label: "Activity", icon: Terminal }
+      { href: "/console/activity", label: "Activity", icon: Terminal },
+      { href: "/console/timeline", label: "Timeline", icon: History }
     ]
   },
   {
@@ -74,6 +77,12 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
   const { workspaces, activeWorkspace, isAdmin, loading: workspaceLoading, setActiveWorkspaceId } = useWorkspace();
   const displayName = getDisplayName(user);
   const displayEmail = user?.email || "";
+  // Resources whose current status is not healthy. Computed here so the top-bar
+  // bell can report something real instead of being a placeholder.
+  const attentionCount = activeWorkspace
+    ? getResources(activeWorkspace).filter((r) => statusMeta(r.status).tone !== "healthy").length
+    : 0;
+  const attentionHref = attentionCount > 0 ? "/console/systems" : "/console/timeline";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [workspaceSearch, setWorkspaceSearch] = useState("");
@@ -344,12 +353,29 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
           </div>
 
           <div className="dash-top-right">
+            {/* Was a placeholder that only explained it did nothing. It now
+                carries the count of resources that are not healthy and links to
+                the timeline, so it reports something real and has somewhere to go. */}
             <button
-              onClick={() => toast.info("Notifications aren't connected yet")}
+              onClick={() => setLocation(attentionHref)}
               className="dash-icon-btn dash-notif-btn"
-              title="Notifications (not connected yet)"
+              title={
+                attentionCount > 0
+                  ? `${attentionCount} system${attentionCount === 1 ? "" : "s"} need attention`
+                  : "All systems healthy — view activity"
+              }
+              aria-label={
+                attentionCount > 0
+                  ? `${attentionCount} system${attentionCount === 1 ? "" : "s"} need attention. Open timeline.`
+                  : "No systems need attention. Open timeline."
+              }
             >
               <Bell size={15} />
+              {attentionCount > 0 && (
+                <span className="dash-notif-badge" aria-hidden="true">
+                  {attentionCount > 9 ? "9+" : attentionCount}
+                </span>
+              )}
             </button>
 
             <a href={`${MARKETING_URL}/start-project`} className="dash-action-btn">

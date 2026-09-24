@@ -14,6 +14,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { consoleSchema, supabase } from "@/lib/supabase";
 import type { Deliverable } from "@/lib/deliverables";
 import { Check, Plus, Send, Trash2 } from "lucide-react";
+import { ErrorAlert, StatusRegion } from "@/components/AsyncStates";
 
 interface DeliverableTask {
   id: string;
@@ -299,6 +300,15 @@ export default function Delivery() {
 
   return (
     <ConsoleLayout>
+      <StatusRegion
+        message={
+          loading
+            ? "Loading delivery milestones"
+            : error
+              ? `Could not load delivery data: ${error}`
+              : `${deliverables.length} delivery milestone${deliverables.length === 1 ? "" : "s"} loaded`
+        }
+      />
       <div className="dash-header-row">
         <div>
           <span className="dash-kicker">DELIVERY</span>
@@ -310,7 +320,7 @@ export default function Delivery() {
       {loading ? (
         <div className="dash-empty-state">Loading delivery milestones…</div>
       ) : error ? (
-        <div className="dash-empty-state">Couldn't load delivery data: {error}</div>
+        <ErrorAlert message={`Couldn't load delivery data: ${error}`} onRetry={() => window.location.reload()} retryLabel="Reload" />
       ) : deliverables.length === 0 ? (
         <div className="dash-empty-state">No delivery milestones recorded for this workspace yet.</div>
       ) : (

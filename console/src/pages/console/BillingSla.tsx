@@ -6,6 +6,7 @@ import { ArrowUpRight, ArrowRight, ChevronDown, ExternalLink, CreditCard, Shield
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
 import { formatAmount, formatDate } from "@/lib/format";
+import { ErrorAlert, StatusRegion } from "@/components/AsyncStates";
 
 type Tone = "healthy" | "warning" | "down";
 
@@ -183,6 +184,11 @@ export default function BillingSla() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [nonce, setNonce] = useState(0);
+  // Extracted so the retry control can re-run exactly the same load the
+  // effect runs, instead of duplicating the request logic.
+  const reload = () => setNonce((n) => n + 1);
+
   useEffect(() => {
     if (!activeWorkspace) return;
     let cancelled = false;
@@ -205,7 +211,7 @@ export default function BillingSla() {
     return () => {
       cancelled = true;
     };
-  }, [activeWorkspace?.id]);
+  }, [activeWorkspace?.id, nonce]);
 
   const [priceModalOpen, setPriceModalOpen] = useState(false);
   const primarySubscription = data?.subscriptions?.find((s) => s.status === "active") ?? data?.subscriptions?.[0];
@@ -215,6 +221,15 @@ export default function BillingSla() {
 
   return (
     <ConsoleLayout>
+      <StatusRegion
+        message={
+          loading
+            ? "Loading billing data"
+            : error
+              ? `Could not load billing data: ${error}`
+              : "Billing data loaded"
+        }
+      />
         <div className="dash-header-row">
           <div>
             <span className="dash-kicker">SUBSCRIPTION & INVOICES</span>
@@ -226,7 +241,7 @@ export default function BillingSla() {
         {loading ? (
           <div className="dash-empty-state">Loading billing data…</div>
         ) : error ? (
-          <div className="dash-empty-state">Couldn't load billing data: {error}</div>
+          <ErrorAlert message={error} onRetry={reload} retryLabel="Reload billing" />
         ) : !data?.billingConfigured ? (
           <div className="dash-empty-state">
             Billing isn't set up for this workspace yet.{" "}

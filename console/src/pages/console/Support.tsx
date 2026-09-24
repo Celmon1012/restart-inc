@@ -10,6 +10,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
 import { Clock, Plus, Send, Check, X, Lock } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { ErrorAlert, StatusRegion } from "@/components/AsyncStates";
 
 interface ConversationSummary {
   id: string;
@@ -176,6 +177,15 @@ export default function Support() {
 
   return (
     <ConsoleLayout onRefresh={loadConversations} isRefreshing={loading}>
+      <StatusRegion
+        message={
+          loading
+            ? "Loading support conversations"
+            : error
+              ? `Could not load support: ${error}`
+              : `${conversations.length} conversation${conversations.length === 1 ? "" : "s"} loaded`
+        }
+      />
       <div className="dash-header-row">
         <div>
           <span className="dash-kicker">SUPPORT</span>
@@ -188,7 +198,7 @@ export default function Support() {
         </button>
       </div>
 
-      {error && <div className="dash-empty-state">{error}</div>}
+      {error && <ErrorAlert message={'{error}'} onRetry={() => window.location.reload()} retryLabel="Reload" />}
 
       {showNewTicket && (
         <div className="console-card mb-4">

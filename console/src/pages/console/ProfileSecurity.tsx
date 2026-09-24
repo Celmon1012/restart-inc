@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { StatusRegion } from "@/components/AsyncStates";
 
 interface TotpFactor {
   id: string;
@@ -199,6 +200,17 @@ export default function ProfileSecurity() {
 
   return (
     <ConsoleLayout>
+      <StatusRegion
+        message={
+          loadingFactors
+            ? "Checking two-factor authentication status"
+            : !mfaSupported
+              ? "Two-factor authentication is not enabled on this instance"
+              : factors.length > 0
+                ? `${factors.length} two-factor method${factors.length === 1 ? "" : "s"} on this account`
+                : "No two-factor method enrolled yet"
+        }
+      />
         <div className="dash-header-row">
           <div>
             <span className="dash-kicker">IDENTITY & CREDENTIAL SECURITY</span>

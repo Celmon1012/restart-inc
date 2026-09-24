@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { consoleSchema, supabase } from "@/lib/supabase";
 import { Mail, Building2, Clock, Send } from "lucide-react";
 import { formatDate } from "@/lib/format";
+import { ErrorAlert, StatusRegion } from "@/components/AsyncStates";
 
 type InquiryStatus = "new" | "contacted" | "qualified" | "won" | "lost" | "archived";
 
@@ -217,6 +218,15 @@ export default function Leads() {
 
   return (
     <ConsoleLayout onRefresh={loadInquiries} isRefreshing={loading}>
+      <StatusRegion
+        message={
+          loading
+            ? "Loading leads"
+            : error
+              ? `Could not load leads: ${error}`
+              : `${inquiries.length} lead${inquiries.length === 1 ? "" : "s"} loaded`
+        }
+      />
       <div className="dash-header-row">
         <div>
           <span className="dash-kicker">LEADS</span>
@@ -225,7 +235,7 @@ export default function Leads() {
         </div>
       </div>
 
-      {error && <div className="dash-empty-state">Couldn't load leads: {error}</div>}
+      {error && <ErrorAlert message={`Couldn't load leads: ${error}`} onRetry={() => window.location.reload()} retryLabel="Reload" />}
 
       {loading && inquiries.length === 0 ? (
         <div className="dash-empty-state">Loading leads…</div>

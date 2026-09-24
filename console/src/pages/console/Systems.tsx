@@ -12,6 +12,7 @@ import {
 } from "@/lib/resources";
 import { Server, Boxes, ArrowUpRight, Info, Rocket } from "lucide-react";
 import { toast } from "sonner";
+import { ErrorAlert, StatusRegion } from "@/components/AsyncStates";
 
 function initialTab(): "systems" | "infrastructure" {
   try {
@@ -55,10 +56,25 @@ export default function Systems() {
 
   return (
     <ConsoleLayout onRefresh={handleRefresh} isRefreshing={isRefreshing}>
+      <StatusRegion
+        message={
+          workspaceLoading || isRefreshing
+            ? "Loading system data"
+            : workspaceError
+              ? `Could not load system data: ${workspaceError}`
+              : activeWorkspace
+                ? `${resources.length} systems loaded for ${activeWorkspace.name}`
+                : null
+        }
+      />
       {workspaceLoading && !activeWorkspace ? (
         <div className="dash-empty-state">Loading your workspace…</div>
       ) : workspaceError ? (
-        <div className="dash-empty-state">Couldn't load workspace data: {workspaceError}</div>
+        <ErrorAlert
+          message={workspaceError}
+          onRetry={() => void refresh()}
+          retryLabel="Reload systems"
+        />
       ) : !activeWorkspace ? (
         <div className="dash-empty-state">
           No workspace has been assigned to your account yet. Contact Restart Inc to get set up.

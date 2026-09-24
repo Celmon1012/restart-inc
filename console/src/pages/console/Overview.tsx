@@ -5,6 +5,7 @@ import { ResourceIcon } from "@/components/ResourceIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { getResources, statusMeta, deploymentStatusLabel, deploymentTone, formatRelativeTime } from "@/lib/resources";
+import { ErrorAlert, StatusRegion } from "@/components/AsyncStates";
 import { consoleSchema } from "@/lib/supabase";
 import { getCurrentDeliverable, type Deliverable } from "@/lib/deliverables";
 import { getDisplayName } from "@/lib/utils";
@@ -89,6 +90,15 @@ export default function Overview() {
 
   return (
     <ConsoleLayout onRefresh={handleRefresh} isRefreshing={isRefreshing}>
+      <StatusRegion
+        message={
+          workspaceLoading
+            ? "Loading your workspace"
+            : workspaceError
+              ? `Could not load workspace data: ${workspaceError}`
+              : `${resources.length} systems loaded`
+        }
+      />
       {workspaceLoading && !activeWorkspace ? (
         <div className="dash-empty-state">Loading your workspace…</div>
       ) : workspaceError ? (

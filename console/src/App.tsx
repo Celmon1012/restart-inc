@@ -11,6 +11,7 @@ import Overview from "./pages/console/Overview";
 import Systems from "./pages/console/Systems";
 import Delivery from "./pages/console/Delivery";
 import Activity from "./pages/console/Activity";
+import Timeline from "./pages/console/Timeline";
 import Leads from "./pages/console/Leads";
 import Support from "./pages/console/Support";
 import ProfileSecurity from "./pages/console/ProfileSecurity";
@@ -57,6 +58,11 @@ function Router() {
       <Route path="/console/activity">
         <ProtectedRoute>
           <Activity />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/console/timeline">
+        <ProtectedRoute>
+          <Timeline />
         </ProtectedRoute>
       </Route>
       <Route path="/console/leads">
