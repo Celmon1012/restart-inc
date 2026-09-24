@@ -9,7 +9,18 @@ export interface Insight {
   image: "image-one" | "image-two" | "image-three";
   date?: string;
   featuredImage?: string | null;
+  /** Length of the WordPress body in characters; 0 when nothing is published. */
+  contentLength?: number;
+  /**
+   * True when the post exists in WordPress but carries little or no body copy,
+   * i.e. it is still being written. Drafts are listed separately and are never
+   * advertised as finished articles.
+   */
+  isDraft?: boolean;
 }
+
+/** Posts shorter than this are treated as in-progress editorial drafts. */
+export const MIN_PUBLISHED_CHARS = 240;
 
 export const insightsData: Insight[] = [
   {

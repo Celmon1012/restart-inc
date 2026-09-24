@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Cpu, Database, Gauge, Layers3, Menu, Network, Orbit, ShieldCheck, Sparkles, X, Zap, ExternalLink } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Layers3, Menu, Network, ShieldCheck, X } from "lucide-react";
 import CaseStudyModal from "@/components/CaseStudyModal";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import { useInsights } from "@/hooks/useInsights";
@@ -22,8 +22,26 @@ const stackLogos: Record<string, string> = {
   "Chatwoot": "/logos/stacks/chatwoot.svg",
   "Lago": "/logos/stacks/lago.svg",
   "WhatsApp": "/logos/stacks/whatsapp.svg",
-  "PaperclipAI": "/logos/stacks/paperclipai.svg",
 };
+
+/**
+ * The technology row on the platform section. Every entry is a real platform we
+ * deploy on, with the asset it ships with — not a decorative logo strip.
+ */
+const platformStack: { name: string; logo: string }[] = [
+  { name: "Laravel", logo: "/logos/stacks/laravel.svg" },
+  { name: "PostgreSQL", logo: "/logos/stacks/postgresql.svg" },
+  { name: "Next.js", logo: "/logos/stacks/nextdotjs.svg" },
+  { name: "Supabase", logo: "/logos/stacks/supabase.svg" },
+  { name: "Medusa", logo: "/logos/stacks/medusa.svg" },
+  { name: "Filament", logo: "/logos/stacks/filament.svg" },
+  { name: "Claude API", logo: "/logos/stacks/anthropic.svg" },
+  { name: "n8n", logo: "/logos/stacks/n8n.svg" },
+  { name: "Chatwoot", logo: "/logos/stacks/chatwoot.svg" },
+  { name: "Lago", logo: "/logos/stacks/lago.svg" },
+  { name: "WhatsApp Business", logo: "/logos/stacks/whatsapp.svg" },
+  { name: "PaperclipAI", logo: "/logos/stacks/paperclipai.svg" },
+];
 
 const lanes = [
   { number: "01", slug: "saas-platforms", title: "Build a platform your team can operate.", accent: "teal", icon: Code2, text: "Multi-tenant B2B platforms designed around clear boundaries, resilient jobs, secure access, observable workflows, and the operational detail that makes production sustainable.", tags: ["Laravel", "PostgreSQL", "Supabase", "Filament", "Horizon", "Lago"], action: "Explore SaaS builds" },
@@ -312,9 +330,62 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="integration-section"><div className="container integration-wrap"><div className="section-copy"><SectionLabel>SEAMLESS INTEGRATION FOR</SectionLabel><h2>Make the work lighter <span>—not more connected for its own sake.</span></h2><p>Your tools should reduce friction, not create another system to manage. Restart connects the product, platform, automation, and operational surfaces that keep your business moving.</p></div><div className="integration-wall">{[Zap, Database, Network, Orbit, Layers3, ShieldCheck, BrainCircuit, Gauge, Sparkles, Code2, CircleCheck, CpuIcon].map((Icon, i) => <div key={i} className={`integration-icon icon-${i % 5}`}><Icon size={40} /></div>)}</div></div></section>
+      {/*
+        Previously two sections ("SEAMLESS INTEGRATION FOR" and "PLATFORM") making
+        substantially the same argument — that we connect product, platform, and
+        operational surfaces to remove friction. Merged into one, and the former
+        twelve-icon wall (unlabelled Lucide glyphs carrying no information) is
+        replaced by the real technologies we deploy on.
+      */}
+      <section className="platform-section" id="platform-detail">
+        <div className="container platform-wrap">
+          <div className="platform-copy">
+            <SectionLabel>PLATFORM</SectionLabel>
+            <h2>Turn operational friction into <span>technical leverage.</span></h2>
+            <p>
+              Your tools should reduce friction, not become another system to manage. We map the
+              workflows, constraints, and costs shaping your business, then connect the product,
+              platform, and operational surfaces that keep it moving.
+            </p>
+            <div className="saas-points">
+              <div><strong>See the system clearly.</strong><span>Map the workflows, constraints, dependencies, and costs that are shaping the business.</span></div>
+              <div><strong>Remove the repeatable friction.</strong><span>Automate the work that slows good teams down and build interfaces around the decisions that matter.</span></div>
+              <div><strong>Create capacity for the next stage.</strong><span>Build a foundation that supports growth without forcing a full rewrite every time the business changes direction.</span></div>
+            </div>
+          </div>
+          <div className="saas-art">
+            <div className="dash-mock">
+              <div className="dash-mock-chrome"><span className="dash-mock-dot" /><span className="dash-mock-dot" /><span className="dash-mock-dot" /><div className="dash-mock-url" /></div>
+              <div className="dash-mock-body">
+                <div className="dash-mock-nav"><span className="active">Overview</span><span>Systems</span><span>Delivery</span><span>Activity</span></div>
+                <div className="dash-mock-main">
+                  <div className="dash-mock-stats"><div><small>UPTIME</small><strong>99.99%</strong></div><div><small>SYSTEMS</small><strong>10</strong></div><div><small>DEPLOYS</small><strong>24</strong></div></div>
+                  <div className="dash-mock-chart"><i style={{ height: "38%" }} /><i style={{ height: "64%" }} /><i style={{ height: "30%" }} /><i style={{ height: "82%" }} /><i style={{ height: "54%" }} /><i style={{ height: "70%" }} /><i style={{ height: "46%" }} /></div>
+                  <div className="dash-mock-rows"><div><span className="dot" />restart-console<span className="pill">Healthy</span></div><div><span className="dot" />restart-website<span className="pill">Healthy</span></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <section className="saas-section"><div className="container saas-wrap"><div className="saas-copy"><SectionLabel>PLATFORM</SectionLabel><h2>Turn operational friction into <span>technical leverage.</span></h2><p>Restart combines architecture, automation, and product thinking to turn messy operational work into a system your team can understand, improve, and rely on.</p><div className="saas-points"><div><strong>See the system clearly.</strong><span>Map the workflows, constraints, dependencies, and costs that are shaping the business.</span></div><div><strong>Remove the repeatable friction.</strong><span>Automate the work that slows good teams down and build interfaces around the decisions that matter.</span></div><div><strong>Create capacity for the next stage.</strong><span>Build a foundation that supports growth without forcing a full rewrite every time the business changes direction.</span></div></div></div><div className="saas-art"><div className="dash-mock"><div className="dash-mock-chrome"><span className="dash-mock-dot" /><span className="dash-mock-dot" /><span className="dash-mock-dot" /><div className="dash-mock-url" /></div><div className="dash-mock-body"><div className="dash-mock-nav"><span className="active">Overview</span><span>Systems</span><span>Delivery</span><span>Activity</span></div><div className="dash-mock-main"><div className="dash-mock-stats"><div><small>UPTIME</small><strong>99.99%</strong></div><div><small>SYSTEMS</small><strong>10</strong></div><div><small>DEPLOYS</small><strong>24</strong></div></div><div className="dash-mock-chart"><i style={{ height: "38%" }} /><i style={{ height: "64%" }} /><i style={{ height: "30%" }} /><i style={{ height: "82%" }} /><i style={{ height: "54%" }} /><i style={{ height: "70%" }} /><i style={{ height: "46%" }} /></div><div className="dash-mock-rows"><div><span className="dot" />restart-console<span className="pill">Healthy</span></div><div><span className="dot" />restart-website<span className="pill">Healthy</span></div></div></div></div></div></div></div></section>
+        <div className="container platform-stack">
+          <div className="platform-stack-label">
+            <span>WE BUILD ON</span>
+            <p>
+              The technologies our clients' systems actually run on. We name them because we can
+              be held to them.
+            </p>
+          </div>
+          <ul className="platform-stack-row">
+            {platformStack.map((item) => (
+              <li key={item.name}>
+                <img src={item.logo} alt="" aria-hidden="true" />
+                <span>{item.name}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
       <section className="proof-section" id="process"><div className="container"><div className="section-intro centered"><SectionLabel>SIMPLE 4 STEPS PROCESS</SectionLabel><h2>A straightforward path<br /><span>from constraint to production.</span></h2><p>No lengthy proposals or open-ended retainers — just a clear sequence from your first message to a system your team can run.</p></div><div className="proof-grid"><div><CircleCheck size={18} /><strong>01. Start the conversation.</strong><p>Tell us what you are building and where it is stuck. We reply quickly with whether the timing and fit make sense.</p></div><div><ShieldCheck size={18} /><strong>02. Scope the real work.</strong><p>A short technical review turns your constraint into a concrete plan — deliverables, timeline, and cost, with no surprises later.</p></div><div><Layers3 size={18} /><strong>03. Build in the open.</strong><p>Weekly checkpoints, visible progress, and decisions made together — not a black box that reappears at the deadline.</p></div><div><Network size={18} /><strong>04. Launch and hand off.</strong><p>Ship to production with documentation and context your team can operate without us.</p></div></div></div></section>
 
@@ -336,8 +407,6 @@ export default function Home() {
       </section>
     </main>
 
-    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")}><LogoMark /></a><p>Engineering systems your growth depends on.</p><div className="footer-brand-contact"><a href="mailto:hello@restart.ng">hello@restart.ng</a><a href="tel:+2349060114747">+234 906 011 4747</a></div></div><div><strong>PLATFORM</strong><a href="#platform" onClick={(e) => handleScrollTo(e, "platform")}>Platform</a><a href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Solutions</a><a href="#case-studies" onClick={(e) => handleScrollTo(e, "case-studies")}>Case Studies</a><a href="#insights" onClick={(e) => handleScrollTo(e, "insights")}>Insights</a></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
+    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")}><LogoMark /></a><p>Engineering systems your growth depends on.</p><div className="footer-brand-contact"><a href="mailto:hello@restart.ng">hello@restart.ng</a><a href="tel:+2349060114747">+234 906 011 4747</a></div></div><div><strong>PLATFORM</strong><a href="#platform" onClick={(e) => handleScrollTo(e, "platform")}>Platform</a><a href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Solutions</a><a href="#case-studies" onClick={(e) => handleScrollTo(e, "case-studies")}>Case Studies</a><a href="#insights" onClick={(e) => handleScrollTo(e, "insights")}>Insights</a></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/careers">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><Link href="/privacy">Privacy Policy</Link><Link href="/terms">Terms of Service</Link></span></div></footer>
   </div>;
 }
-
-function CpuIcon(props: React.ComponentProps<typeof Zap>) { return <Cpu {...props} />; }

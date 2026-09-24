@@ -12,6 +12,9 @@ import InsightDetail from "./pages/InsightDetail";
 import StartProject from "./pages/StartProject";
 import Contact from "./pages/Contact";
 import SolutionDetail from "./pages/SolutionDetail";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import Careers from "./pages/Careers";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -26,6 +29,9 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/start-project" component={StartProject} />
       <Route path="/onboarding" component={StartProject} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/careers" component={Careers} />
       <Route component={NotFound} />
     </Switch>
   );

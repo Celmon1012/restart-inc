@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { useInsights } from "@/hooks/useInsights";
-import { ArrowUpRight, ChevronLeft, ChevronRight, Copy, Check, Facebook, Linkedin, Menu, Twitter, X } from "lucide-react";
-import { fetchInsightBySlug, InsightDetail as InsightDetailData } from "@/lib/wp";
+import { useInsights, MIN_PUBLISHED_CHARS } from "@/hooks/useInsights";
+import { AlertCircle, ArrowUpRight, ChevronLeft, ChevronRight, Clock, Copy, Check, Facebook, Linkedin, Menu, PenLine, RefreshCw, Twitter, X } from "lucide-react";
+import { fetchInsightBySlug, InsightDetail as InsightDetailData, readMinutesFromHtml } from "@/lib/wp";
 import type { Insight } from "@/data/insights";
 import { applyArticleSeo, resetSeoToDefault, SITE_URL } from "@/lib/seo";
 
@@ -218,7 +218,7 @@ export default function InsightDetail({ params }: { params: { slug: string } }) 
   );
 
   const footer = (
-    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" /></Link><p>Engineering systems your growth depends on.</p><div className="footer-brand-contact"><a href="mailto:hello@restart.ng">hello@restart.ng</a><a href="tel:+2349060114747">+234 906 011 4747</a></div></div><div><strong>PLATFORM</strong><Link href="/#platform">Platform</Link><Link href="/#solutions">Solutions</Link><Link href="/#case-studies">Case Studies</Link><Link href="/#insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
+    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" /></Link><p>Engineering systems your growth depends on.</p><div className="footer-brand-contact"><a href="mailto:hello@restart.ng">hello@restart.ng</a><a href="tel:+2349060114747">+234 906 011 4747</a></div></div><div><strong>PLATFORM</strong><Link href="/#platform">Platform</Link><Link href="/#solutions">Solutions</Link><Link href="/#case-studies">Case Studies</Link><Link href="/#insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/careers">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/privacy">Privacy Policy</Link><Link href="/terms">Terms of Service</Link></span></div></footer>
   );
 
   if (insight === undefined) {
@@ -226,12 +226,26 @@ export default function InsightDetail({ params }: { params: { slug: string } }) 
       <div className="page-shell">
         {nav}
         <main>
-          <section className="portfolio-hero container">
-            <div className="section-intro centered">
-              <span className="section-label teal">INSIGHTS</span>
-              <h1>Loading…</h1>
-            </div>
-          </section>
+          <div className="insight-layout container" aria-busy="true">
+            <article className="insight-article">
+              <div className="insight-skeleton-back skeleton-line" />
+              <span className="skeleton-line skeleton-kicker" />
+              <span className="skeleton-line skeleton-heading" />
+              <span className="skeleton-line skeleton-heading short" />
+              <span className="skeleton-line skeleton-meta" />
+              {Array.from({ length: 5 }).map((_, i) => (
+                <span className="skeleton-line skeleton-para" key={i} />
+              ))}
+            </article>
+            <aside className="insight-sidebar">
+              <div className="insight-widget">
+                <span className="skeleton-line skeleton-widget-title" />
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <span className="skeleton-line skeleton-widget-row" key={i} />
+                ))}
+              </div>
+            </aside>
+          </div>
         </main>
         {footer}
       </div>
@@ -243,11 +257,16 @@ export default function InsightDetail({ params }: { params: { slug: string } }) 
       <div className="page-shell">
         {nav}
         <main className="squeeze-main container" style={{ textAlign: "center" }}>
+          <span className="section-label teal">INSIGHTS</span>
           <h1>Insight not found</h1>
           <p className="squeeze-subheading" style={{ margin: "12px auto 24px" }}>
-            That article doesn't exist or may have been unpublished.
+            That article doesn't exist or may have been unpublished. The full library is
+            still available.
           </p>
-          <Link href="/insights" className="button solid">Back to Insights</Link>
+          <div className="insight-notfound-actions">
+            <Link href="/insights" className="button solid">Back to Insights</Link>
+            <Link href="/start-project" className="button outline">Talk to an engineer</Link>
+          </div>
         </main>
         {footer}
       </div>
@@ -255,6 +274,13 @@ export default function InsightDetail({ params }: { params: { slug: string } }) 
   }
 
   const shareUrl = `${SITE_URL}/insights/${insight.id}`;
+
+  // A post with little or no body is still being written. We say so plainly
+  // instead of presenting an empty article as finished work.
+  const isDraft = insight.content.trim().length < MIN_PUBLISHED_CHARS;
+  // The in-progress panel describes what the piece will cover. Prefer the real
+  // editorial excerpt when WordPress has one; otherwise fall back to the title.
+  const draftAbout = insight.excerpt || insight.title;
 
   return (
     <div className="page-shell">
@@ -282,12 +308,64 @@ export default function InsightDetail({ params }: { params: { slug: string } }) 
               <time className="insight-article-date" dateTime={insight.date}>
                 {formatDate(insight.date)}
               </time>
+              {isDraft ? (
+                <span className="insight-article-status">
+                  <PenLine size={12} /> In progress
+                </span>
+              ) : (
+                <span className="insight-article-reading">
+                  <Clock size={12} /> {readMinutesFromHtml(insight.content)} min read
+                </span>
+              )}
             </div>
 
-            {insight.content ? (
+            {isDraft ? (
+              <div className="insight-inprogress">
+                <div className="insight-inprogress-head">
+                  <span className="insight-inprogress-mark"><PenLine size={16} /></span>
+                  <div>
+                    <strong>This piece is still being written.</strong>
+                    <span>
+                      It's a working draft rather than a finished article, so we've kept it
+                      off the main list for now. Here's what it will cover.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="insight-inprogress-about">
+                  <span className="insight-inprogress-label">CATEGORY</span>
+                  <p>{CATEGORY_LABELS[insight.category] ?? insight.kicker}</p>
+                </div>
+
+                <div className="insight-inprogress-about">
+                  <span className="insight-inprogress-label">WHAT IT COVERS</span>
+                  <p>{draftAbout}</p>
+                </div>
+
+                <div className="insight-inprogress-actions">
+                  <Link href="/start-project" className="button solid small">
+                    Discuss this with an engineer <ArrowUpRight size={14} />
+                  </Link>
+                  <Link href="/insights" className="button outline small">
+                    Read published insights
+                  </Link>
+                </div>
+              </div>
+            ) : insight.content ? (
               <div className="insight-article-body" dangerouslySetInnerHTML={{ __html: insight.content }} />
             ) : (
-              <p className="insight-article-body-placeholder">Full write-up coming soon.</p>
+              <div className="insight-inprogress">
+                <div className="insight-inprogress-head">
+                  <span className="insight-inprogress-mark"><PenLine size={16} /></span>
+                  <div>
+                    <strong>This piece is still being written.</strong>
+                    <span>We publish when there's something worth reading — not before.</span>
+                  </div>
+                </div>
+                <div className="insight-inprogress-actions">
+                  <Link href="/insights" className="button outline small">Read published insights</Link>
+                </div>
+              </div>
             )}
 
             <div className="insight-article-footer">

@@ -30,6 +30,16 @@ const DEFAULT_OG_IMAGE = `${SITE_URL}/brand/restart-mark.png`;
 const DIST_DIR = path.resolve(process.cwd(), "dist");
 const TEMPLATE_PATH = path.join(DIST_DIR, "index.html");
 
+// Keep in sync with MIN_PUBLISHED_CHARS in client/src/data/insights.ts.
+// A post with less body than this is still being written: it must not be
+// published to crawlers as an article, so we mark it noindex and omit it from
+// the sitemap instead of shipping "coming soon" as the page's content.
+const MIN_PUBLISHED_CHARS = 240;
+
+function isPublished(post) {
+  return (post.content ?? "").trim().length >= MIN_PUBLISHED_CHARS;
+}
+
 const QUERY = `
   query PrerenderInsights {
     posts(first: 100) {
@@ -187,6 +197,7 @@ function buildInsightPage(template, post, allPosts) {
   const bodyHtml = post.content || "";
   const featuredImage = post.featuredImage?.node?.sourceUrl || null;
   const ogImage = featuredImage || DEFAULT_OG_IMAGE;
+  const isLive = isPublished(post);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -209,6 +220,7 @@ function buildInsightPage(template, post, allPosts) {
   const headExtra = `
     <meta name="description" content="${escapeAttr(description)}" />
     <link rel="canonical" href="${url}" />
+    ${isLive ? "" : `<meta name="robots" content="noindex, follow" />`}
     <meta property="og:type" content="article" />
     <meta property="og:title" content="${escapeAttr(title)}" />
     <meta property="og:description" content="${escapeAttr(description)}" />
@@ -240,7 +252,19 @@ function buildInsightPage(template, post, allPosts) {
             <div class="insight-article-meta">
               <time class="insight-article-date" datetime="${published}">${formatDate(published)}</time>
             </div>
-            ${bodyHtml ? `<div class="insight-article-body">${bodyHtml}</div>` : `<p class="insight-article-body-placeholder">Full write-up coming soon.</p>`}
+            ${
+              isLive
+                ? `<div class="insight-article-body">${bodyHtml}</div>`
+                : `<div class="insight-inprogress">
+                     <div class="insight-inprogress-head">
+                       <strong>This piece is still being written.</strong>
+                       <span>It's a working draft rather than a finished article. It will appear in full once the final draft is published.</span>
+                     </div>
+                     <div class="insight-inprogress-actions">
+                       <a href="/insights" class="button outline small">Read published insights</a>
+                     </div>
+                   </div>`
+            }
             <div class="insight-article-footer">
               ${buildShareRow(url, title)}
               ${buildPostNav(allPosts, post.slug)}
@@ -294,6 +318,21 @@ const STATIC_PAGES = [
     route: "/start-project",
     title: "Start a Project",
     description: "Scope your build with Restart Inc. — tell us what you're building, where the constraint sits, and what decision you need to make next.",
+  },
+  {
+    route: "/privacy",
+    title: "Privacy Policy",
+    description: "How Restart Inc. collects, uses, shares, and protects personal data, and the rights you have under the Nigeria Data Protection Act 2023.",
+  },
+  {
+    route: "/terms",
+    title: "Terms of Service",
+    description: "The terms governing use of Restart Inc.'s websites, client console, and engineering services under Nigerian law.",
+  },
+  {
+    route: "/careers",
+    title: "Careers",
+    description: "Work at Restart Inc. — senior engineering ownership, scoped delivery, and production discipline. Open roles in platform, AI systems, and product engineering.",
   },
 ];
 
@@ -386,10 +425,14 @@ function writeSitemap(posts) {
     { loc: `${SITE_URL}/`, lastmod: now },
     ...STATIC_PAGES.map((p) => ({ loc: `${SITE_URL}${p.route}`, lastmod: now })),
     ...SOLUTIONS.map((s) => ({ loc: `${SITE_URL}/solutions/${s.slug}`, lastmod: now })),
-    ...posts.map((post) => ({
-      loc: `${SITE_URL}/insights/${post.slug}`,
-      lastmod: new Date(post.modified || post.date).toISOString(),
-    })),
+    // In-progress posts are noindex, so advertising them here would contradict
+    // the page's own directive. Only published articles belong in the sitemap.
+    ...posts
+      .filter(isPublished)
+      .map((post) => ({
+        loc: `${SITE_URL}/insights/${post.slug}`,
+        lastmod: new Date(post.modified || post.date).toISOString(),
+      })),
   ];
 
   const body = urls
@@ -398,7 +441,11 @@ function writeSitemap(posts) {
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
   fs.writeFileSync(path.join(DIST_DIR, "sitemap.xml"), xml, "utf-8");
-  console.log(`[prerender] Wrote sitemap.xml with ${urls.length} URL(s)`);
+  const draftCount = posts.length - posts.filter(isPublished).length;
+  console.log(
+    `[prerender] Wrote sitemap.xml with ${urls.length} URL(s)` +
+      (draftCount ? ` (${draftCount} in-progress post(s) excluded as noindex)` : "")
+  );
 }
 
 main().catch((err) => {

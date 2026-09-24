@@ -2,13 +2,29 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { ArrowRight, ArrowUpRight, ChevronRight, Menu, X } from "lucide-react";
+import { AlertCircle, ArrowRight, ArrowUpRight, ChevronRight, Menu, RefreshCw, X } from "lucide-react";
 import { useInsights } from "@/hooks/useInsights";
 import { applyPageSeo, applyJsonLd, resetSeoToDefault, SITE_URL } from "@/lib/seo";
 
 function initialCategoryFromUrl(): string {
   if (typeof window === "undefined") return "all";
   return new URLSearchParams(window.location.search).get("category") ?? "all";
+}
+
+/** Placeholder grid shown while the first WordPress request is in flight. */
+function InsightsSkeleton() {
+  return (
+    <div className="insight-grid" aria-hidden="true">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div className="insight-card insight-card-skeleton" key={i}>
+          <div className="insight-image skeleton-block" />
+          <span className="skeleton-line skeleton-kicker" />
+          <span className="skeleton-line skeleton-title" />
+          <span className="skeleton-line skeleton-title short" />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function Insights() {
@@ -18,7 +34,8 @@ export default function Insights() {
   const session = useAuthSession();
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
   const consoleLabel = session ? "Dashboard" : "Console Login";
-  const { insights } = useInsights();
+  const { published, drafts, loading, degraded, error, refetch } = useInsights();
+  const insights = published;
 
   useEffect(() => {
     applyPageSeo({
@@ -138,19 +155,77 @@ export default function Insights() {
 
         {/* Insights Grid */}
         <section className="portfolio-grid-section container">
-          <div className="insight-grid">
-            {filteredInsights.map((insight) => {
-              const Icon = insight.icon;
-              return (
-                <Link key={insight.id} href={`/insights/${insight.id}`} className="insight-card">
-                  <div className={`insight-image ${insight.image}`}><Icon size={40} /></div>
-                  <span>{insight.kicker}</span>
-                  <h3>{insight.title}</h3>
-                  <ArrowUpRight size={15} />
-                </Link>
-              );
-            })}
-          </div>
+          {degraded && (
+            <div className="insight-notice" role="status">
+              <AlertCircle size={16} />
+              <div>
+                <strong>Showing a saved set of insights.</strong>
+                <span>
+                  We couldn't reach the publishing system just now, so you're seeing our
+                  most recent evergreen pieces. Everything below is real and readable.
+                </span>
+                {error && <span className="insight-notice-detail">{error}</span>}
+              </div>
+              <button type="button" className="insight-notice-retry" onClick={refetch}>
+                <RefreshCw size={13} /> Try again
+              </button>
+            </div>
+          )}
+
+          {loading && !degraded ? (
+            <InsightsSkeleton />
+          ) : filteredInsights.length > 0 ? (
+            <div className="insight-grid">
+              {filteredInsights.map((insight) => {
+                const Icon = insight.icon;
+                return (
+                  <Link key={insight.id} href={`/insights/${insight.id}`} className="insight-card">
+                    <div className={`insight-image ${insight.image}`}><Icon size={40} /></div>
+                    <span>{insight.kicker}</span>
+                    <h3>{insight.title}</h3>
+                    <ArrowUpRight size={15} />
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="insight-empty">
+              <strong>Nothing published in this category yet.</strong>
+              <span>New engineering writing lands here first — check back shortly.</span>
+              <button type="button" className="button outline small" onClick={() => selectCategory("all")}>
+                View all insights
+              </button>
+            </div>
+          )}
+
+          {drafts.length > 0 && (
+            <div className="insight-drafts">
+              <div className="insight-drafts-head">
+                <span className="section-label teal">COMING SOON</span>
+                <p>
+                  These pieces are being written now. They'll appear in full once the
+                  final drafts are published.
+                </p>
+              </div>
+              <div className="insight-drafts-list">
+                {drafts
+                  .filter((d) => activeCategory === "all" || d.category === activeCategory)
+                  .map((draft) => {
+                    const Icon = draft.icon;
+                    return (
+                      <Link key={draft.id} href={`/insights/${draft.id}`} className="insight-draft-item">
+                        <span className="insight-draft-icon"><Icon size={17} /></span>
+                        <span className="insight-draft-body">
+                          <span className="insight-draft-kicker">{draft.kicker}</span>
+                          <span className="insight-draft-title">{draft.title}</span>
+                        </span>
+                        <span className="insight-draft-badge">In progress</span>
+                      </Link>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Bottom CTA Section */}
@@ -169,7 +244,7 @@ export default function Insights() {
       </main>
 
       {/* Footer */}
-      <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" /></Link><p>Engineering systems your growth depends on.</p><div className="footer-brand-contact"><a href="mailto:hello@restart.ng">hello@restart.ng</a><a href="tel:+2349060114747">+234 906 011 4747</a></div></div><div><strong>PLATFORM</strong><Link href="/#platform">Platform</Link><Link href="/#solutions">Solutions</Link><Link href="/#case-studies">Case Studies</Link><Link href="/#insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/start-project">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/start-project">Privacy Policy</Link><Link href="/start-project">Terms of Service</Link></span></div></footer>
+      <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" /></Link><p>Engineering systems your growth depends on.</p><div className="footer-brand-contact"><a href="mailto:hello@restart.ng">hello@restart.ng</a><a href="tel:+2349060114747">+234 906 011 4747</a></div></div><div><strong>PLATFORM</strong><Link href="/#platform">Platform</Link><Link href="/#solutions">Solutions</Link><Link href="/#case-studies">Case Studies</Link><Link href="/#insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/careers">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/privacy">Privacy Policy</Link><Link href="/terms">Terms of Service</Link></span></div></footer>
 
     </div>
   );

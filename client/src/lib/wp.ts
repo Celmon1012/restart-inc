@@ -1,5 +1,26 @@
 import { Code2, Database, Network } from "lucide-react";
 import type { Insight } from "@/data/insights";
+import { MIN_PUBLISHED_CHARS } from "@/data/insights";
+
+/** Reading time in minutes, rounded up with a 1-minute floor. */
+export function readingMinutes(text: string): number {
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 220));
+}
+
+/** Reading time for HTML bodies, ignoring tag names. */
+export function readMinutesFromHtml(html: string): number {
+  return readingMinutes(html.replace(/<[^>]+>/g, " "));
+}
+
+/**
+ * A post only counts as published when it carries a real body. Anything
+ * shorter is an in-progress draft: it must not be listed as finished work, and
+ * its page must not be advertised to search engines as an article.
+ */
+export function isPublishedPost(content: string | null | undefined): boolean {
+  return (content ?? "").trim().length >= MIN_PUBLISHED_CHARS;
+}
 
 export const WPGRAPHQL_ENDPOINT = "https://wp.restart.ng/graphql";
 
@@ -19,6 +40,7 @@ const INSIGHTS_QUERY = `
         slug
         title
         date
+        content
         categories(first: 1) {
           nodes {
             name
@@ -106,6 +128,7 @@ export async function fetchInsights(): Promise<Insight[]> {
   const nodes: any[] = json.data?.posts?.nodes ?? [];
   return nodes.map((node, index) => {
     const { category, name } = resolveCategory(node);
+    const contentLength = (node.content ?? "").trim().length;
     return {
       id: node.slug,
       category,
@@ -115,6 +138,8 @@ export async function fetchInsights(): Promise<Insight[]> {
       image: IMAGE_CLASSES[index % IMAGE_CLASSES.length],
       date: node.date,
       featuredImage: resolveFeaturedImage(node),
+      contentLength,
+      isDraft: contentLength < MIN_PUBLISHED_CHARS,
     };
   });
 }
