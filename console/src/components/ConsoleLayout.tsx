@@ -293,10 +293,10 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
                 })}
               </div>
 
-              <a role="menuitem" href={`${MARKETING_URL}/start-project`} className="ws-menu-item ws-menu-add">
+              <Link role="menuitem" href="/console/new-project" className="ws-menu-item ws-menu-add" onClick={() => setWorkspaceMenuOpen(false)}>
                 <Plus size={14} />
                 <span>Add new project</span>
-              </a>
+              </Link>
 
               <div className="ws-menu-sep" />
               <Link role="menuitem" href="/console/profile" className="ws-menu-item" onClick={() => setWorkspaceMenuOpen(false)}>

@@ -6,6 +6,7 @@ import { AuthContext, type AuthContextType } from "@/contexts/AuthContext";
 import { WorkspaceContext, type WorkspaceContextType } from "@/contexts/WorkspaceContext";
 import type { Workspace } from "@/lib/resources";
 import Overview from "./console/Overview";
+import NewProject from "./NewProject";
 
 const now = Date.now();
 const ago = (m: number) => new Date(now - m * 60_000).toISOString();
@@ -63,10 +64,11 @@ const ws: WorkspaceContextType = {
 };
 
 export default function DevPreview() {
+  const page = new URLSearchParams(window.location.search).get("page");
   return (
     <AuthContext.Provider value={auth}>
       <WorkspaceContext.Provider value={ws}>
-        <Overview />
+        {page === "new-project" ? <NewProject /> : <Overview />}
       </WorkspaceContext.Provider>
     </AuthContext.Provider>
   );

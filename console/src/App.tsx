@@ -18,6 +18,7 @@ import ProfileSecurity from "./pages/console/ProfileSecurity";
 import ConsoleSettings from "./pages/console/ConsoleSettings";
 import ApiKeyVault from "./pages/console/ApiKeyVault";
 import BillingSla from "./pages/console/BillingSla";
+import NewProject from "./pages/NewProject";
 import { lazy, Suspense } from "react";
 
 // Dev-only fixture page (see pages/DevPreview.tsx); tree-shaken from production.
@@ -53,6 +54,11 @@ function Router() {
           that replaced it, instead of a dead end. */}
       <Route path="/dashboard">
         <Redirect to="/console/overview" />
+      </Route>
+      <Route path="/console/new-project">
+        <ProtectedRoute>
+          <NewProject />
+        </ProtectedRoute>
       </Route>
       <Route path="/console/systems">
         <ProtectedRoute>
