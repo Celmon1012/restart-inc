@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Cpu, Database, Gauge, Layers3, Menu, Network, Orbit, ShieldCheck, Sparkles, X, Zap } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronDown, ChevronRight, CircleCheck, Code2, Layers3, Menu, Network, ShieldCheck, X } from "lucide-react";
 import CaseStudyModal from "@/components/CaseStudyModal";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import NamedClients from "@/components/NamedClients";
+import { HeroDots, HeroLines, HeroStats } from "@/components/HeroBackdrop";
 import { useInsights } from "@/hooks/useInsights";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
@@ -82,14 +83,6 @@ function Visual({ kind }: { kind: string }) {
   return <div className="visual-code"><div className="code-tabs"><span>server.ts</span><span>deploy</span><span>✓</span></div><code><i>01</i><b>const</b> tenant = <em>await</em> app.<u>boot</u>();<br /><i>02</i><b>await</b> queue.<u>dispatch</u>(job);<br /><i>03</i><b>return</b> response.<u>ready</u>();<br /><i>04</i><b>health</b>.<u>check</u>({`{`} uptime: <strong>99.99</strong> {`}`});</code></div>;
 }
 
-function SignalPanel() {
-  return <div className="signal-panel" aria-label="Restart operating signal">
-    <div className="signal-panel-top"><span className="signal-status"><i /> LIVE OPERATING SIGNAL</span><span>R/ 01</span></div>
-    <div className="signal-orbit"><div className="signal-orbit-ring ring-outer" /><div className="signal-orbit-ring ring-inner" /><div className="signal-orbit-core"><span>R</span><small>READY</small></div><span className="orbit-label label-top">SCOPE</span><span className="orbit-label label-right">SHIP</span><span className="orbit-label label-bottom">SCALE</span></div>
-    <div className="signal-readout"><div><small>UPTIME TARGET</small><strong>99.99<span>%</span></strong></div><div><small>DELIVERY LANES</small><strong>04</strong></div><div><small>MODE</small><strong>Senior<span>+</span></strong></div></div>
-    <div className="signal-footer"><span>Architecture → Execution</span><span><i /> System ready</span></div>
-  </div>;
-}
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -209,10 +202,9 @@ export default function Home() {
     </header>
 
     <main id="top">
-      <section className="hero-section">
-        <div className="hero-glow glow-one" />
-        <div className="hero-glow glow-two" />
-        <div className="hero-grid-lines" />
+      <section className="hero-section hero-trend">
+        <HeroDots />
+        <HeroLines />
         <div className="hero-shell">
           <div className="hero-content">
             <h1>Build systems <span>your growth depends on.</span></h1>
@@ -227,9 +219,12 @@ export default function Home() {
               <span><Check size={13} /> Clear, time-boxed scope</span>
             </div>
           </div>
-          <SignalPanel />
         </div>
       </section>
+      <HeroStats
+        label="Measured in production"
+        items={caseStudiesData.flatMap((c) => c.metrics)}
+      />
 
       <div id="platform" />
 
@@ -361,8 +356,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ALTERNATIVE: the earlier integration icon wall, kept alongside PLATFORM below so the two can be compared. Delete whichever loses. */}
-      <section className="integration-section"><div className="container integration-wrap"><div className="section-copy"><SectionLabel>SEAMLESS INTEGRATION FOR</SectionLabel><h2>Make the work lighter <span>—not more connected for its own sake.</span></h2><p>Your tools should reduce friction, not create another system to manage. Restart connects the product, platform, automation, and operational surfaces that keep your business moving.</p></div><div className="integration-wall">{[Zap, Database, Network, Orbit, Layers3, ShieldCheck, BrainCircuit, Gauge, Sparkles, Code2, CircleCheck, Cpu].map((Icon, i) => <div key={i} className={`integration-icon icon-${i % 5}`}><Icon size={40} /></div>)}</div></div></section>
+      {/* Integration wall: the technologies we deploy on, named on hover/focus. */}
+      <section className="integration-section"><div className="container integration-wrap"><div className="section-copy"><SectionLabel>WE BUILD ON</SectionLabel><h2>Make the work lighter <span>—not more connected for its own sake.</span></h2><p>Your tools should reduce friction, not create another system to manage. Restart connects the product, platform, automation, and operational surfaces that keep your business moving.</p></div><ul className="integration-wall">{platformStack.map((item) => <li key={item.name} className="integration-icon" tabIndex={0}><img src={item.logo} alt="" aria-hidden="true" /><span className="integration-name">{item.name}</span></li>)}</ul></div></section>
 
       {/*
         Previously two sections ("SEAMLESS INTEGRATION FOR" and "PLATFORM") making
@@ -400,24 +395,6 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="container platform-stack">
-          <div className="platform-stack-label">
-            <span>WE BUILD ON</span>
-            <p>
-              The technologies our clients' systems actually run on. We name them because we can
-              be held to them.
-            </p>
-          </div>
-          <ul className="platform-stack-row">
-            {platformStack.map((item) => (
-              <li key={item.name}>
-                <img src={item.logo} alt="" aria-hidden="true" />
-                <span>{item.name}</span>
-              </li>
-            ))}
-          </ul>
         </div>
       </section>
 
