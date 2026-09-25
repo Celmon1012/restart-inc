@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthContext";
 import type { Workspace, WorkspaceSummary } from "@/lib/resources";
 
-interface WorkspaceContextType {
+export interface WorkspaceContextType {
   workspaces: WorkspaceSummary[];
   activeWorkspace: Workspace | null;
   // Mirrors auth.jwt() app_metadata.is_admin (see console.is_admin() in the
@@ -22,7 +22,7 @@ interface WorkspaceContextType {
   refresh: () => Promise<void>;
 }
 
-const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
+export const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { session, loading: authLoading } = useAuth();

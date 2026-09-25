@@ -1,17 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
-import { ResourceIcon } from "@/components/ResourceIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { getResources, statusMeta, deploymentStatusLabel, deploymentTone, formatRelativeTime } from "@/lib/resources";
+import { getResources, statusMeta, deploymentStatusLabel, deploymentTone, formatRelativeTime, RESOURCE_KIND_LABEL } from "@/lib/resources";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { consoleSchema } from "@/lib/supabase";
 import { getCurrentDeliverable, type Deliverable } from "@/lib/deliverables";
-import { getDisplayName } from "@/lib/utils";
-import { BarChart, type BarChartColumn } from "@/components/BarChart";
-import { CheckCircle2, AlertTriangle, ArrowRight, Clock, Terminal, Rocket, Server, XCircle, Loader2 } from "lucide-react";
+import type { BarChartColumn } from "@/components/BarChart";
+import { CheckCircle2, AlertTriangle, ArrowRight, Clock, Terminal, Rocket, XCircle, Loader2 } from "lucide-react";
 import type { Deployment } from "@/lib/resources";
 import { toast } from "sonner";
 
@@ -34,6 +32,24 @@ function deploysByDay(deployments: Deployment[]): BarChartColumn[] {
       { tone: "down" as const, value: counts.down }
     ]
   }));
+}
+
+// Compact stacked bars matching the marketing-site console preview: one bar
+// per day, segment colour by deploy outcome, day label on hover.
+function DeployBars({ columns }: { columns: BarChartColumn[] }) {
+  const totals = columns.map((c) => c.segments.reduce((sum, s) => sum + s.value, 0));
+  const max = Math.max(1, ...totals);
+  return (
+    <div className="cp-bars" role="img" aria-label={`Deploys per day: ${columns.map((c, i) => `${c.label} ${totals[i]}`).join(", ")}`}>
+      {columns.map((col, i) => (
+        <i key={col.label} title={`${col.label}: ${totals[i]} deploy${totals[i] === 1 ? "" : "s"}`} style={{ height: `${Math.max((totals[i] / max) * 100, 6)}%` }}>
+          {col.segments.filter((s) => s.value > 0).map((s) => (
+            <b key={s.tone} className={s.tone} style={{ flexGrow: s.value }} />
+          ))}
+        </i>
+      ))}
+    </div>
+  );
 }
 
 function activityStatusIcon(status: string) {
@@ -86,6 +102,7 @@ export default function Overview() {
   // than above it.
   const currentMilestone = getCurrentDeliverable(deliverables);
   const completedMilestones = deliverables.filter((d) => d.status === "completed").length;
+  const deliveryPct = deliverables.length ? Math.round((completedMilestones / deliverables.length) * 100) : 0;
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -131,15 +148,10 @@ export default function Overview() {
         />
       ) : (
         <>
-          <div className="dash-header-row">
-            <div>
-              <span className="overview-greeting">
-                {activeWorkspace.provisioning ? "Welcome" : "Welcome back"}, {getDisplayName(user)}
-              </span>
-              <span className="dash-kicker">OVERVIEW</span>
-              <h1>Systems Overview</h1>
-              <p>{headline} — here's the state of {activeWorkspace.name}'s systems and delivery right now.</p>
-            </div>
+          <div className="cp-head">
+            <span className="cp-eyebrow">{activeWorkspace.name}</span>
+            <h1>Systems Overview</h1>
+            <p>{headline} — every system, deploy, and delivery milestone in one place.</p>
           </div>
 
           {activeWorkspace.provisioning && (
@@ -161,62 +173,103 @@ export default function Overview() {
             </div>
           )}
 
-          <div className="overview-stats-row">
-            <div className="overview-stat-tile">
-              <div className="overview-stat-top">
-                <span className="overview-stat-label">Systems</span>
-                <Server size={14} className="text-teal" />
-              </div>
-              <span className="overview-stat-value">{resources.length}</span>
-              <span className="overview-stat-meta">
-                {resources.length === 0 ? "None deployed yet" : attention.length === 0 ? "All healthy" : `${attention.length} need attention`}
-              </span>
+          <div className="cp-stats">
+            <div>
+              <small>SYSTEMS</small>
+              <strong>{resources.length}</strong>
+              <em>{resources.length === 0 ? "None deployed yet" : attention.length === 0 ? "All healthy" : `${attention.length} need attention`}</em>
             </div>
-            <div className="overview-stat-tile">
-              <div className="overview-stat-top">
-                <span className="overview-stat-label">Needs attention</span>
-                <AlertTriangle size={14} className={attention.length === 0 ? "text-teal" : "text-amber"} />
-              </div>
-              <span className="overview-stat-value">{attention.length}</span>
-              <span className="overview-stat-meta">
-                {attention.length === 0 ? "Nothing flagged" : `${warningCount} warning · ${downCount} down`}
-              </span>
+            <div>
+              <small>NEEDS ATTENTION</small>
+              <strong className={attention.length ? "warn" : undefined}>{attention.length}</strong>
+              <em>{attention.length === 0 ? "Nothing flagged" : `${warningCount} warning · ${downCount} down`}</em>
             </div>
-            <div className="overview-stat-tile">
-              <div className="overview-stat-top">
-                <span className="overview-stat-label">Delivery</span>
-                <Clock size={14} className="text-amber" />
-              </div>
-              <span className="overview-stat-value">
-                {deliverables.length === 0 ? "—" : `${completedMilestones}/${deliverables.length}`}
-              </span>
-              <span className="overview-stat-meta">
-                {currentMilestone ? currentMilestone.title : "No active milestone"}
-              </span>
+            <div>
+              <small>DELIVERY</small>
+              <strong>{deliverables.length === 0 ? "—" : <>{completedMilestones}<span>/{deliverables.length}</span></>}</strong>
+              <em>{currentMilestone ? currentMilestone.title : "No active milestone"}</em>
             </div>
-            <div className="overview-stat-tile">
-              <div className="overview-stat-top">
-                <span className="overview-stat-label">Deployments</span>
-                <Rocket size={14} className="text-teal" />
-              </div>
-              <span className="overview-stat-value">{deployments.length}</span>
-              <span className="overview-stat-meta">
-                {deployments.length === 0
-                  ? "None yet"
-                  : `${deploysLast24h} in last 24h · latest ${formatRelativeTime(deployments[0].createdAt)}`}
-              </span>
+            <div>
+              <small>DEPLOYS</small>
+              <strong>{deployments.length}</strong>
+              <em>{deployments.length === 0 ? "None yet" : `${deploysLast24h} in last 24h`}</em>
             </div>
           </div>
 
-          {/* Needs attention */}
-          <div className="overview-section">
-            <h2 className="overview-section-title">Needs attention</h2>
-            {attention.length === 0 ? (
-              <div className="overview-empty-ok">
-                <CheckCircle2 size={16} className="text-teal" />
-                <span>Nothing needs your attention right now.</span>
+          <div className="cp-grid">
+            <div className="cp-card cp-systems">
+              <div className="cp-card-head">
+                <span>Systems</span>
+                {resources.length > 0 && (
+                  <em className={attention.length ? "warn" : undefined}>
+                    {attention.length === 0 ? "All healthy" : `${attention.length} need attention`}
+                  </em>
+                )}
               </div>
-            ) : (
+              {resources.length === 0 ? (
+                <p className="cp-empty">No resources deployed to this workspace's server yet.</p>
+              ) : (
+                resources.slice(0, 6).map((r) => {
+                  const { label, tone } = statusMeta(r.status);
+                  return (
+                    <Link href="/console/systems" key={r.uuid} className="cp-row">
+                      <i className={`cp-dot ${tone}`} />
+                      <span className="cp-name">
+                        {r.name}
+                        <small>
+                          {RESOURCE_KIND_LABEL[r.kind].toLowerCase()}
+                          {r.lastOnlineAt ? ` · checked ${formatRelativeTime(r.lastOnlineAt)}` : ""}
+                        </small>
+                      </span>
+                      <span className={`cp-status ${tone}`}>{label}</span>
+                    </Link>
+                  );
+                })
+              )}
+              {resources.length > 6 && (
+                <Link href="/console/systems" className="cp-more">
+                  +{resources.length - 6} more <ArrowRight size={12} />
+                </Link>
+              )}
+            </div>
+
+            <div className="cp-card cp-deploys">
+              <div className="cp-card-head">
+                <span>Deployment activity</span>
+                {deployments.length > 0 && <em>Last {deployments.length} deploys</em>}
+              </div>
+              {deployments.length === 0 ? (
+                <p className="cp-empty">Deployments appear here once they run.</p>
+              ) : (
+                <DeployBars columns={deploysByDay(deployments)} />
+              )}
+
+              <div className="cp-card-head cp-sub">
+                <span>Current delivery</span>
+                <Link href="/console/delivery" className="cp-head-link">All milestones <ArrowRight size={11} /></Link>
+              </div>
+              {deliverablesError ? (
+                <div className="cp-empty cp-error">
+                  <span>Couldn't read delivery milestones.</span>
+                  <button type="button" className="console-retry-btn" onClick={retryDeliverables}>Retry</button>
+                </div>
+              ) : deliverables.length === 0 ? (
+                <p className="cp-empty">No delivery milestones yet.</p>
+              ) : (
+                <>
+                  <div className="cp-progress"><i style={{ width: `${deliveryPct}%` }} /></div>
+                  <div className="cp-milestone">
+                    <span>{currentMilestone ? currentMilestone.title : "All milestones complete"}</span>
+                    <span>{deliveryPct}%</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {attention.length > 0 && (
+            <div className="overview-section">
+              <h2 className="overview-section-title">Needs attention</h2>
               <div className="overview-attention-list">
                 {attention.map((r) => {
                   const { label } = statusMeta(r.status);
@@ -229,97 +282,6 @@ export default function Overview() {
                     </Link>
                   );
                 })}
-              </div>
-            )}
-          </div>
-
-          {/* Current delivery */}
-          <div className="overview-section">
-            <div className="overview-section-head">
-              <h2 className="overview-section-title">Current delivery</h2>
-              <Link href="/console/delivery" className="overview-section-link">
-                View all milestones <ArrowRight size={12} />
-              </Link>
-            </div>
-            {deliverablesError ? (
-              <div className="overview-not-connected">
-                <AlertTriangle size={16} />
-                <span>Couldn't read delivery milestones: {deliverablesError}</span>
-                <button type="button" className="console-retry-btn" onClick={retryDeliverables}>
-                  Retry
-                </button>
-              </div>
-            ) : currentMilestone ? (
-              <div className="overview-card">
-                <div className="overview-card-icon">
-                  <Clock size={16} className="text-amber" />
-                </div>
-                <div>
-                  <h3>{currentMilestone.title}</h3>
-                  <p>{currentMilestone.description}</p>
-                  <span className="overview-card-meta">{currentMilestone.meta}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="overview-empty-ok">
-                <CheckCircle2 size={16} className="text-teal" />
-                <span>No active delivery milestone right now.</span>
-              </div>
-            )}
-          </div>
-
-          {/* Systems summary */}
-          <div className="overview-section">
-            <div className="overview-section-head">
-              <h2 className="overview-section-title">Systems</h2>
-              <Link href="/console/systems" className="overview-section-link">
-                View all systems <ArrowRight size={12} />
-              </Link>
-            </div>
-            {resources.length === 0 ? (
-              <div className="dash-empty-state">No resources deployed to this workspace's server yet.</div>
-            ) : (
-              <div className="overview-systems-grid">
-                {resources.slice(0, 10).map((r) => {
-                  const { label, tone } = statusMeta(r.status);
-                  return (
-                    <div className="overview-system-card" key={r.uuid}>
-                      <div className="overview-system-card-top">
-                        <ResourceIcon resource={r} size={20} className="text-teal" />
-                        <span className="overview-system-name">{r.name}</span>
-                      </div>
-                      <div className="overview-system-card-bottom">
-                        <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>{label}</span>
-                        {r.lastOnlineAt && (
-                          <span className="overview-system-meta">checked {formatRelativeTime(r.lastOnlineAt)}</span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            {resources.length > 10 && (
-              <Link href="/console/systems" className="overview-systems-more">
-                +{resources.length - 10} more <ArrowRight size={12} />
-              </Link>
-            )}
-          </div>
-
-          {/* Deployment activity */}
-          {deployments.length > 1 && (
-            <div className="overview-section">
-              <div className="overview-section-head">
-                <h2 className="overview-section-title">Deployment activity</h2>
-                <span className="overview-section-note">Last {deployments.length} deploys</span>
-              </div>
-              <div className="console-card">
-                <BarChart columns={deploysByDay(deployments)} />
-                <div className="bar-chart-legend">
-                  <span><i className="bar-chart-dot healthy" /> Succeeded</span>
-                  <span><i className="bar-chart-dot warning" /> In progress</span>
-                  <span><i className="bar-chart-dot down" /> Failed</span>
-                </div>
               </div>
             </div>
           )}

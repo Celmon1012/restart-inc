@@ -18,6 +18,10 @@ import ProfileSecurity from "./pages/console/ProfileSecurity";
 import ConsoleSettings from "./pages/console/ConsoleSettings";
 import ApiKeyVault from "./pages/console/ApiKeyVault";
 import BillingSla from "./pages/console/BillingSla";
+import { lazy, Suspense } from "react";
+
+// Dev-only fixture page (see pages/DevPreview.tsx); tree-shaken from production.
+const DevPreview = import.meta.env.DEV ? lazy(() => import("./pages/DevPreview")) : null;
 
 // UX-only gate -- console.inquiries/inquiry_activities RLS (console.is_admin())
 // is the real boundary. This just avoids flashing the page at a non-admin
@@ -32,6 +36,11 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 function Router() {
   return (
     <Switch>
+      {DevPreview && (
+        <Route path="/__preview">
+          <Suspense fallback={null}><DevPreview /></Suspense>
+        </Route>
+      )}
       <Route path="/login" component={Login} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/onboarding">

@@ -71,6 +71,12 @@ const NAV_GROUPS: Array<{
   }
 ];
 
+const TOP_TABS = [
+  { href: "/console/overview", label: "Overview" },
+  { href: "/console/systems", label: "Systems" },
+  { href: "/console/delivery", label: "Delivery" }
+];
+
 export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: ConsoleLayoutProps) {
   const [location, setLocation] = useLocation();
   const { user, signOut } = useAuth();
@@ -283,6 +289,16 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
             >
               <Menu size={17} />
             </button>
+            <nav className="cp-tabs" aria-label="Workspace views">
+              {TOP_TABS.map((t) => (
+                <Link key={t.href} href={t.href} className={location === t.href ? "active" : undefined} aria-current={location === t.href ? "page" : undefined}>
+                  {t.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <div className="dash-top-right">
             <div className="dash-workspace-menu-wrapper" ref={workspaceMenuRef}>
               <button
                 onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
@@ -350,9 +366,6 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
                 </div>
               )}
             </div>
-          </div>
-
-          <div className="dash-top-right">
             {/* Was a placeholder that only explained it did nothing. It now
                 carries the count of resources that are not healthy and links to
                 the timeline, so it reports something real and has somewhere to go. */}
