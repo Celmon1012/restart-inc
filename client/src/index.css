@@ -1459,3 +1459,6 @@ textarea.sp-field{ resize: vertical; min-height: 140px; }
   .sp-fields, .sp-summary{ grid-template-columns: 1fr; }
   .sp-confidential{ justify-content: center; }
 }
+.cpv-brand{ display: flex; align-items: flex-end; gap: 10px; height: 64px; padding: 0 20px 22px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.cpv-brand img{ height: 38px; width: auto; }
+.cpv-brand span{ color: var(--teal); font-size: 0.6875rem; font-weight: 800; letter-spacing: .12em; line-height: 1; }
