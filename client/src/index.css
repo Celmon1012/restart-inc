@@ -1245,10 +1245,6 @@
 .console-preview-frame{ display: grid; grid-template-columns: 220px 1fr; height: 640px; border: 1px solid rgba(255,255,255,.1); border-radius: 14px 0 0 0; background: #030304; box-shadow: 0 30px 80px rgba(0,0,0,.6); overflow: hidden; -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 96%); mask-image: linear-gradient(180deg, #000 55%, transparent 96%); animation: cp-rise .9s var(--ease-out) .35s both; }
 @keyframes cp-rise{ from{ opacity: 0; transform: translateY(18px); } }
 .cpv-side{ border-right: 1px solid rgba(255,255,255,.07); background: #050507; }
-.cpv-brand{ display: flex; align-items: center; gap: 10px; height: 64px; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,.07); }
-.cpv-brand img{ height: 38px; width: auto; }
-.cpv-brand{ align-items: flex-end; padding-bottom: 22px; }
-.cpv-brand span{ color: var(--teal); font-size: 0.6875rem; font-weight: 800; letter-spacing: .12em; line-height: 1; }
 .cpv-nav{ display: flex; flex-direction: column; gap: 2px; padding: 16px 12px; }
 .cpv-nav span{ display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; color: #a6b2c8; font-size: 0.8125rem; font-weight: 600; white-space: nowrap; }
 .cpv-nav span.active{ background: rgba(46,229,193,.1); color: var(--teal); }
@@ -1431,7 +1427,7 @@
   .scorecard-nav .button{ justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce){ .scorecard-stepper .scorecard-area{ animation: none; } }
-.cpv-ws{ display: flex; align-items: center; gap: 10px; margin: 12px 12px 0; padding: 8px 10px; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; background: rgba(255,255,255,.02); color: #6e7485; }
+.cpv-ws{ display: flex; align-items: center; gap: 10px; margin: 14px 12px 0; padding: 8px 10px; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; background: rgba(255,255,255,.02); color: #6e7485; }
 .cpv-ws-avatar{ position: relative; flex-shrink: 0; display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; background: #111217; color: #e6e9f2; font-size: 0.75rem; font-weight: 700; }
 .cpv-ws-avatar i{ position: absolute; right: -3px; bottom: -3px; width: 8px; height: 8px; border: 2px solid #050507; border-radius: 50%; background: var(--teal); }
 .cpv-ws-text{ display: flex; flex-direction: column; flex: 1; min-width: 0; }

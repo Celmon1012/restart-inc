@@ -36,8 +36,7 @@ export default function ConsolePreview({ href }: { href: string }) {
     <div className="console-preview">
       <div className="console-preview-frame" role="img" aria-label="Restart Console: systems overview with health, delivery progress, and deployment activity">
         <aside className="cpv-side">
-          <div className="cpv-brand"><img src="/brand/restart-logo.svg" alt="" /><span>CONSOLE</span></div>
-          <div className="cpv-ws"><span className="cpv-ws-avatar">A<i /></span><span className="cpv-ws-text"><b>Acme Operations</b><small>Pro</small></span><ChevronsUpDown size={14} /></div>
+          <div className="cpv-ws"><span className="cpv-ws-avatar">A<i /></span><span className="cpv-ws-text"><b>Acme Operations</b></span><ChevronsUpDown size={14} /></div>
           <div className="cpv-nav">
             {NAV.map(({ label, icon: Icon, active }) => (
               <span key={label} className={active ? "active" : undefined}><Icon size={15} />{label}</span>
