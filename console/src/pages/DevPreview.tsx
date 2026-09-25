@@ -7,6 +7,7 @@ import { WorkspaceContext, type WorkspaceContextType } from "@/contexts/Workspac
 import type { Workspace } from "@/lib/resources";
 import Overview from "./console/Overview";
 import NewProject from "./NewProject";
+import Systems from "./console/Systems";
 
 const now = Date.now();
 const ago = (m: number) => new Date(now - m * 60_000).toISOString();
@@ -68,7 +69,7 @@ export default function DevPreview() {
   return (
     <AuthContext.Provider value={auth}>
       <WorkspaceContext.Provider value={ws}>
-        {page === "new-project" ? <NewProject /> : <Overview />}
+        {page === "new-project" ? <NewProject /> : page === "systems" ? <Systems /> : <Overview />}
       </WorkspaceContext.Provider>
     </AuthContext.Provider>
   );

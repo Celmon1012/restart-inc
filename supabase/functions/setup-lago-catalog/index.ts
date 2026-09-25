@@ -79,6 +79,22 @@ const CATALOG: CatalogItem[] = [
   { kind: "plan", code: "dedicated-server-vps20-usd", name: "Dedicated Server — VPS 20 (USD)", interval: "yearly", amount_cents: 30_000, amount_currency: "USD", description: "6 vCPU / 12GB RAM / 100GB NVMe -- billed annually, equivalent to $30/mo (2 months free vs. paying monthly)." },
   { kind: "plan", code: "dedicated-server-vps30-usd", name: "Dedicated Server — VPS 30 (USD)", interval: "yearly", amount_cents: 50_000, amount_currency: "USD", description: "8 vCPU / 24GB RAM / 200GB NVMe -- billed annually, equivalent to $50/mo (2 months free vs. paying monthly)." },
 
+  // Managed Environment S/M/L: the Operate plan. One subscription per client
+  // server (subscription external_id = the server's Coolify UUID), bundling
+  // the server with monitoring, daily off-site backups, OS/security patching,
+  // and business-hours incident response. Paid in advance. Upgrading a server
+  // is a plan change on its subscription; an additional server is a new one.
+  //
+  // PRICES ARE DELIBERATELY UNSET (0). Set amount_cents before running this
+  // function with POST -- runCatalog() refuses to create a zero-priced plan.
+  // Price on the management, not the hardware (see the Operate plan notes).
+  { kind: "plan", code: "managed-env-s-ngn", name: "Managed Environment S (NGN)", interval: "monthly", amount_cents: 0, amount_currency: "NGN", description: "4 vCPU / 8GB RAM / 75GB NVMe server with monitoring, daily off-site backups, patching, and business-hours incident response. Billed monthly in advance." },
+  { kind: "plan", code: "managed-env-m-ngn", name: "Managed Environment M (NGN)", interval: "monthly", amount_cents: 0, amount_currency: "NGN", description: "6 vCPU / 12GB RAM / 100GB NVMe server with monitoring, daily off-site backups, patching, and business-hours incident response. Billed monthly in advance." },
+  { kind: "plan", code: "managed-env-l-ngn", name: "Managed Environment L (NGN)", interval: "monthly", amount_cents: 0, amount_currency: "NGN", description: "8 vCPU / 24GB RAM / 200GB NVMe server with monitoring, daily off-site backups, patching, and 24/7 incident response. Billed monthly in advance." },
+  { kind: "plan", code: "managed-env-s-usd", name: "Managed Environment S (USD)", interval: "monthly", amount_cents: 0, amount_currency: "USD", description: "4 vCPU / 8GB RAM / 75GB NVMe server with monitoring, daily off-site backups, patching, and business-hours incident response. Billed monthly in advance." },
+  { kind: "plan", code: "managed-env-m-usd", name: "Managed Environment M (USD)", interval: "monthly", amount_cents: 0, amount_currency: "USD", description: "6 vCPU / 12GB RAM / 100GB NVMe server with monitoring, daily off-site backups, patching, and business-hours incident response. Billed monthly in advance." },
+  { kind: "plan", code: "managed-env-l-usd", name: "Managed Environment L (USD)", interval: "monthly", amount_cents: 0, amount_currency: "USD", description: "8 vCPU / 24GB RAM / 200GB NVMe server with monitoring, daily off-site backups, patching, and 24/7 incident response. Billed monthly in advance." },
+
   { kind: "add_on", code: "architecture-audit-usd", name: "Architecture Audit (USD)", amount_cents: 1_200_000, amount_currency: "USD", description: "1-week senior technical deep dive + 12-week remediation roadmap." },
   { kind: "add_on", code: "mvp-build-usd", name: "MVP Build — Laravel/Octane (USD)", amount_cents: 3_500_000, amount_currency: "USD", description: "4-12 week MVP build. Floor of the $35k-75k band -- override per deal when invoicing." },
   { kind: "add_on", code: "medusa-commerce-build-usd", name: "Medusa Commerce Build (USD)", amount_cents: 3_000_000, amount_currency: "USD", description: "Scoped commerce build. Floor of the $30k-70k band -- override per deal." },
@@ -115,7 +131,7 @@ async function lagoPost(path: string, body: unknown) {
   return res.json();
 }
 
-type CatalogResult = { kind: string; code: string; action: "skip" | "create" | "would_create" | "error"; error?: string };
+type CatalogResult = { kind: string; code: string; action: "skip" | "create" | "would_create" | "needs_price" | "error"; error?: string };
 
 // Each item is independent -- one bad amount_cents value shouldn't hide
 // whether the other 12 succeeded. A prior version let a single lagoPost
@@ -126,6 +142,12 @@ async function runCatalog(apply: boolean): Promise<CatalogResult[]> {
   const results: CatalogResult[] = [];
 
   for (const item of CATALOG) {
+    // A 0 price is a placeholder waiting for a pricing decision, never a real
+    // price -- creating it would put a free plan into an invoiceable catalog.
+    if (item.amount_cents <= 0) {
+      results.push({ kind: item.kind, code: item.code, action: "needs_price" });
+      continue;
+    }
     try {
       const lookupPath = item.kind === "plan" ? `/plans/${item.code}` : `/add_ons/${item.code}`;
       const existing = await lagoGet(lookupPath);

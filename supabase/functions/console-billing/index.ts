@@ -200,6 +200,7 @@ async function fetchBilling(externalCustomerId: string) {
       };
     }),
     invoices: invoices.map((inv, i) => ({
+      lagoId: inv.lago_id,
       number: inv.number,
       issuingDate: inv.issuing_date,
       status: inv.status,
