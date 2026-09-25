@@ -5,6 +5,8 @@ import {
   Briefcase,
   User,
   ChevronDown,
+  ChevronsUpDown,
+  Plus,
   LayoutGrid,
   Server,
   Clock,
@@ -139,6 +141,18 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
   }, [location]);
 
   useEffect(() => {
+    if (!workspaceMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setWorkspaceMenuOpen(false);
+        setWorkspaceSearch("");
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [workspaceMenuOpen]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
@@ -205,6 +219,88 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
           >
             <X size={16} />
           </button>
+        </div>
+
+        <div className="ws-switcher" ref={workspaceMenuRef}>
+          <button
+            onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
+            className={`ws-switcher-btn ${workspaceMenuOpen ? "active" : ""}`}
+            title={activeWorkspace?.name ?? "Switch workspace"}
+            aria-haspopup="menu"
+            aria-expanded={workspaceMenuOpen}
+          >
+            <span className="ws-avatar" aria-hidden="true">
+              {(activeWorkspace?.name ?? "R").trim().charAt(0).toUpperCase()}
+              <i className={`org-dot ${activeWorkspace?.server?.isReachable ? "" : activeWorkspace?.provisioning ? "pending" : "down"}`} />
+            </span>
+            <span className="ws-switcher-text">
+              <span className="ws-switcher-name">{activeWorkspace?.name ?? (workspaceLoading ? "Loading…" : "No workspace")}</span>
+              {activeWorkspace?.tier && <span className="ws-switcher-tier">{activeWorkspace.tier}</span>}
+            </span>
+            <ChevronsUpDown size={14} className="ws-switcher-chevron" />
+          </button>
+
+          {workspaceMenuOpen && (
+            <div className="ws-menu" role="menu">
+              <span className="ws-menu-label">Workspace</span>
+
+              {workspaces.length > 5 && (
+                <div className="workspace-search-box">
+                  <Search size={13} />
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Search projects…"
+                    aria-label="Search projects"
+                    value={workspaceSearch}
+                    onChange={(e) => setWorkspaceSearch(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              )}
+
+              <div className="ws-menu-list">
+                {workspaces.length === 0 && <span className="ws-menu-empty">No workspaces assigned yet</span>}
+                {workspaces.length > 0 && filteredWorkspaces.length === 0 && (
+                  <span className="ws-menu-empty">No projects match "{workspaceSearch}"</span>
+                )}
+                {filteredWorkspaces.map((workspace) => {
+                  const current = activeWorkspace?.id === workspace.id;
+                  return (
+                    <button
+                      key={workspace.id}
+                      role="menuitemradio"
+                      aria-checked={current}
+                      onClick={() => handleSwitchWorkspace(workspace)}
+                      className={`ws-menu-item ${current ? "current" : ""}`}
+                    >
+                      <span className="ws-check">{current && <Check size={13} />}</span>
+                      <span className="ws-avatar sm" aria-hidden="true">{workspace.name.trim().charAt(0).toUpperCase()}</span>
+                      <span className="ws-menu-item-text">
+                        <span>{workspace.name}</span>
+                        {workspace.tier && <small>{workspace.tier}</small>}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <a role="menuitem" href={`${MARKETING_URL}/start-project`} className="ws-menu-item ws-menu-add">
+                <Plus size={14} />
+                <span>Add new project</span>
+              </a>
+
+              <div className="ws-menu-sep" />
+              <Link role="menuitem" href="/console/profile" className="ws-menu-item" onClick={() => setWorkspaceMenuOpen(false)}>
+                <User size={14} />
+                <span>My profile</span>
+              </Link>
+              <Link role="menuitem" href="/console/support" className="ws-menu-item" onClick={() => setWorkspaceMenuOpen(false)}>
+                <LifeBuoy size={14} />
+                <span>Contact support</span>
+              </Link>
+            </div>
+          )}
         </div>
 
         <nav className="console-sidebar-nav" aria-label="Console">
@@ -299,73 +395,6 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
           </div>
 
           <div className="dash-top-right">
-            <div className="dash-workspace-menu-wrapper" ref={workspaceMenuRef}>
-              <button
-                onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
-                className={`dash-org-badge clickable ${workspaceMenuOpen ? "active" : ""}`}
-                title="Switch workspace"
-                aria-expanded={workspaceMenuOpen}
-              >
-                <span
-                  className={`org-dot ${activeWorkspace?.server?.isReachable ? "" : activeWorkspace?.provisioning ? "pending" : "down"}`}
-                />
-                <span className="org-name">{activeWorkspace?.name ?? (workspaceLoading ? "Loading…" : "No workspace")}</span>
-                {activeWorkspace?.tier && <span className="org-pod">{activeWorkspace.tier}</span>}
-                <ChevronDown size={12} className={`dash-user-chevron ${workspaceMenuOpen ? "rotate" : ""}`} />
-              </button>
-
-              {workspaceMenuOpen && (
-                <div className="dash-dropdown-menu workspace-dropdown">
-                  <div className="dash-dropdown-header">
-                    <span className="dropdown-user-name">Switch Workspace</span>
-                    <span className="dropdown-user-email">Projects you have access to</span>
-                  </div>
-
-                  {workspaces.length > 0 && (
-                    <div className="workspace-search-box">
-                      <Search size={13} />
-                      <input
-                        type="text"
-                        autoFocus
-                        placeholder="Search projects…"
-                        value={workspaceSearch}
-                        onChange={(e) => setWorkspaceSearch(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  )}
-
-                  {workspaces.length === 0 && (
-                    <div className="dash-dropdown-item" style={{ cursor: "default" }}>
-                      <span>No workspaces assigned yet</span>
-                    </div>
-                  )}
-
-                  <div className="workspace-dropdown-list">
-                    {workspaces.length > 0 && filteredWorkspaces.length === 0 && (
-                      <div className="dash-dropdown-item" style={{ cursor: "default" }}>
-                        <span>No projects match "{workspaceSearch}"</span>
-                      </div>
-                    )}
-
-                    {filteredWorkspaces.map((workspace) => (
-                      <button
-                        key={workspace.id}
-                        onClick={() => handleSwitchWorkspace(workspace)}
-                        className={`dash-dropdown-item workspace-dropdown-item ${activeWorkspace?.id === workspace.id ? "active-link" : ""}`}
-                      >
-                        <Building2 size={14} />
-                        <span className="workspace-dropdown-item-text">
-                          <span>{workspace.name}</span>
-                          {workspace.tier && <span className="workspace-dropdown-item-server">{workspace.tier}</span>}
-                        </span>
-                        {activeWorkspace?.id === workspace.id && <Check size={13} className="dash-workspace-check" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
             {/* Was a placeholder that only explained it did nothing. It now
                 carries the count of resources that are not healthy and links to
                 the timeline, so it reports something real and has somewhere to go. */}

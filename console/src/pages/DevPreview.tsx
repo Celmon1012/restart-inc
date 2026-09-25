@@ -47,7 +47,11 @@ const auth = {
 } satisfies AuthContextType;
 
 const ws: WorkspaceContextType = {
-  workspaces: [{ id: workspace.id, name: workspace.name, tier: workspace.tier }],
+  workspaces: [
+    { id: workspace.id, name: workspace.name, tier: workspace.tier },
+    { id: "ws-2", name: "Northwind Commerce", tier: "Scale" },
+    { id: "ws-3", name: "Kestrel Health", tier: null },
+  ],
   activeWorkspace: workspace,
   isAdmin: false,
   needsOnboarding: false,
