@@ -170,7 +170,15 @@ function RollingValue({ value, active }: { value: string; active: boolean }) {
   );
 }
 
-export function HeroStats({ label, items }: { label: string; items: { label: string; value: string }[] }) {
+export interface HeroStat {
+  label: string;
+  value: string;
+  href: string;
+  title: string;
+  onSelect?: () => void;
+}
+
+export function HeroStats({ label, items }: { label: string; items: HeroStat[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(false);
 
@@ -187,13 +195,24 @@ export function HeroStats({ label, items }: { label: string; items: { label: str
   const row = (hidden: boolean) => (
     <div className="stats-row" aria-hidden={hidden || undefined}>
       {items.map((s, i) => (
-        <span key={i} className="stats-item">
+        <a
+          key={i}
+          className="stats-item"
+          href={s.href}
+          title={s.title}
+          tabIndex={hidden ? -1 : undefined}
+          onClick={(e) => {
+            if (!s.onSelect || e.metaKey || e.ctrlKey || e.shiftKey) return;
+            e.preventDefault();
+            s.onSelect();
+          }}
+        >
           <span className="stats-label">{s.label}</span>
           <span className="stats-value">
             {!hidden && <span className="sr-only">{s.value}</span>}
             <RollingValue value={s.value} active={active} />
           </span>
-        </span>
+        </a>
       ))}
     </div>
   );

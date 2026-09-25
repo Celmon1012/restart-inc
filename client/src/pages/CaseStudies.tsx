@@ -25,6 +25,14 @@ export default function CaseStudies() {
     return () => resetSeoToDefault();
   }, []);
 
+  // Deep link: /case-studies?study=<id> opens that study (used by the homepage
+  // stats bar and llms.txt).
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("study");
+    const study = id && caseStudiesData.find((c) => c.id === id);
+    if (study) setSelectedStudy(study);
+  }, []);
+
   const categories = [
     { id: "all", label: "All Deliveries", count: caseStudiesData.length },
     { id: "infrastructure", label: "Private Cloud & Infrastructure", count: caseStudiesData.filter(c => c.category === "infrastructure").length },

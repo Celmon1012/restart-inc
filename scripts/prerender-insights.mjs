@@ -417,6 +417,93 @@ async function main() {
   console.log(`[prerender] Wrote ${STATIC_PAGES.length + SOLUTIONS.length} static page(s) with per-route meta`);
 
   writeSitemap(posts);
+  await writeLlmsTxt(posts);
+}
+
+// Case studies live in TypeScript for the React app. Load them through esbuild
+// (already a build dependency) so llms.txt never drifts from what the site shows.
+async function loadCaseStudies() {
+  const { transformSync } = await import("esbuild");
+  const src = fs.readFileSync(path.resolve(process.cwd(), "client/src/data/caseStudies.ts"), "utf-8");
+  const { code } = transformSync(src, { loader: "ts", format: "esm" });
+  const mod = await import(`data:text/javascript;base64,${Buffer.from(code).toString("base64")}`);
+  return mod.caseStudiesData ?? [];
+}
+
+// /llms.txt (https://llmstxt.org): a plain-markdown map of the site for AI
+// assistants and agents. /llms-full.txt adds the full case study and article
+// text so an agent can answer from one fetch.
+async function writeLlmsTxt(posts) {
+  let studies = [];
+  try {
+    studies = await loadCaseStudies();
+  } catch (err) {
+    console.warn(`[prerender] Could not load case studies for llms.txt (${err.message}) -- writing without them.`);
+  }
+  const published = posts.filter(isPublished);
+  const metricLine = (s) => s.metrics.map((m) => `${m.label}: ${m.value}`).join("; ");
+  const studyUrl = (s) => `${SITE_URL}/case-studies?study=${s.id}`;
+
+  const header = [
+    `# ${SITE_NAME}`,
+    "",
+    "> Restart Inc. is a technology and engineering firm that helps builders and operators turn complex workflows and product ideas into reliable, scalable systems, with senior technical ownership from architecture through production. Registered in Nigeria as Restart Integrated Systems Ltd.",
+    "",
+    "Engagements are scoped and time-boxed (audits, sprints, and builds), not open-ended retainers. The person who scopes a system is the person who builds it.",
+    "",
+  ];
+
+  const sections = [
+    "## Services",
+    ...SOLUTIONS.map((s) => `- [${s.title}](${SITE_URL}/solutions/${s.slug}): ${s.description}`),
+    "",
+    "## Case studies",
+    ...studies.map((s) => `- [${s.title}](${studyUrl(s)}): ${s.summary} (${metricLine(s)})`),
+    "",
+    "## Insights",
+    ...(published.length
+      ? published.map((p) => `- [${stripTags(p.title)}](${SITE_URL}/insights/${p.slug}): ${stripTags(p.excerpt || "").slice(0, 220)}`)
+      : [`- [All insights](${SITE_URL}/insights)`]),
+    "",
+    "## Company",
+    ...STATIC_PAGES.map((p) => `- [${p.title}](${SITE_URL}${p.route}): ${p.description}`),
+    "",
+    "## Optional",
+    `- [Full text](${SITE_URL}/llms-full.txt): Complete case studies and published articles in one file.`,
+    "",
+  ];
+
+  const full = [
+    ...header,
+    "## Case studies",
+    "",
+    ...studies.flatMap((s) => [
+      `### ${s.title}`,
+      `Source: ${studyUrl(s)}`,
+      `Client: ${s.client} | Type: ${s.type} | Stack: ${s.stack.join(", ")}`,
+      `Results: ${metricLine(s)}`,
+      "",
+      `Challenge: ${s.challenge}`,
+      "",
+      `Solution: ${s.solution}`,
+      "",
+      ...s.results.map((r) => `- ${r}`),
+      "",
+    ]),
+    "## Insights",
+    "",
+    ...published.flatMap((p) => [
+      `### ${stripTags(p.title)}`,
+      `Source: ${SITE_URL}/insights/${p.slug} | Published: ${formatDate(p.date)}`,
+      "",
+      stripTags(p.content.replace(/<\/(p|h[1-6]|li|blockquote)>/g, "\n\n")).replace(/\n{3,}/g, "\n\n"),
+      "",
+    ]),
+  ];
+
+  fs.writeFileSync(path.join(DIST_DIR, "llms.txt"), [...header, ...sections].join("\n"), "utf-8");
+  fs.writeFileSync(path.join(DIST_DIR, "llms-full.txt"), full.join("\n"), "utf-8");
+  console.log(`[prerender] Wrote llms.txt and llms-full.txt (${studies.length} case studies, ${published.length} articles)`);
 }
 
 function writeSitemap(posts) {
