@@ -231,7 +231,7 @@
    rather than fixed so it scrolls its own contents independently on short
    viewports without needing a separate scroll container for the page. */
 .console-sidebar{
-  width: 240px;
+  width: 264px;
   flex-shrink: 0;
   background: #050506;
   border-right: 1px solid rgba(255, 255, 255, 0.07);
@@ -2600,7 +2600,7 @@
 .ws-switcher-name{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; font-weight: 700; }
 .ws-switcher-tier{ color: #6e7485; font-size: 0.6875rem; }
 .ws-switcher-chevron{ flex-shrink: 0; color: #6e7485; }
-.ws-menu{ position: absolute; z-index: 200; left: 12px; top: calc(100% + 6px); width: max(100% - 24px, 240px); padding: 6px; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; background: #0d0e12; box-shadow: 0 18px 40px rgba(0,0,0,.55); }
+.ws-menu{ position: fixed; z-index: 300; max-height: calc(100vh - 24px); overflow-y: auto; padding: 6px; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; background: #0d0e12; box-shadow: 0 18px 40px rgba(0,0,0,.55); }
 .ws-menu-label{ display: block; padding: 8px 10px 6px; color: #6e7485; font-size: 0.75rem; font-weight: 600; }
 .ws-menu .workspace-search-box{ margin: 0 4px 6px; }
 .ws-menu-list{ max-height: 260px; overflow-y: auto; }
@@ -2618,4 +2618,18 @@
 .console-sidebar.collapsed .ws-switcher{ padding: 12px 8px 0; }
 .console-sidebar.collapsed .ws-switcher-btn{ justify-content: center; padding: 8px 0; }
 .console-sidebar.collapsed .ws-switcher-text, .console-sidebar.collapsed .ws-switcher-chevron{ display: none; }
-.console-sidebar.collapsed .ws-menu{ left: calc(100% - 4px); top: 12px; width: 260px; }
+
+/* --- Sidebar edge collapse toggle -------------------------------------------- */
+/* Above the sticky top bar (z 100) so the workspace flyout can overlap it. */
+@media (min-width: 769px){ .console-sidebar{ z-index: 110; } }
+.console-sidebar-mobile-head{ display: none; }
+.sidebar-edge-toggle{ position: fixed; z-index: 150; top: 20px; left: 252px; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; background: #0d0e12; color: #a6b2c8; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.5); transition: left .18s var(--ease-out), color .15s, border-color .15s, background .15s; }
+.sidebar-edge-toggle.collapsed{ left: 56px; }
+.sidebar-edge-toggle:hover{ color: #fff; border-color: rgba(46,229,193,.5); background: #13151a; }
+.sidebar-edge-toggle:focus-visible{ outline: 2px solid var(--teal); outline-offset: 2px; }
+.console-sidebar .ws-switcher{ padding-top: 14px; }
+@media (max-width: 768px){
+  .sidebar-edge-toggle{ display: none; }
+  .console-sidebar-mobile-head{ display: flex; justify-content: flex-end; padding: 12px 12px 0; }
+}
+@media (prefers-reduced-motion: reduce){ .sidebar-edge-toggle{ transition: none; } }

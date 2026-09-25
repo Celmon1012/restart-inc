@@ -20,8 +20,8 @@ import {
   Check,
   Building2,
   History,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronLeft,
+  ChevronRight,
   Search,
   Users,
   LifeBuoy,
@@ -140,6 +140,31 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
     setMobileSidebarOpen(false);
   }, [location]);
 
+  // The sidebar scrolls (overflow-y), which clips any absolutely positioned
+  // child that sticks out -- including the collapsed-rail flyout. So the menu is
+  // position: fixed and anchored to the switcher button's on-screen rect:
+  // below it when the sidebar is expanded, beside it when collapsed.
+  const [menuPos, setMenuPos] = useState<React.CSSProperties | null>(null);
+  const placeMenu = (btn: HTMLElement) => {
+    const r = btn.getBoundingClientRect();
+    const collapsed = btn.closest(".console-sidebar")?.classList.contains("collapsed") && window.innerWidth > 768;
+    setMenuPos(
+      collapsed
+        ? { top: r.top, left: r.right + 24, width: 260 } // clears the edge toggle
+        : { top: r.bottom + 6, left: r.left, width: r.width }
+    );
+  };
+
+  useEffect(() => {
+    if (!workspaceMenuOpen) return;
+    const close = () => {
+      setWorkspaceMenuOpen(false);
+      setWorkspaceSearch("");
+    };
+    window.addEventListener("resize", close);
+    return () => window.removeEventListener("resize", close);
+  }, [workspaceMenuOpen]);
+
   useEffect(() => {
     if (!workspaceMenuOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -195,23 +220,8 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
         <div className="console-sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)} />
       )}
       <aside className={`console-sidebar ${sidebarCollapsed ? "collapsed" : ""} ${mobileSidebarOpen ? "mobile-open" : ""}`}>
-        <div className="console-sidebar-brand-row">
-          <a href={MARKETING_URL} className="console-sidebar-brand" aria-label="Restart home">
-            {sidebarCollapsed ? (
-              <img src="/brand/restart-mark.png" alt="Restart Inc." className="console-sidebar-mark-img" />
-            ) : (
-              <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />
-            )}
-            <span className="dash-tag">CONSOLE</span>
-          </a>
-          <button
-            onClick={toggleSidebar}
-            className="console-sidebar-collapse-btn"
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {sidebarCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
-          </button>
+        {/* Mobile drawer only: the desktop collapse control is the edge toggle below. */}
+        <div className="console-sidebar-mobile-head">
           <button
             onClick={() => setMobileSidebarOpen(false)}
             className="console-sidebar-mobile-close"
@@ -223,7 +233,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
 
         <div className="ws-switcher" ref={workspaceMenuRef}>
           <button
-            onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
+            onClick={(e) => { if (!workspaceMenuOpen) placeMenu(e.currentTarget); setWorkspaceMenuOpen(!workspaceMenuOpen); }}
             className={`ws-switcher-btn ${workspaceMenuOpen ? "active" : ""}`}
             title={activeWorkspace?.name ?? "Switch workspace"}
             aria-haspopup="menu"
@@ -241,7 +251,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
           </button>
 
           {workspaceMenuOpen && (
-            <div className="ws-menu" role="menu">
+            <div className="ws-menu" role="menu" style={menuPos ?? undefined}>
               <span className="ws-menu-label">Workspace</span>
 
               {workspaces.length > 5 && (
@@ -370,6 +380,17 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
           </a>
         </div>
       </aside>
+      {/* Collapse control sits on the sidebar's right edge. It lives outside
+          <aside> because the sidebar scrolls (overflow-y), which would clip it. */}
+      <button
+        onClick={toggleSidebar}
+        className={`sidebar-edge-toggle ${sidebarCollapsed ? "collapsed" : ""}`}
+        title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-expanded={!sidebarCollapsed}
+      >
+        {sidebarCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+      </button>
 
       <div className="dash-content-col">
         <header className="dash-top-bar">
