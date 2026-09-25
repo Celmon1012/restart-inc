@@ -5,15 +5,17 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
-  Check,
   CheckCircle2,
-  ChevronLeft,
+  Menu,
+  X,
   Loader2,
   ShieldCheck,
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 import { track, FUNNEL, STEP_NAMES } from "@/lib/analytics";
+import { CONSOLE_URL } from "@/lib/site";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 /* ------------------------------------------------------------------ *
  * Intake model
@@ -188,6 +190,38 @@ function scoreLead(input: {
   return { score: capped, band };
 }
 
+/** A single-choice question as selectable cards, styled like the scorecard. */
+function OptionCards({
+  legend,
+  name,
+  options,
+  value,
+  onChange,
+  note,
+}: {
+  legend: string;
+  name: string;
+  options: readonly string[];
+  value: string;
+  onChange: (v: string) => void;
+  note?: string;
+}) {
+  return (
+    <fieldset className="scorecard-question">
+      <legend>{legend}</legend>
+      <div className="scorecard-options">
+        {options.map((o) => (
+          <label key={o} className={value === o ? "selected" : undefined}>
+            <input type="radio" name={name} checked={value === o} onChange={() => onChange(o)} />
+            <span>{o}</span>
+          </label>
+        ))}
+      </div>
+      {note && <p className="sp-note">{note}</p>}
+    </fieldset>
+  );
+}
+
 export default function StartProject() {
   // Funnel reporting.
   //
@@ -239,7 +273,12 @@ export default function StartProject() {
   // Honeypot: never shown to a person, never focusable, never autofilled.
   const [trap, setTrap] = useState("");
 
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const session = useAuthSession();
+  const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
+  const consoleLabel = session ? "Dashboard" : "Console Login";
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [referenceId, setReferenceId] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -353,6 +392,21 @@ export default function StartProject() {
     });
     setStep((s) => Math.min(3, s + 1));
   };
+
+  // After a step change (not on first load), move focus to the new step's
+  // heading and bring it back into view, as the scorecard does.
+  const firstStepRender = useRef(true);
+  useEffect(() => {
+    if (firstStepRender.current) {
+      firstStepRender.current = false;
+      return;
+    }
+    const el = stepHeadingRef.current;
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - 140;
+    if (window.scrollY > top) window.scrollTo({ top, behavior: "smooth" });
+    el.focus({ preventScroll: true });
+  }, [step]);
 
   const goBack = () => {
     setStepError(null);
@@ -468,539 +522,229 @@ export default function StartProject() {
   };
 
   return (
-    <div className="squeeze-page-shell">
-      {/* Distraction-Free Header */}
-      <header className="squeeze-header container">
-        <Link href="/" className="logo-link">
+    <div className="page-shell">
+      {/* Header Navigation */}
+      <header className="site-header">
+        <Link href="/" className="site-logo" aria-label="Restart home">
           <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />
         </Link>
-        <div className="squeeze-trust-pill">
-          <ShieldCheck size={13} className="text-teal" />
-          <span>Senior Engineering Pod · Production Reliability Targets</span>
+        <nav className={menuOpen ? "open" : ""}>
+          <Link href="/#platform" onClick={() => setMenuOpen(false)}>
+            <span>PLATFORM</span>
+            <span className="nav-indicator" />
+          </Link>
+          <Link href="/#solutions" onClick={() => setMenuOpen(false)}>
+            <span>SOLUTIONS</span>
+            <span className="nav-indicator" />
+          </Link>
+          <Link href="/#work" onClick={() => setMenuOpen(false)}>
+            <span>WAYS TO ENGAGE</span>
+            <span className="nav-indicator" />
+          </Link>
+          <Link href="/case-studies" className={location.startsWith("/case-studies") ? "active" : ""} onClick={() => setMenuOpen(false)}>
+            <span>PROOF</span>
+            <span className="nav-indicator" />
+          </Link>
+          <Link href="/insights" className={location.startsWith("/insights") ? "active" : ""} onClick={() => setMenuOpen(false)}>
+            <span>INSIGHTS</span>
+            <span className="nav-indicator" />
+          </Link>
+          <Link href="/about" onClick={() => setMenuOpen(false)}>
+            <span>ABOUT</span>
+            <span className="nav-indicator" />
+          </Link>
+          <div className="mobile-nav-actions">
+            <a href={consoleHref}>{consoleLabel}</a>
+            <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
+          </div>
+        </nav>
+        <div className="header-actions">
+          <a href={consoleHref} className="login-link">{consoleLabel}</a>
+          <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
+          <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
+            {menuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
         </div>
-        <Link href="/" className="squeeze-back-link">
-          <ArrowLeft size={14} /> Back to Overview
-        </Link>
       </header>
 
-      <main className="squeeze-main container">
-        <div className="squeeze-grid">
-          {/* Left Column: Authority, Value Proposition & Track Record */}
-          <div className="squeeze-pitch">
-            <span className="section-label teal">START A PROJECT</span>
-            <h1>
-              Build the system <span>your next stage depends on.</span>
-            </h1>
-            <p className="squeeze-subheading">
-              Tell us what you're building, where it's under pressure, and what needs to change. Three
-              short steps — and a senior engineer reads it, not a sales queue.
-            </p>
+      <main className="scorecard-main container">
+        <header className="scorecard-intro">
+          <span className="section-label teal">START A PROJECT · 3 STEPS</span>
+          <h1>Tell us what you're <span>building</span></h1>
+          <p>
+            Where it's under pressure, what needs to change, and how to reach you. A senior engineer reads every
+            brief and replies within one business day, not a sales queue.
+          </p>
+        </header>
 
-            {/* 3 Core Commitments */}
-            <div className="squeeze-commitments">
-              <div className="commitment-card">
-                <span className="commitment-num">01</span>
-                <div>
-                  <h4>Senior Technical Ownership</h4>
-                  <p>
-                    Lead architects and veteran systems engineers write and review your core
-                    infrastructure—never outsourced or passed to juniors.
-                  </p>
-                </div>
-              </div>
-              <div className="commitment-card">
-                <span className="commitment-num">02</span>
-                <div>
-                  <h4>Zero-Downtime Migration Practices</h4>
-                  <p>
-                    Idempotent migrations, parallel replication, and health probes ensure your business
-                    operations never miss a beat.
-                  </p>
-                </div>
-              </div>
-              <div className="commitment-card">
-                <span className="commitment-num">03</span>
-                <div>
-                  <h4>Clear Time-Boxed Deliverables</h4>
-                  <p>
-                    Scoped 2-week to 12-week milestones with transparent commercial terms and weekly
-                    verifiable production releases.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Reassurance Footer */}
-            <div className="squeeze-reassurance-box">
-              <div className="reassurance-row">
-                <Check size={14} className="text-teal" />
-                <span>Privacy-Conscious Engineering Standards (NDPA &amp; GDPR Aligned)</span>
-              </div>
-              <div className="reassurance-row">
-                <Check size={14} className="text-teal" />
-                <span>Standard Mutual NDA Executed Prior to Deep Architectural Disclosure</span>
-              </div>
-              <div className="reassurance-row">
-                <Check size={14} className="text-teal" />
-                <span>Direct Response from Technical Leadership within 24 Hours</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Project Intake Form */}
-          <div className="squeeze-form-card">
-            {status === "success" ? (
-              <div className="squeeze-success-state">
-                <div className="success-icon-badge">
-                  <CheckCircle2 size={38} className="text-teal" />
-                </div>
-                <h2>We've got it.</h2>
+        {status === "success" ? (
+          <section className="scorecard-result sp-success" aria-labelledby="sp-success-title">
+            <div className="scorecard-score">
+              <CheckCircle2 size={44} className="text-teal" />
+              <div>
+                <h2 id="sp-success-title">We've got it.</h2>
                 <p>
-                  Your information will be reviewed by senior engineering leadership. We'll respond with
-                  whether there's a fit and the clearest next step — not a generic sales sequence.
+                  A senior engineer will review your brief and reply with whether there's a fit and the clearest next
+                  step. Your reference is <strong className="sp-ref">{referenceId}</strong>.
                 </p>
-
-                <div className="success-ref-card">
-                  <span className="ref-label">SYSTEM REFERENCE ID</span>
-                  <span className="ref-code">{referenceId}</span>
-                  <span className="ref-sub">Keep this code for direct communication</span>
-                </div>
-
-                <div className="success-summary">
-                  <div>
-                    <small>FOCUS AREA</small>
-                    <strong>{selectedObjective.split(" — ")[0]}</strong>
-                  </div>
-                  <div>
-                    <small>INVESTMENT</small>
-                    <strong>
-                      {budgetOptions.find((b) => b.label === selectedBudget)?.tier ?? "—"}
-                    </strong>
-                  </div>
-                  <div>
-                    <small>TARGET TIMELINE</small>
-                    <strong>{selectedTimeline}</strong>
-                  </div>
-                  <div>
-                    <small>DELIVERY SLA</small>
-                    <strong>24h Review Guarantee</strong>
-                  </div>
-                </div>
-
-                <div className="success-next-steps">
-                  <h4>WHAT HAPPENS NEXT</h4>
-                  <ul>
-                    <li>
-                      <Check size={13} />
-                      <span>
-                        <strong>24-Hour Technical Assessment:</strong> A senior partner reviews your stack
-                        requirements and bottlenecks.
-                      </span>
-                    </li>
-                    <li>
-                      <Check size={13} />
-                      <span>
-                        <strong>Architecture Discovery Call:</strong> 30-minute focused working session to
-                        scope boundaries and milestones.
-                      </span>
-                    </li>
-                    <li>
-                      <Check size={13} />
-                      <span>
-                        <strong>Fixed-Scope Proposal:</strong> Clear milestone timeline, technical
-                        architecture specification, and commercial terms.
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="success-actions">
-                  <button className="button solid" onClick={() => setStatus("idle")}>
-                    Submit Another Project
-                  </button>
-                  <Link href="/" className="button outline">
-                    Back to Home
-                  </Link>
-                </div>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="squeeze-form" noValidate>
-                <div className="squeeze-form-header form-header">
-                  <h3>{STEPS[step - 1].title}</h3>
-                  <p>
-                    {step === 1 && "Start with the problem. Detail here is what earns a straight answer."}
-                    {step === 2 && "What's at risk, and who decides. This sets the priority."}
-                    {step === 3 && "Last step — scope, and how to reach you."}
-                  </p>
-                </div>
+            </div>
 
-                {/* Progress: position and total effort shown up front */}
-                <ol className="sp-progress" aria-label="Form progress">
-                  {STEPS.map((s) => (
-                    <li
-                      key={s.id}
-                      className={`sp-progress-step ${step === s.id ? "active" : ""} ${
-                        step > s.id ? "done" : ""
-                      }`}
-                      aria-current={step === s.id ? "step" : undefined}
-                    >
-                      <span className="sp-progress-kicker">
-                        {step > s.id ? <Check size={10} /> : s.kicker}
+            <div className="sp-summary">
+              <div><small>Focus area</small><strong>{selectedObjective.split(" — ")[0]}</strong></div>
+              <div><small>Investment</small><strong>{budgetOptions.find((b) => b.label === selectedBudget)?.tier ?? "—"}</strong></div>
+              <div><small>Timing</small><strong>{selectedTimeline}</strong></div>
+            </div>
+
+            <h3>What happens next</h3>
+            <div className="scorecard-steps sp-next">
+              <div><span>Within one business day</span><p>A senior engineer reviews your brief and replies directly.</p></div>
+              <div><span>Discovery call</span><p>A focused 30-minute working session to scope boundaries and milestones.</p></div>
+              <div><span>Fixed-scope proposal</span><p>Milestones, architecture, and commercial terms in writing.</p></div>
+            </div>
+
+            <div className="scorecard-cta">
+              <div />
+              <div className="scorecard-cta-actions">
+                <Link href="/" className="button outline">Back to home</Link>
+                <button className="button solid" onClick={() => setStatus("idle")}>Start another brief</button>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <form onSubmit={handleSubmit} className="scorecard-stepper" noValidate>
+            <div className="scorecard-progress" role="status" aria-live="polite">
+              <ol className="scorecard-segments" aria-hidden="true">
+                {STEPS.map((s) => (
+                  <li key={s.id} className={step > s.id ? "done" : step === s.id ? "current" : undefined} />
+                ))}
+              </ol>
+              <span>Step {step} of {STEPS.length}</span>
+            </div>
+
+            <section className="scorecard-area" aria-labelledby={`sp-step-${step}`}>
+              <h2 id={`sp-step-${step}`} tabIndex={-1} ref={stepHeadingRef}>
+                <span>{STEPS[step - 1].kicker}</span>{STEPS[step - 1].title}
+              </h2>
+
+              {step === 1 && (
+                <>
+                  <OptionCards legend="What are you trying to accomplish?" name="objective" options={objectives.map((o) => o.label)} value={selectedObjective} onChange={setSelectedObjective} />
+                  <OptionCards legend="Which describes the system today?" name="stage" options={systemStages} value={selectedSystemStage} onChange={setSelectedSystemStage} />
+                  <OptionCards legend="What's the main constraint right now?" name="constraint" options={constraints} value={selectedConstraint} onChange={setSelectedConstraint} />
+                  <fieldset className="scorecard-question">
+                    <legend>Describe the workflow, product, or system you want to change.</legend>
+                    <textarea
+                      rows={6}
+                      aria-label="Project brief"
+                      placeholder="What does the system do today, who relies on it, and where does the current approach break down? Name the part that's hardest to operate, change, or trust — and what you've already tried."
+                      value={projectBrief}
+                      onChange={(e) => setProjectBrief(e.target.value)}
+                      className="sp-field"
+                    />
+                    <div className={`sp-meter ${briefReady ? "ok" : ""}`}>
+                      <span className="sp-meter-bar">
+                        <span className="sp-meter-fill" style={{ width: `${Math.min(100, (briefWords / 90) * 100)}%` }} />
                       </span>
-                      <span className="sp-progress-label">{s.title}</span>
-                    </li>
-                  ))}
-                </ol>
-
-                {step === 1 && (
-                  <>
-                    <div className="form-group">
-                      <label>What are you trying to accomplish? *</label>
-                      <select
-                        value={selectedObjective}
-                        onChange={(e) => setSelectedObjective(e.target.value)}
-                        className="form-select"
-                      >
-                        {objectives.map((o) => (
-                          <option key={o.id} value={o.label}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
+                      <span className="sp-meter-text">
+                        {briefReady
+                          ? `${briefWords} words — specific enough to assess`
+                          : `${projectBrief.trim().length} / ${MIN_BRIEF_CHARS} characters minimum`}
+                      </span>
                     </div>
+                  </fieldset>
+                </>
+              )}
 
-                    <div className="form-row-two">
-                      <div className="form-group">
-                        <label>Which describes the system today? *</label>
-                        <select
-                          value={selectedSystemStage}
-                          onChange={(e) => setSelectedSystemStage(e.target.value)}
-                          className="form-select"
-                        >
-                          {systemStages.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label>What's the main constraint right now? *</label>
-                        <select
-                          value={selectedConstraint}
-                          onChange={(e) => setSelectedConstraint(e.target.value)}
-                          className="form-select"
-                        >
-                          {constraints.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+              {step === 2 && (
+                <>
+                  <fieldset className="scorecard-question">
+                    <legend>What would a successful engagement change? <em className="sp-legend-note">Select all that apply</em></legend>
+                    <div className="scorecard-options">
+                      {outcomeOptions.map((opt) => {
+                        const on = selectedOutcomes.includes(opt);
+                        return (
+                          <label key={opt} className={on ? "selected" : undefined}>
+                            <input type="checkbox" checked={on} onChange={() => toggleOutcome(opt)} />
+                            <span>{opt}</span>
+                          </label>
+                        );
+                      })}
                     </div>
+                  </fieldset>
+                  <fieldset className="scorecard-question">
+                    <legend>If this works, what will be measurably different in 3–12 months?</legend>
+                    <input
+                      type="text"
+                      aria-label="Measurable impact"
+                      placeholder="e.g. Zero unplanned downtime during peak volume, 30% lower infrastructure spend"
+                      value={impactMetric}
+                      onChange={(e) => setImpactMetric(e.target.value)}
+                      className="sp-field"
+                    />
+                  </fieldset>
+                  <OptionCards legend="What's the cost of leaving this unresolved?" name="urgency" options={urgencyOptions.map((u) => u.label)} value={selectedUrgency} onChange={setSelectedUrgency} />
+                  <OptionCards legend="Who owns this decision?" name="role" options={decisionRoles.map((r) => r.label)} value={selectedRole} onChange={setSelectedRole} />
+                </>
+              )}
 
-                    <div className="form-group">
-                      <label>Describe the workflow, product, or system you want to change. *</label>
-                      <textarea
-                        rows={6}
-                        placeholder="What does the system do today, who relies on it, and where does the current approach break down? Name the part that's hardest to operate, change, or trust — and what you've already tried."
-                        value={projectBrief}
-                        onChange={(e) => setProjectBrief(e.target.value)}
-                        className="form-textarea"
-                      />
-                      <div className={`sp-meter ${briefReady ? "ok" : ""}`}>
-                        <span className="sp-meter-bar">
-                          <span
-                            className="sp-meter-fill"
-                            style={{ width: `${Math.min(100, (briefWords / 90) * 100)}%` }}
-                          />
-                        </span>
-                        <span className="sp-meter-text">
-                          {briefReady
-                            ? `${briefWords} words — specific enough to assess`
-                            : `${projectBrief.trim().length} / ${MIN_BRIEF_CHARS} characters minimum`}
-                        </span>
-                      </div>
+              {step === 3 && (
+                <>
+                  <OptionCards legend="Desired timing" name="timeline" options={timelineOptions.map((t) => t.label)} value={selectedTimeline} onChange={setSelectedTimeline} />
+                  <OptionCards legend="Investment range" name="budget" options={budgetOptions.map((b) => b.label)} value={selectedBudget} onChange={setSelectedBudget} note="Engagements start at $25,000. Naming a range now saves a round trip — it isn't a commitment." />
+                  <fieldset className="scorecard-question">
+                    <legend>How do we reach you?</legend>
+                    <div className="sp-fields">
+                      <label><span>Your name *</span><input type="text" placeholder="e.g. Alex Vance" value={name} onChange={(e) => setName(e.target.value)} className="sp-field" autoComplete="name" /></label>
+                      <label><span>Work email *</span><input type="email" placeholder="alex@company.com" value={email} onChange={(e) => setEmail(e.target.value)} className="sp-field" autoComplete="email" /></label>
+                      <label><span>Company</span><input type="text" placeholder="e.g. Acme Global Logistics" value={company} onChange={(e) => setCompany(e.target.value)} className="sp-field" autoComplete="organization" /></label>
+                      <label><span>Website <em>(optional)</em></span><input type="text" placeholder="e.g. acmelogistics.com" value={website} onChange={(e) => setWebsite(e.target.value)} className="sp-field" autoComplete="url" /></label>
                     </div>
-                  </>
-                )}
+                  </fieldset>
+                  <OptionCards legend="How did you hear about us?" name="referral" options={referralSources} value={referral} onChange={setReferral} />
 
-                {step === 2 && (
-                  <>
-                    <div className="form-group">
-                      <label>What would a successful engagement change? *</label>
-                      <div className="form-chip-group">
-                        {outcomeOptions.map((opt) => (
-                          <button
-                            type="button"
-                            key={opt}
-                            className={`form-chip ${selectedOutcomes.includes(opt) ? "active" : ""}`}
-                            onClick={() => toggleOutcome(opt)}
-                            aria-pressed={selectedOutcomes.includes(opt)}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="form-group">
-                      <label>If this works, what will be measurably different in 3–12 months? *</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Zero unplanned downtime during peak volume, 30% lower infrastructure spend"
-                        value={impactMetric}
-                        onChange={(e) => setImpactMetric(e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>What's the cost of leaving this unresolved? *</label>
-                      <select
-                        value={selectedUrgency}
-                        onChange={(e) => setSelectedUrgency(e.target.value)}
-                        className="form-select"
-                      >
-                        {urgencyOptions.map((u) => (
-                          <option key={u.label} value={u.label}>
-                            {u.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Who owns this decision? *</label>
-                      <select
-                        value={selectedRole}
-                        onChange={(e) => setSelectedRole(e.target.value)}
-                        className="form-select"
-                      >
-                        {decisionRoles.map((r) => (
-                          <option key={r.label} value={r.label}>
-                            {r.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </>
-                )}
-
-                {step === 3 && (
-                  <>
-                    <div className="form-row-two">
-                      <div className="form-group">
-                        <label>Desired timing *</label>
-                        <select
-                          value={selectedTimeline}
-                          onChange={(e) => setSelectedTimeline(e.target.value)}
-                          className="form-select"
-                        >
-                          {timelineOptions.map((t) => (
-                            <option key={t.label} value={t.label}>
-                              {t.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label>Investment range *</label>
-                        <select
-                          value={selectedBudget}
-                          onChange={(e) => setSelectedBudget(e.target.value)}
-                          className="form-select"
-                        >
-                          {budgetOptions.map((b) => (
-                            <option key={b.label} value={b.label}>
-                              {b.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <p className="sp-hint">
-                      Engagements start at $25,000. Naming a range now saves a round trip — it isn't a
-                      commitment.
-                    </p>
-
-                    <div className="form-row-two">
-                      <div className="form-group">
-                        <label>Your Name *</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Alex Vance"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          className="form-input"
-                          autoComplete="name"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Work Email *</label>
-                        <input
-                          type="email"
-                          placeholder="alex@company.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="form-input"
-                          autoComplete="email"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="form-row-two">
-                      <div className="form-group">
-                        <label>Company / Organization</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Acme Global Logistics"
-                          value={company}
-                          onChange={(e) => setCompany(e.target.value)}
-                          className="form-input"
-                          autoComplete="organization"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Company Website (optional)</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. acmelogistics.com"
-                          value={website}
-                          onChange={(e) => setWebsite(e.target.value)}
-                          className="form-input"
-                          autoComplete="url"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="form-group">
-                      <label>How did you hear about us?</label>
-                      <select
-                        value={referral}
-                        onChange={(e) => setReferral(e.target.value)}
-                        className="form-select"
-                      >
-                        {referralSources.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Honeypot: hidden from people, tempting to bots */}
-                    <div className="sp-honeypot" aria-hidden="true">
-                      <label htmlFor="sp-company-fax">Company fax number</label>
-                      <input
-                        id="sp-company-fax"
-                        type="text"
-                        tabIndex={-1}
-                        autoComplete="off"
-                        value={trap}
-                        onChange={(e) => setTrap(e.target.value)}
-                      />
-                    </div>
-                  </>
-                )}
-
-                {(stepError || error) && (
-                  <div className="form-error-banner" role="alert">
-                    {stepError ?? error}
+                  {/* Honeypot: hidden from people, tempting to bots */}
+                  <div className="sp-honeypot" aria-hidden="true">
+                    <label htmlFor="sp-company-fax">Company fax number</label>
+                    <input id="sp-company-fax" type="text" tabIndex={-1} autoComplete="off" value={trap} onChange={(e) => setTrap(e.target.value)} />
                   </div>
-                )}
+                </>
+              )}
+            </section>
 
-                <div className="form-footer-stacked">
-                  <div className="sp-nav">
-                    {step > 1 && (
-                      <button type="button" className="sp-back-btn" onClick={goBack}>
-                        <ChevronLeft size={15} />
-                        <span>Back</span>
-                      </button>
-                    )}
-                    <button
-                      type={step < 3 ? "button" : "submit"}
-                      onClick={step < 3 ? goNext : undefined}
-                      disabled={status === "submitting"}
-                      className="button solid submit-btn-full sp-next-btn"
-                    >
-                      {status === "submitting" ? (
-                        <>
-                          <Loader2 size={15} className="animate-spin" />
-                          <span>Sending project context...</span>
-                        </>
-                      ) : step < 3 ? (
-                        <>
-                          <span>Continue</span>
-                          <ArrowRight size={15} />
-                        </>
-                      ) : (
-                        <>
-                          <span>Send project context</span>
-                          <ArrowUpRight size={15} />
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  <div className="form-confidentiality-note">
-                    <ShieldCheck size={14} className="text-teal" />
-                    <span>Confidential. Reviewed directly by senior engineering leadership.</span>
-                  </div>
-                </div>
-              </form>
+            {(stepError || error) && (
+              <div className="sp-error" role="alert">{stepError ?? error}</div>
             )}
-          </div>
-        </div>
+
+            <div className="scorecard-nav">
+              {step > 1 ? (
+                <button type="button" className="button outline" onClick={goBack}>
+                  <ArrowLeft size={15} /> Back
+                </button>
+              ) : <span />}
+              <div className="scorecard-nav-next">
+                <span className="sp-confidential"><ShieldCheck size={14} className="text-teal" /> Confidential. Read by senior engineers.</span>
+                <button
+                  type={step < 3 ? "button" : "submit"}
+                  onClick={step < 3 ? goNext : undefined}
+                  disabled={status === "submitting"}
+                  className="button solid"
+                >
+                  {status === "submitting" ? (
+                    <><Loader2 size={15} className="animate-spin" /> Sending…</>
+                  ) : step < 3 ? (
+                    <>Next: {STEPS[step].title} <ArrowRight size={15} /></>
+                  ) : (
+                    <>Send project brief <ArrowUpRight size={15} /></>
+                  )}
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
       </main>
 
-      <footer className="site-footer">
-        <div className="container footer-grid">
-          <div className="footer-brand">
-            <Link href="/" className="site-logo">
-              <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />
-            </Link>
-            <p>Engineering systems your growth depends on.</p>
-            <div className="footer-brand-contact">
-              <a href="mailto:hello@restart.ng">hello@restart.ng</a>
-              <a href="tel:+2349060114747">+234 906 011 4747</a>
-            </div>
-          </div>
-          <div>
-            <strong>PLATFORM</strong>
-            <Link href="/#platform">Platform</Link>
-            <Link href="/#solutions">Solutions</Link>
-            <Link href="/#case-studies">Case Studies</Link>
-            <Link href="/#insights">Insights</Link>
-          </div>
-          <div>
-            <strong>COMPANY</strong>
-            <Link href="/about">About</Link>
-            <Link href="/contact">Contact</Link>
-            <Link href="/careers">Careers</Link>
-          </div>
-          <div>
-            <strong>CONNECT</strong>
-            <a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">
-              LinkedIn <ArrowUpRight size={12} />
-            </a>
-            <a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">
-              GitHub <ArrowUpRight size={12} />
-            </a>
-            <Link href="/start-project" className="footer-text-btn">
-              Book an intro <ArrowUpRight size={12} />
-            </Link>
-          </div>
-        </div>
-        <div className="container footer-bottom">
-          <span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span>
-          <span>
-            <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/terms">Terms of Service</Link><button type="button" className="footer-cookie-btn" onClick={openCookieSettings}>Cookie settings</button>
-          </span>
-        </div>
-      </footer>
+      <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" /></Link><p>Engineering systems your growth depends on.</p><div className="footer-brand-contact"><a href="mailto:hello@restart.ng">hello@restart.ng</a><a href="tel:+2349060114747">+234 906 011 4747</a></div></div><div><strong>PLATFORM</strong><Link href="/#platform">Platform</Link><Link href="/#solutions">Solutions</Link><Link href="/#case-studies">Case Studies</Link><Link href="/#insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/careers">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/privacy">Privacy Policy</Link><Link href="/terms">Terms of Service</Link><button type="button" className="footer-cookie-btn" onClick={openCookieSettings}>Cookie settings</button></span></div></footer>
     </div>
   );
 }

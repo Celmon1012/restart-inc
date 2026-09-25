@@ -1433,3 +1433,29 @@
 .cpv-ws-text{ display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .cpv-ws-text b{ color: #f2f5ff; font-size: 0.8125rem; font-weight: 700; white-space: nowrap; }
 .cpv-ws-text small{ font-size: 0.6875rem; }
+
+/* --- Start a Project, in the scorecard layout ---------------------------------- */
+.sp-field{ display: block; width: 100%; padding: 11px 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; background: #0b0b0f; color: #f2f5ff; font: inherit; font-size: 0.9375rem; line-height: 1.55; }
+.sp-field:focus{ outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(46,229,193,.15); }
+textarea.sp-field{ resize: vertical; min-height: 140px; }
+.scorecard-question > .sp-field, .scorecard-question > textarea.sp-field{ clear: both; }
+.scorecard-question .sp-meter{ margin-top: 10px; }
+.sp-fields{ clear: both; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sp-fields label{ display: flex; flex-direction: column; gap: 6px; }
+.sp-fields label > span{ color: #c4c9d6; font-size: 0.8125rem; font-weight: 600; }
+.sp-fields label em{ color: #6e7485; font-style: normal; font-weight: 400; }
+.sp-legend-note{ margin-left: 6px; color: #6e7485; font-size: 0.8125rem; font-style: normal; font-weight: 400; }
+.sp-note{ clear: both; margin: 12px 0 0; color: #6e7485; font-size: 0.8125rem; line-height: 1.55; }
+.sp-error{ margin-top: 16px; padding: 12px 14px; border: 1px solid rgba(229,176,97,.35); border-radius: 8px; background: rgba(229,176,97,.07); color: var(--amber); font-size: 0.875rem; }
+.sp-confidential{ display: inline-flex; align-items: center; gap: 6px; color: #6e7485; font-size: 0.8125rem; }
+.sp-summary{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 24px 0 28px; }
+.sp-summary > div{ padding: 14px 16px; border: 1px solid rgba(255,255,255,.07); border-radius: 10px; background: rgba(255,255,255,.02); }
+.sp-summary small{ display: block; color: #6e7485; font-size: 0.75rem; }
+.sp-summary strong{ display: block; margin-top: 4px; color: #f2f5ff; font-size: 0.9375rem; }
+.sp-ref{ color: var(--teal); font-variant-numeric: tabular-nums; }
+.sp-next > div{ border-left-color: var(--teal); }
+.sp-next span{ color: var(--teal); }
+@media (max-width: 720px){
+  .sp-fields, .sp-summary{ grid-template-columns: 1fr; }
+  .sp-confidential{ justify-content: center; }
+}
