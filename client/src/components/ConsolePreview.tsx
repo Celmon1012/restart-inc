@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, Bell, ChevronDown, Clock, CreditCard, History, Key, LayoutGrid, LifeBuoy, Server, Settings, Shield, Terminal, User } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Bell, ChevronsUpDown, Clock, CreditCard, History, Key, LayoutGrid, LifeBuoy, Server, Settings, Shield, Terminal, User } from "lucide-react";
 
 /* ------------------------------------------------------------------
  * Hero preview of the Restart Console. Uses the same markup and .cp-*
@@ -37,6 +37,7 @@ export default function ConsolePreview({ href }: { href: string }) {
       <div className="console-preview-frame" role="img" aria-label="Restart Console: systems overview with health, delivery progress, and deployment activity">
         <aside className="cpv-side">
           <div className="cpv-brand"><img src="/brand/restart-logo.svg" alt="" /><span>CONSOLE</span></div>
+          <div className="cpv-ws"><span className="cpv-ws-avatar">A<i /></span><span className="cpv-ws-text"><b>Acme Operations</b><small>Pro</small></span><ChevronsUpDown size={14} /></div>
           <div className="cpv-nav">
             {NAV.map(({ label, icon: Icon, active }) => (
               <span key={label} className={active ? "active" : undefined}><Icon size={15} />{label}</span>
@@ -50,7 +51,6 @@ export default function ConsolePreview({ href }: { href: string }) {
           <div className="cpv-top">
             <div className="cp-tabs"><a className="active">Overview</a><a>Systems</a><a>Delivery</a></div>
             <div className="cpv-top-right">
-              <span className="cpv-org"><i />Acme Operations<em>Pro</em><ChevronDown size={12} /></span>
               <span className="cpv-icon"><Bell size={15} /></span>
               <span className="cpv-cta">Start a Project <ArrowUpRight size={13} /></span>
               <span className="cpv-icon"><User size={14} /></span>

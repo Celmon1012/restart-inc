@@ -1256,10 +1256,6 @@
 .cpv-main{ display: flex; flex-direction: column; min-width: 0; }
 .cpv-top{ display: flex; align-items: center; justify-content: space-between; height: 64px; padding: 0 28px; border-bottom: 1px solid rgba(255,255,255,.07); }
 .cpv-top-right{ display: flex; align-items: center; gap: 12px; }
-.cpv-org{ display: flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; color: #e6e9f2; font-size: 0.8125rem; font-weight: 600; }
-.cpv-org i{ width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 8px var(--teal); }
-.cpv-org em{ padding: 1px 6px; border-radius: 4px; background: rgba(46,229,193,.1); color: var(--teal); font-size: 0.6875rem; font-style: normal; }
-.cpv-org svg{ color: #6e7485; }
 .cpv-icon{ display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; color: #a6b2c8; }
 .cpv-cta{ display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; background: var(--teal); color: #04120e; font-size: 0.8125rem; font-weight: 700; }
 .cpv-body{ padding: 28px; }
@@ -1418,3 +1414,26 @@
 .spin{ animation: spin 1s linear infinite; }
 @keyframes spin{ to{ transform: rotate(360deg); } }
 @media (max-width: 720px){ .scorecard-form{ grid-template-columns: 1fr; } }
+.scorecard-segments{ display: flex; flex: 1; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.scorecard-segments li{ flex: 1; height: 6px; border-radius: 6px; background: rgba(255,255,255,.08); transition: background .25s; }
+.scorecard-segments li.done{ background: var(--teal); }
+.scorecard-segments li.current{ background: linear-gradient(90deg, var(--teal), rgba(46,229,193,.35)); }
+.scorecard-area h2:focus{ outline: none; }
+.scorecard-area h2:focus-visible{ outline: 2px solid var(--teal); outline-offset: 4px; border-radius: 4px; }
+.scorecard-stepper .scorecard-area{ margin-top: 28px; animation: cc-in .3s var(--ease-out) both; }
+.scorecard-nav{ display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 24px; }
+.scorecard-nav-next{ display: flex; align-items: center; gap: 14px; color: #6e7485; font-size: 0.875rem; }
+.scorecard-nav .button:disabled{ opacity: .45; cursor: not-allowed; }
+.scorecard-stepper + .scorecard-result, .scorecard-result:first-of-type{ margin-top: 40px; }
+@media (max-width: 720px){
+  .scorecard-nav{ flex-direction: column-reverse; align-items: stretch; }
+  .scorecard-nav-next{ flex-direction: column; align-items: stretch; text-align: center; }
+  .scorecard-nav .button{ justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce){ .scorecard-stepper .scorecard-area{ animation: none; } }
+.cpv-ws{ display: flex; align-items: center; gap: 10px; margin: 12px 12px 0; padding: 8px 10px; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; background: rgba(255,255,255,.02); color: #6e7485; }
+.cpv-ws-avatar{ position: relative; flex-shrink: 0; display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; background: #111217; color: #e6e9f2; font-size: 0.75rem; font-weight: 700; }
+.cpv-ws-avatar i{ position: absolute; right: -3px; bottom: -3px; width: 8px; height: 8px; border: 2px solid #050507; border-radius: 50%; background: var(--teal); }
+.cpv-ws-text{ display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.cpv-ws-text b{ color: #f2f5ff; font-size: 0.8125rem; font-weight: 700; white-space: nowrap; }
+.cpv-ws-text small{ font-size: 0.6875rem; }

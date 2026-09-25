@@ -3,11 +3,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { ArrowRight, ArrowUpRight, CheckCircle2, Loader2, Menu, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, Loader2, Menu, RotateCcw, X } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 import { track } from "@/lib/analytics";
-import { SCORE_AREAS, TOTAL_QUESTIONS, bandFor } from "@/data/scorecard";
+import { SCORE_AREAS, bandFor } from "@/data/scorecard";
 
 export default function Scorecard() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -29,8 +29,31 @@ export default function Scorecard() {
     return () => resetSeoToDefault();
   }, []);
 
-  const answered = Object.keys(answers).length;
-  const complete = answered === TOTAL_QUESTIONS;
+  const [step, setStep] = useState(0);
+  const stepperRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const area = SCORE_AREAS[step];
+  const isLast = step === SCORE_AREAS.length - 1;
+  const stepComplete = area.questions.every((q) => answers[q.id] !== undefined);
+
+  const goTo = (next: number) => {
+    setStep(next);
+    track("scorecard_step", { step: next + 1, area: SCORE_AREAS[next].id });
+  };
+
+  // After a step change (not on first load), move keyboard/screen-reader focus
+  // to the new step's heading and bring the stepper back into view, since the
+  // content above it doesn't change.
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    const top = (stepperRef.current?.getBoundingClientRect().top ?? 0) + window.scrollY - 96;
+    if (window.scrollY > top) window.scrollTo({ top, behavior: "smooth" });
+    headingRef.current?.focus({ preventScroll: true });
+  }, [step]);
 
   const result = useMemo(() => {
     const areas = SCORE_AREAS.map((a) => {
@@ -59,6 +82,7 @@ export default function Scorecard() {
   const reset = () => {
     setAnswers({});
     setShowResult(false);
+    setStep(0);
     started.current = false;
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -168,41 +192,62 @@ export default function Scorecard() {
           <span className="section-label teal">FREE ASSESSMENT · 5 MINUTES</span>
           <h1>Production Readiness <span>Scorecard</span></h1>
           <p>
-            Twelve questions across the six areas where systems usually fail in production. You get a score, the two
+            Six short steps, two questions each, across the areas where systems usually fail in production. You get a score, the two
             areas carrying the most risk, and the first concrete fix for each. No email required.
           </p>
         </header>
 
-        <div className="scorecard-progress" role="status" aria-live="polite">
-          <div className="scorecard-progress-bar"><i style={{ width: `${(answered / TOTAL_QUESTIONS) * 100}%` }} /></div>
-          <span>{answered} of {TOTAL_QUESTIONS} answered</span>
-        </div>
+        {!showResult && (
+          <div className="scorecard-stepper" ref={stepperRef}>
+            <div className="scorecard-progress" role="status" aria-live="polite">
+              <ol className="scorecard-segments" aria-hidden="true">
+                {SCORE_AREAS.map((a, i) => (
+                  <li key={a.id} className={i < step ? "done" : i === step ? "current" : undefined} />
+                ))}
+              </ol>
+              <span>Step {step + 1} of {SCORE_AREAS.length}</span>
+            </div>
 
-        {SCORE_AREAS.map((area, ai) => (
-          <section key={area.id} className="scorecard-area" aria-labelledby={`area-${area.id}`}>
-            <h2 id={`area-${area.id}`}><span>{String(ai + 1).padStart(2, "0")}</span>{area.title}</h2>
-            {area.questions.map((q) => (
-              <fieldset key={q.id} className="scorecard-question">
-                <legend>{q.prompt}</legend>
-                <div className="scorecard-options">
-                  {q.options.map((o) => (
-                    <label key={o.label} className={answers[q.id] === o.score ? "selected" : undefined}>
-                      <input type="radio" name={q.id} checked={answers[q.id] === o.score} onChange={() => answer(q.id, o.score)} />
-                      <span>{o.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            ))}
-          </section>
-        ))}
+            <section key={area.id} className="scorecard-area" aria-labelledby={`area-${area.id}`}>
+              <h2 id={`area-${area.id}`} tabIndex={-1} ref={headingRef}>
+                <span>{String(step + 1).padStart(2, "0")}</span>{area.title}
+              </h2>
+              {area.questions.map((q) => (
+                <fieldset key={q.id} className="scorecard-question">
+                  <legend>{q.prompt}</legend>
+                  <div className="scorecard-options">
+                    {q.options.map((o) => (
+                      <label key={o.label} className={answers[q.id] === o.score ? "selected" : undefined}>
+                        <input type="radio" name={q.id} checked={answers[q.id] === o.score} onChange={() => answer(q.id, o.score)} />
+                        <span>{o.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ))}
+            </section>
 
-        <div className="scorecard-submit">
-          <button type="button" className="button solid" disabled={!complete} onClick={reveal}>
-            See my score <ArrowRight size={15} />
-          </button>
-          {!complete && <span>Answer all {TOTAL_QUESTIONS} questions to see your score.</span>}
-        </div>
+            <div className="scorecard-nav">
+              {step > 0 ? (
+                <button type="button" className="button outline" onClick={() => goTo(step - 1)}>
+                  <ArrowLeft size={15} /> Back
+                </button>
+              ) : <span />}
+              <div className="scorecard-nav-next">
+                {!stepComplete && <span>Answer both questions to continue.</span>}
+                {isLast ? (
+                  <button type="button" className="button solid" disabled={!stepComplete} onClick={reveal}>
+                    See my score <ArrowRight size={15} />
+                  </button>
+                ) : (
+                  <button type="button" className="button solid" disabled={!stepComplete} onClick={() => goTo(step + 1)}>
+                    Next: {SCORE_AREAS[step + 1].title} <ArrowRight size={15} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {showResult && (
           <section ref={resultRef} className="scorecard-result" aria-labelledby="scorecard-result-title">
