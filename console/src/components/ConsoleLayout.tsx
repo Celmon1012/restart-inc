@@ -245,7 +245,6 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
             </span>
             <span className="ws-switcher-text">
               <span className="ws-switcher-name">{activeWorkspace?.name ?? (workspaceLoading ? "Loading…" : "No workspace")}</span>
-              {activeWorkspace?.tier && <span className="ws-switcher-tier">{activeWorkspace.tier}</span>}
             </span>
             <ChevronsUpDown size={14} className="ws-switcher-chevron" />
           </button>
@@ -287,7 +286,6 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
                       <span className="ws-avatar sm" aria-hidden="true">{workspace.name.trim().charAt(0).toUpperCase()}</span>
                       <span className="ws-menu-item-text">
                         <span>{workspace.name}</span>
-                        {workspace.tier && <small>{workspace.tier}</small>}
                       </span>
                       <span className="ws-check">{current && <Check size={14} />}</span>
                     </button>
