@@ -274,12 +274,12 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
                       onClick={() => handleSwitchWorkspace(workspace)}
                       className={`ws-menu-item ${current ? "current" : ""}`}
                     >
-                      <span className="ws-check">{current && <Check size={13} />}</span>
                       <span className="ws-avatar sm" aria-hidden="true">{workspace.name.trim().charAt(0).toUpperCase()}</span>
                       <span className="ws-menu-item-text">
                         <span>{workspace.name}</span>
                         {workspace.tier && <small>{workspace.tier}</small>}
                       </span>
+                      <span className="ws-check">{current && <Check size={14} />}</span>
                     </button>
                   );
                 })}
@@ -294,10 +294,6 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
               <Link role="menuitem" href="/console/profile" className="ws-menu-item" onClick={() => setWorkspaceMenuOpen(false)}>
                 <User size={14} />
                 <span>My profile</span>
-              </Link>
-              <Link role="menuitem" href="/console/support" className="ws-menu-item" onClick={() => setWorkspaceMenuOpen(false)}>
-                <LifeBuoy size={14} />
-                <span>Contact support</span>
               </Link>
             </div>
           )}
