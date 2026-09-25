@@ -220,8 +220,16 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
         <div className="console-sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)} />
       )}
       <aside className={`console-sidebar ${sidebarCollapsed ? "collapsed" : ""} ${mobileSidebarOpen ? "mobile-open" : ""}`}>
-        {/* Mobile drawer only: the desktop collapse control is the edge toggle below. */}
-        <div className="console-sidebar-mobile-head">
+        {/* Collapse/expand is the edge toggle below; the close button shows only in the mobile drawer. */}
+        <div className="console-sidebar-brand-row">
+          <a href={MARKETING_URL} className="console-sidebar-brand" aria-label="Restart home">
+            {sidebarCollapsed ? (
+              <img src="/brand/restart-mark.png" alt="Restart Inc." className="console-sidebar-mark-img" />
+            ) : (
+              <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />
+            )}
+            <span className="dash-tag">CONSOLE</span>
+          </a>
           <button
             onClick={() => setMobileSidebarOpen(false)}
             className="console-sidebar-mobile-close"

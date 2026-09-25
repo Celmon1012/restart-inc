@@ -2630,7 +2630,7 @@
 .console-sidebar .ws-switcher{ padding-top: 14px; }
 @media (max-width: 768px){
   .sidebar-edge-toggle{ display: none; }
-  .console-sidebar-mobile-head{ display: flex; justify-content: flex-end; padding: 12px 12px 0; }
+
 }
 @media (prefers-reduced-motion: reduce){ .sidebar-edge-toggle{ transition: none; } }
 
