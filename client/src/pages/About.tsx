@@ -2,20 +2,23 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { ArrowRight, ArrowUpRight, Menu, ShieldCheck, X } from "lucide-react";
+import { Activity, ArrowRight, ArrowUpRight, Menu, ShieldCheck, Target, UserCheck, X } from "lucide-react";
 import { solutionsData } from "@/data/solutions";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
 const principles = [
   {
+    icon: UserCheck,
     title: "Senior ownership, not delegation.",
     text: "The person who scopes your system is the person who builds it — never handed off to a junior once the contract is signed.",
   },
   {
+    icon: Activity,
     title: "Production discipline by default.",
     text: "Every engagement ships with observability, tests, and a handoff your team can actually run without us.",
   },
   {
+    icon: Target,
     title: "Scoped, not open-ended.",
     text: "Time-boxed engagements with a defined outcome — audits, sprints, and builds, not a retainer that never resolves.",
   },
@@ -84,39 +87,23 @@ export default function About() {
       </header>
 
       <main>
-        {/* Hero */}
-        <section className="portfolio-hero container">
-          <div className="section-intro centered">
-            <span className="section-label teal">ABOUT RESTART</span>
-            <h1>The engineering partner<br /><span>for the hard parts.</span></h1>
-            <p>
-              Restart exists for the point where a good product idea meets real-world complexity — tangled workflows,
-              systems that stop communicating, AI added without the controls to make it trustworthy, and growth that
-              exposes assumptions no one documented.
-            </p>
-          </div>
-        </section>
-
         {/* Our Story */}
         <section className="saas-section container">
           <div className="saas-wrap">
             <div className="saas-copy">
               <span className="section-label teal">OUR STORY</span>
-              <h2>Why Restart exists.</h2>
+              <h1>Why Restart exists.</h1>
               <p>
-                Most technical failures aren't dramatic. They're a tenancy boundary that leaks quietly, a migration
-                that goes fine until it doesn't, an AI feature that worked in the demo and nowhere else. Restart
-                exists to make sure the decisions holding your system together are made by someone senior enough to
-                see them coming — and to stay accountable for them through production, not just through launch.
+                Restart exists for the point where a good product idea meets real-world complexity — tangled workflows,
+                systems that stop communicating, AI added without the controls to make it trustworthy, and growth that
+                exposes assumptions no one documented.
               </p>
-              <div className="saas-points">
-                {principles.map((p) => (
-                  <div key={p.title}>
-                    <strong>{p.title}</strong>
-                    <span>{p.text}</span>
-                  </div>
-                ))}
-              </div>
+              <p>
+                Most technical failures there aren't dramatic. They're a tenancy boundary that leaks quietly, a
+                migration that goes fine until it doesn't, an AI feature that worked in the demo and nowhere else. We
+                make sure the decisions holding your system together are made by someone senior enough to see them
+                coming — and stay accountable for them through production, not just through launch.
+              </p>
             </div>
             <div className="saas-art">
               <div className="art-grid" />
@@ -124,6 +111,15 @@ export default function About() {
               <div className="art-ring ring-b" />
               <div className="art-label"><ShieldCheck size={14} />OWNERSHIP / 01</div>
             </div>
+          </div>
+          <div className="proof-grid cols-3">
+            {principles.map(({ icon: Icon, title, text }) => (
+              <div key={title}>
+                <Icon size={18} />
+                <strong>{title}</strong>
+                <p>{text}</p>
+              </div>
+            ))}
           </div>
         </section>
 
