@@ -3,6 +3,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Switch, Route } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import CookieConsent from "./components/CookieConsent";
+import TopBar from "./components/TopBar";
+import Scorecard from "./pages/Scorecard";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import About from "./pages/About";
@@ -34,6 +37,7 @@ function Router() {
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
       <Route path="/careers" component={Careers} />
+      <Route path="/scorecard" component={Scorecard} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -45,7 +49,9 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
+          <TopBar />
           <Router />
+          <CookieConsent />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

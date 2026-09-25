@@ -1,3 +1,4 @@
+import { openCookieSettings } from "@/lib/consent";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowUpRight, Check, Menu, X } from "lucide-react";
@@ -270,7 +271,7 @@ export default function Careers() {
           <div>
             <strong>LEGAL</strong>
             <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/terms">Terms of Service</Link>
+            <Link href="/terms">Terms of Service</Link><button type="button" className="footer-cookie-btn" onClick={openCookieSettings}>Cookie settings</button>
             <a href="mailto:legal@restart.ng">legal@restart.ng</a>
           </div>
         </div>
@@ -278,7 +279,7 @@ export default function Careers() {
           <span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span>
           <span>
             <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/terms">Terms of Service</Link>
+            <Link href="/terms">Terms of Service</Link><button type="button" className="footer-cookie-btn" onClick={openCookieSettings}>Cookie settings</button>
           </span>
         </div>
       </footer>

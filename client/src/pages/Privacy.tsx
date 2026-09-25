@@ -447,7 +447,9 @@ const sections: LegalSection[] = [
           </tbody>
         </table>
         <p>
-          We do not use advertising or cross-site tracking cookies. You can block or delete cookies
+          Analytics cookies (Google Analytics 4) are set only after you allow them in the cookie banner, and
+          you can withdraw that at any time from "Cookie settings" in the site footer, which also removes the
+          analytics cookies already set. We do not use advertising or cross-site tracking cookies. You can block or delete cookies
           through your browser settings; strictly necessary cookies may need to remain enabled for the
           client console to work.
         </p>

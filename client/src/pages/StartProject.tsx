@@ -1,3 +1,4 @@
+import { openCookieSettings } from "@/lib/consent";
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import {
@@ -257,6 +258,17 @@ export default function StartProject() {
           (objectiveKeywords[o.id] ?? []).some((kw) => query.includes(kw))
         );
         if (matched) setSelectedObjective(matched.label);
+      }
+      // Arriving from the Production Readiness Scorecard: carry the result
+      // into the brief so the engineer reviewing the inquiry sees it.
+      const scorecardParam = params.get("scorecard");
+      if (scorecardParam) {
+        const [score, weakest] = scorecardParam.split("|");
+        if (/^\d{1,3}$/.test(score ?? "")) {
+          setProjectBrief(
+            `Production Readiness Scorecard: ${score}/100.${weakest ? ` Weakest areas: ${weakest.slice(0, 200)}.` : ""}\n\n`
+          );
+        }
       }
       // QA affordance: ?test=1 pre-fills. Replaces the in-form auto-fill
       // button, which was visible to real prospects.
@@ -985,7 +997,7 @@ export default function StartProject() {
           <span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span>
           <span>
             <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/terms">Terms of Service</Link>
+            <Link href="/terms">Terms of Service</Link><button type="button" className="footer-cookie-btn" onClick={openCookieSettings}>Cookie settings</button>
           </span>
         </div>
       </footer>

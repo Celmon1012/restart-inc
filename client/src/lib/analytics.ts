@@ -55,7 +55,10 @@ declare global {
 let initialised = false;
 
 export function initAnalytics(): void {
-  if (initialised || typeof window === "undefined") return;
+  if (typeof window === "undefined") return;
+  // Re-granting consent after a withdrawal in the same page view.
+  if (GA4_MEASUREMENT_ID) delete (window as unknown as Record<string, boolean>)[`ga-disable-${GA4_MEASUREMENT_ID}`];
+  if (initialised) return;
   initialised = true;
 
   if (!GA4_MEASUREMENT_ID) {
@@ -84,6 +87,25 @@ export function initAnalytics(): void {
   script.async = true;
   script.src = `https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`;
   document.head.appendChild(script);
+}
+
+/**
+ * Stop measurement after a visitor withdraws analytics consent: GA4 honours
+ * the ga-disable flag for the rest of the page, and its first-party cookies
+ * are removed so nothing persists into the next visit.
+ */
+export function disableAnalytics(): void {
+  if (!GA4_MEASUREMENT_ID || typeof window === "undefined") return;
+  (window as unknown as Record<string, boolean>)[`ga-disable-${GA4_MEASUREMENT_ID}`] = true;
+  const host = window.location.hostname;
+  const domains = ["", host, `.${host.replace(/^www\./, "")}`];
+  for (const name of document.cookie.split(";").map((c) => c.split("=")[0].trim())) {
+    if (name === "_ga" || name.startsWith("_ga_") || name === "_gid") {
+      for (const d of domains) {
+        document.cookie = `${name}=; Max-Age=0; path=/${d ? `; domain=${d}` : ""}`;
+      }
+    }
+  }
 }
 
 /**

@@ -1,3 +1,4 @@
+import { openCookieSettings } from "@/lib/consent";
 import { useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import {
@@ -289,7 +290,7 @@ export default function InquirySubmitted() {
           <span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span>
           <span>
             <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/terms">Terms of Service</Link>
+            <Link href="/terms">Terms of Service</Link><button type="button" className="footer-cookie-btn" onClick={openCookieSettings}>Cookie settings</button>
           </span>
         </div>
       </footer>

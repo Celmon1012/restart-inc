@@ -295,6 +295,11 @@ function injectPage(template, { title, headExtra, bodyHtml }) {
 
 const STATIC_PAGES = [
   {
+    route: "/scorecard",
+    title: "Production Readiness Scorecard",
+    description: "Score your system in five minutes across observability, deployment safety, data recovery, security, architecture, and ownership, with the first concrete fix for your weakest areas.",
+  },
+  {
     route: "/about",
     title: "About",
     description: "Restart Inc. is an engineering firm built on senior ownership, production discipline, and scoped delivery — not open-ended retainers.",
