@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, Bell, ChevronsUpDown, Clock, CreditCard, History, Key, LayoutGrid, LifeBuoy, Server, Settings, Shield, Terminal, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Bell, ChevronsUpDown, Clock, CreditCard, History, Key, LayoutGrid, LifeBuoy, MoreHorizontal, Server, Settings, Shield, Terminal, User } from "lucide-react";
 
 /* ------------------------------------------------------------------
  * Hero preview of the Restart Console. Uses the same markup and .cp-*
@@ -44,6 +44,10 @@ export default function ConsolePreview({ href }: { href: string }) {
             ))}
             <small>Account</small>
             {ACCOUNT.map(({ label, icon: Icon }) => <span key={label}><Icon size={15} />{label}</span>)}
+          </div>
+          <div className="cpv-foot">
+            <div className="cpv-account"><span className="cpv-account-avatar">AO</span><span className="cpv-ws-text"><b>Ada Okafor</b><small>Client workspace</small></span><MoreHorizontal size={16} /></div>
+            <span className="cpv-back"><ArrowLeft size={14} />Back to public site</span>
           </div>
         </aside>
 
