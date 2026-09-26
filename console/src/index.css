@@ -2739,3 +2739,12 @@
 .sr-dialog-actions{ display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .dash-action-btn:disabled, .console-btn-secondary:disabled{ opacity: .45; cursor: not-allowed; }
 @media (max-width: 640px){ .sr-admin{ grid-template-columns: 1fr; } .sr-tier{ flex-direction: column; } }
+
+/* Logo with CONSOLE tucked underneath, right-aligned to the wordmark. The SVG
+ * carries built-in margins (~9.5% right, ~23% below the lettering), so the tag
+ * is offset by them to line up with the visible "Restart", not the image box. */
+.console-sidebar-brand-row{ justify-content: space-between; }
+.console-sidebar-brand, .console-sidebar.collapsed .console-sidebar-brand{ flex: 0 0 auto !important; }
+.console-sidebar-brand{ display: grid; justify-items: end; gap: 0; padding: 16px 0 14px; }
+.console-sidebar-brand .dash-tag{ align-self: auto; margin: -6px calc(10px - .18em) 0 0; font-size: 0.625rem; line-height: 1; letter-spacing: .18em; }
+.console-sidebar.collapsed .console-sidebar-brand{ justify-items: center; }

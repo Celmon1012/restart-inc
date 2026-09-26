@@ -95,10 +95,22 @@ const CATALOG: CatalogItem[] = [
   { kind: "plan", code: "managed-env-m-usd", name: "Managed Environment M (USD)", interval: "monthly", amount_cents: 0, amount_currency: "USD", description: "6 vCPU / 12GB RAM / 100GB NVMe server with monitoring, daily off-site backups, patching, and business-hours incident response. Billed monthly in advance." },
   { kind: "plan", code: "managed-env-l-usd", name: "Managed Environment L (USD)", interval: "monthly", amount_cents: 0, amount_currency: "USD", description: "8 vCPU / 24GB RAM / 200GB NVMe server with monitoring, daily off-site backups, patching, and 24/7 incident response. Billed monthly in advance." },
 
+  // Managed Environment, client-hosted ("Your cloud"): the same operations on
+  // a server in the client's own AWS/GCP/Azure/DO account or on-prem, attached
+  // to Coolify over SSH. The client pays their provider directly; this is the
+  // management fee only. Price it as a fixed floor (no lower than Managed
+  // Environment S minus the server cost) -- it must not shrink because their
+  // server is cheap. One subscription per server, external_id = Coolify UUID.
+  // Onboarding (access, monitoring, backups in their account) is a one-off
+  // add-on invoiced before the server is attached. PRICES UNSET, as above.
+  { kind: "plan", code: "managed-env-byo-ngn", name: "Managed Environment — Your Cloud (NGN)", interval: "monthly", amount_cents: 0, amount_currency: "NGN", description: "Monitoring, daily off-site backups, patching, and business-hours incident response for a server in your own cloud account. Server billed by your provider, not included. Billed monthly in advance." },
+  { kind: "plan", code: "managed-env-byo-usd", name: "Managed Environment — Your Cloud (USD)", interval: "monthly", amount_cents: 0, amount_currency: "USD", description: "Monitoring, daily off-site backups, patching, and business-hours incident response for a server in your own cloud account. Server billed by your provider, not included. Billed monthly in advance." },
+
   { kind: "add_on", code: "architecture-audit-usd", name: "Architecture Audit (USD)", amount_cents: 1_200_000, amount_currency: "USD", description: "1-week senior technical deep dive + 12-week remediation roadmap." },
   { kind: "add_on", code: "mvp-build-usd", name: "MVP Build — Laravel/Octane (USD)", amount_cents: 3_500_000, amount_currency: "USD", description: "4-12 week MVP build. Floor of the $35k-75k band -- override per deal when invoicing." },
   { kind: "add_on", code: "medusa-commerce-build-usd", name: "Medusa Commerce Build (USD)", amount_cents: 3_000_000, amount_currency: "USD", description: "Scoped commerce build. Floor of the $30k-70k band -- override per deal." },
   { kind: "add_on", code: "ai-integration-sprint-usd", name: "AI Integration Sprint (USD)", amount_cents: 1_500_000, amount_currency: "USD", description: "2-4 week sprint. Floor of the $15k-30k band -- override per deal." },
+  { kind: "add_on", code: "client-cloud-onboarding-usd", name: "Your Cloud Onboarding (USD)", amount_cents: 0, amount_currency: "USD", description: "One-off: access setup, monitoring, off-site backups, and control-plane attach for a server in your own cloud account. Price unset -- decide before running with POST." },
   { kind: "add_on", code: "infra-passthrough-usd", name: "Infrastructure Pass-Through (USD)", amount_cents: 100, amount_currency: "USD", description: "Cost + 15-20% markup, billed monthly. Amount is set per-invoice from the actual cloud bill -- Lago rejects 0 as an add-on price, so this $1 is a placeholder, always override at invoicing time." },
 
   { kind: "add_on", code: "architecture-audit-ngn", name: "Architecture Audit (NGN)", amount_cents: 280_000_000, amount_currency: "NGN", description: "3-5 day local audit + roadmap. VAT-exclusive -- add 7.5% at invoicing." },
@@ -109,6 +121,7 @@ const CATALOG: CatalogItem[] = [
   // not the real price -- actual MVP Build deals are invoiced at the documented
   // ₦9M-25M band via one-off override regardless of this seeded value.
   { kind: "add_on", code: "mvp-build-ngn", name: "MVP Build — Local (NGN)", amount_cents: 250_000_000, amount_currency: "NGN", description: "4-8 week local MVP build. Real price band is ₦9M-25M (see pricing-strategy.md) -- always override at invoicing, this catalog value only exists to stay under Lago's add-on ceiling. VAT-exclusive." },
+  { kind: "add_on", code: "client-cloud-onboarding-ngn", name: "Your Cloud Onboarding (NGN)", amount_cents: 0, amount_currency: "NGN", description: "One-off: access setup, monitoring, off-site backups, and control-plane attach for a server in your own cloud account. VAT-exclusive. Price unset -- decide before running with POST." },
   { kind: "add_on", code: "infra-passthrough-ngn", name: "Infrastructure Pass-Through (NGN)", amount_cents: 100, amount_currency: "NGN", description: "USD infra cost converted at invoice-date rate + markup. Lago rejects 0 as an add-on price, so this is a nominal placeholder -- always override at invoicing time." },
 ];
 

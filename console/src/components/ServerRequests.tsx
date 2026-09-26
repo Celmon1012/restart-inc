@@ -18,6 +18,8 @@ import type { Workspace } from "@/lib/resources";
 
 type Kind = "upgrade" | "new_server";
 type Tier = "s" | "m" | "l";
+type Hosting = "restart" | "client";
+type CloudProvider = "aws" | "gcp" | "azure" | "digitalocean" | "on_prem" | "other";
 type Status = "pending_review" | "awaiting_payment" | "paid" | "in_progress" | "done" | "declined" | "cancelled";
 
 interface ServerRequest {
@@ -26,7 +28,11 @@ interface ServerRequest {
   updated_at: string;
   kind: Kind;
   server_uuid: string | null;
-  requested_tier: Tier;
+  requested_tier: Tier | null;
+  hosting: Hosting;
+  cloud_provider: CloudProvider | null;
+  cloud_region: string | null;
+  cloud_spec: string | null;
   reason: string | null;
   status: Status;
   engineer_note: string | null;
@@ -39,6 +45,26 @@ const TIERS: { id: Tier; name: string; spec: string }[] = [
   { id: "m", name: "Managed Environment M", spec: "6 vCPU · 12 GB RAM · 100 GB NVMe" },
   { id: "l", name: "Managed Environment L", spec: "8 vCPU · 24 GB RAM · 200 GB NVMe" },
 ];
+
+// "Your cloud": the same operations on a server in the client's own account,
+// billed on the managed-env-byo-* plans (management fee only).
+const PROVIDERS: { id: CloudProvider; name: string }[] = [
+  { id: "aws", name: "AWS" },
+  { id: "gcp", name: "Google Cloud" },
+  { id: "azure", name: "Azure" },
+  { id: "digitalocean", name: "DigitalOcean" },
+  { id: "on_prem", name: "On-premises" },
+  { id: "other", name: "Other" },
+];
+
+function requestSummary(r: ServerRequest): string {
+  if (r.hosting === "client") {
+    const provider = PROVIDERS.find((p) => p.id === r.cloud_provider)?.name;
+    return ["Your cloud", provider, r.cloud_region, r.cloud_spec].filter(Boolean).join(" · ");
+  }
+  const tier = TIERS.find((t) => t.id === r.requested_tier);
+  return tier ? `${tier.name} · ${tier.spec}` : (r.requested_tier ?? "").toUpperCase();
+}
 
 const STATUS_LABEL: Record<Status, string> = {
   pending_review: "Engineer reviewing",
@@ -184,7 +210,6 @@ function RequestRow({
   paymentUrl: string | null | undefined;
   onChanged: () => void;
 }) {
-  const tier = TIERS.find((t) => t.id === r.requested_tier);
   const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState<Status>(r.status);
   const [note, setNote] = useState(r.engineer_note ?? "");
@@ -212,7 +237,7 @@ function RequestRow({
       <div className="sr-row-main">
         <div className="sr-row-title">
           <strong>{r.kind === "upgrade" ? "Upgrade server" : "Add a server"}</strong>
-          <span>{tier ? `${tier.name} · ${tier.spec}` : r.requested_tier.toUpperCase()}</span>
+          <span>{requestSummary(r)}</span>
         </div>
         <span className={`sr-status ${STATUS_TONE[r.status]}`}>{STATUS_LABEL[r.status]}</span>
       </div>
@@ -279,7 +304,11 @@ function RequestDialog({
   onCreated: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const [hosting, setHosting] = useState<Hosting>("restart");
   const [tier, setTier] = useState<Tier | null>(null);
+  const [provider, setProvider] = useState<CloudProvider | "">("");
+  const [region, setRegion] = useState("");
+  const [spec, setSpec] = useState("");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -288,17 +317,26 @@ function RequestDialog({
     ref.current?.showModal();
   }, []);
 
+  // Only a new server can be client-hosted; resizing one the client owns
+  // happens in their provider's console.
+  const clientHosted = kind === "new_server" && hosting === "client";
+  const canSubmit = clientHosted ? provider !== "" : tier !== null;
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tier) return;
+    if (!canSubmit) return;
     setSubmitting(true);
     setError(null);
     const { error: rpcError } = await consoleSchema().rpc("request_server_change", {
       p_workspace_id: workspace.id,
       p_kind: kind,
       p_server_uuid: kind === "upgrade" ? workspace.server?.uuid ?? null : null,
-      p_tier: tier,
+      p_tier: clientHosted ? null : tier,
       p_reason: reason.trim() || null,
+      p_hosting: clientHosted ? "client" : "restart",
+      p_cloud_provider: clientHosted ? provider : null,
+      p_cloud_region: clientHosted ? region.trim() || null : null,
+      p_cloud_spec: clientHosted ? spec.trim() || null : null,
     });
     setSubmitting(false);
     if (rpcError) {
@@ -336,22 +374,87 @@ function RequestDialog({
           </p>
         )}
 
-        <span className="sr-label">Size</span>
-        <div className="sr-tiers" role="radiogroup" aria-label="Server size">
-          {TIERS.map((t) => (
-            <button
-              type="button"
-              role="radio"
-              aria-checked={tier === t.id}
-              key={t.id}
-              className={`sr-tier ${tier === t.id ? "selected" : ""}`}
-              onClick={() => setTier(t.id)}
+        {kind === "new_server" && (
+          <>
+            <span className="sr-label">Where should it run?</span>
+            <div className="sr-tiers" role="radiogroup" aria-label="Hosting">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={hosting === "restart"}
+                className={`sr-tier ${hosting === "restart" ? "selected" : ""}`}
+                onClick={() => setHosting("restart")}
+              >
+                <strong>Restart-hosted</strong>
+                <span>Server included in the plan</span>
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={hosting === "client"}
+                className={`sr-tier ${hosting === "client" ? "selected" : ""}`}
+                onClick={() => setHosting("client")}
+              >
+                <strong>Your cloud</strong>
+                <span>Your account and provider bill; we operate it</span>
+              </button>
+            </div>
+          </>
+        )}
+
+        {clientHosted ? (
+          <>
+            <label className="sr-label" htmlFor="sr-provider">Provider</label>
+            <select
+              id="sr-provider"
+              className="sr-textarea"
+              value={provider}
+              onChange={(e) => setProvider(e.target.value as CloudProvider | "")}
             >
-              <strong>{t.name}</strong>
-              <span>{t.spec}</span>
-            </button>
-          ))}
-        </div>
+              <option value="" disabled>Choose where the server runs</option>
+              {PROVIDERS.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <label className="sr-label" htmlFor="sr-region">Region <em>(optional)</em></label>
+            <input
+              id="sr-region"
+              className="sr-textarea"
+              maxLength={100}
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              placeholder="e.g. eu-west-1, or your Lagos data centre"
+            />
+            <label className="sr-label" htmlFor="sr-spec">Server size <em>(optional)</em></label>
+            <input
+              id="sr-spec"
+              className="sr-textarea"
+              maxLength={200}
+              value={spec}
+              onChange={(e) => setSpec(e.target.value)}
+              placeholder="e.g. 4 vCPU · 8 GB RAM, Ubuntu 24.04. Leave blank and we'll recommend one."
+            />
+          </>
+        ) : (
+          <>
+            <span className="sr-label">Size</span>
+            <div className="sr-tiers" role="radiogroup" aria-label="Server size">
+              {TIERS.map((t) => (
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={tier === t.id}
+                  key={t.id}
+                  className={`sr-tier ${tier === t.id ? "selected" : ""}`}
+                  onClick={() => setTier(t.id)}
+                >
+                  <strong>{t.name}</strong>
+                  <span>{t.spec}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         <label className="sr-label" htmlFor="sr-reason">
           {kind === "upgrade" ? "What's slowing down or running out?" : "What will this server run?"} <em>(optional)</em>
@@ -366,17 +469,25 @@ function RequestDialog({
           placeholder={kind === "upgrade" ? "e.g. Checkout slows down at peak; memory sits above 90%" : "e.g. A separate worker for background jobs"}
         />
 
-        <ol className="sr-steps">
-          <li>An engineer reviews it within one business day and replies here with a recommendation.</li>
-          <li>If it's the right move, you get a quote and an invoice. Nothing is charged before that.</li>
-          <li>Once paid, we schedule the work. Upgrades need a short restart, agreed with you in advance.</li>
-        </ol>
+        {clientHosted ? (
+          <ol className="sr-steps">
+            <li>An engineer reviews it within one business day and sends the minimum spec and an access checklist (SSH key or IAM role, firewall rules).</li>
+            <li>You get a quote for onboarding and the monthly management fee. Your provider bills you for the server directly.</li>
+            <li>Once paid and access is in place, we validate the server and bring it under monitoring, backups, and patching.</li>
+          </ol>
+        ) : (
+          <ol className="sr-steps">
+            <li>An engineer reviews it within one business day and replies here with a recommendation.</li>
+            <li>If it's the right move, you get a quote and an invoice. Nothing is charged before that.</li>
+            <li>Once paid, we schedule the work. Upgrades need a short restart, agreed with you in advance.</li>
+          </ol>
+        )}
 
         {error && <p className="sr-form-error" role="alert">{error}</p>}
 
         <div className="sr-dialog-actions">
           <button type="button" className="console-btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
-          <button type="submit" className="dash-action-btn" disabled={!tier || submitting}>
+          <button type="submit" className="dash-action-btn" disabled={!canSubmit || submitting}>
             {submitting ? <Loader2 size={13} className="spin" /> : null}
             <span>Send request</span>
           </button>
