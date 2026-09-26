@@ -2748,3 +2748,28 @@
 .console-sidebar-brand{ display: grid; justify-items: end; gap: 0; padding: 16px 0 14px; }
 .console-sidebar-brand .dash-tag{ align-self: auto; margin: -6px calc(10px - .18em) 0 0; font-size: 0.625rem; line-height: 1; letter-spacing: .18em; }
 .console-sidebar.collapsed .console-sidebar-brand{ justify-items: center; }
+
+/* --- Sidebar account card + back link ---------------------------------------- */
+.sidebar-account{ position: relative; }
+.sidebar-account-card{ display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; background: rgba(255,255,255,.02); color: #f2f5ff; font: inherit; text-align: left; cursor: pointer; transition: background .15s, border-color .15s; }
+.sidebar-account-card:hover, .sidebar-account-card.active{ background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.14); }
+.sidebar-account-card:focus-visible, .sidebar-back-link:focus-visible{ outline: 2px solid var(--teal); outline-offset: 2px; }
+.sidebar-account-avatar{ flex-shrink: 0; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #111217; border: 1px solid rgba(255,255,255,.12); color: #e6e9f2; font-size: 0.6875rem; font-weight: 800; letter-spacing: .02em; }
+.sidebar-account-text{ display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.sidebar-account-name{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; font-weight: 700; }
+.sidebar-account-role{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #6e7485; font-size: 0.6875rem; }
+.sidebar-account-more{ flex-shrink: 0; color: #a6b2c8; }
+.sidebar-account-logout, .sidebar-account-logout svg{ color: #f87171 !important; }
+.sidebar-account-logout:hover{ background: rgba(239,68,68,.12); }
+.sidebar-back-link{ display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 6px 10px; border-radius: 6px; color: #7a8293; font-size: 0.75rem; font-weight: 600; text-decoration: none; transition: color .15s; }
+.sidebar-back-link:hover{ color: #fff; }
+.console-sidebar.collapsed .sidebar-account-card{ justify-content: center; padding: 8px 0; }
+.console-sidebar.collapsed .sidebar-account-text, .console-sidebar.collapsed .sidebar-account-more, .console-sidebar.collapsed .sidebar-back-link span{ display: none; }
+.console-sidebar.collapsed .sidebar-back-link{ justify-content: center; }
+@media (max-width: 768px){
+  .console-sidebar.collapsed .sidebar-account-card{ justify-content: flex-start; padding: 10px; }
+  .console-sidebar.collapsed .sidebar-account-text{ display: flex; }
+  .console-sidebar.collapsed .sidebar-account-more{ display: block; }
+  .console-sidebar.collapsed .sidebar-back-link{ justify-content: flex-start; }
+  .console-sidebar.collapsed .sidebar-back-link span{ display: inline; }
+}

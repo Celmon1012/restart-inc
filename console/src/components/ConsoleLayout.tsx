@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import {
+  ArrowLeft,
   ArrowUpRight,
   Briefcase,
+  MoreHorizontal,
   User,
   ChevronDown,
   ChevronsUpDown,
@@ -135,6 +137,15 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
   };
   const userMenuRef = useRef<HTMLDivElement>(null);
   const workspaceMenuRef = useRef<HTMLDivElement>(null);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const initials =
+    displayName
+      .split(/[\s._-]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p.charAt(0).toUpperCase())
+      .join("") || "R";
 
   useEffect(() => {
     setMobileSidebarOpen(false);
@@ -154,6 +165,31 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
         : { top: r.bottom + 6, left: r.left, width: r.width }
     );
   };
+
+  // Same fixed-position approach as the workspace menu, but opening upward
+  // since the account card sits at the bottom of the sidebar.
+  const [accountMenuPos, setAccountMenuPos] = useState<React.CSSProperties | null>(null);
+  const placeAccountMenu = (btn: HTMLElement) => {
+    const r = btn.getBoundingClientRect();
+    const collapsed = btn.closest(".console-sidebar")?.classList.contains("collapsed") && window.innerWidth > 768;
+    setAccountMenuPos(
+      collapsed
+        ? { bottom: window.innerHeight - r.bottom, left: r.right + 24, width: 240 }
+        : { bottom: window.innerHeight - r.top + 6, left: r.left, width: r.width }
+    );
+  };
+
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+    const close = () => setAccountMenuOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    window.addEventListener("resize", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("resize", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [accountMenuOpen]);
 
   useEffect(() => {
     if (!workspaceMenuOpen) return;
@@ -185,6 +221,9 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
       if (workspaceMenuRef.current && !workspaceMenuRef.current.contains(event.target as Node)) {
         setWorkspaceMenuOpen(false);
         setWorkspaceSearch("");
+      }
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
+        setAccountMenuOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -380,9 +419,51 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
               </a>
             </div>
           )}
-          <a href={`${MARKETING_URL}/start-project`} title="Start a Project" className="dash-action-btn full-width">
-            <span>Start a Project</span>
-            <ArrowUpRight size={14} />
+          <div className="sidebar-account" ref={accountMenuRef}>
+            <button
+              onClick={(e) => { if (!accountMenuOpen) placeAccountMenu(e.currentTarget); setAccountMenuOpen(!accountMenuOpen); }}
+              className={`sidebar-account-card ${accountMenuOpen ? "active" : ""}`}
+              title={displayName}
+              aria-haspopup="menu"
+              aria-expanded={accountMenuOpen}
+            >
+              <span className="sidebar-account-avatar" aria-hidden="true">{initials}</span>
+              <span className="sidebar-account-text">
+                <span className="sidebar-account-name">{displayName}</span>
+                <span className="sidebar-account-role">{isAdmin ? "Restart admin" : "Client workspace"}</span>
+              </span>
+              <MoreHorizontal size={16} className="sidebar-account-more" />
+            </button>
+
+            {accountMenuOpen && (
+              <div className="ws-menu" role="menu" style={accountMenuPos ?? undefined}>
+                <div className="dash-dropdown-header">
+                  <span className="dropdown-user-name">{displayName}</span>
+                  <span className="dropdown-user-email">{displayEmail}</span>
+                </div>
+                <Link role="menuitem" href="/console/profile" className="ws-menu-item" onClick={() => setAccountMenuOpen(false)}>
+                  <User size={14} />
+                  <span>My profile</span>
+                </Link>
+                <Link role="menuitem" href="/console/settings" className="ws-menu-item" onClick={() => setAccountMenuOpen(false)}>
+                  <Settings size={14} />
+                  <span>Settings</span>
+                </Link>
+                <div className="ws-menu-sep" />
+                <button
+                  role="menuitem"
+                  className="ws-menu-item sidebar-account-logout"
+                  onClick={() => { setAccountMenuOpen(false); handleLogout(); }}
+                >
+                  <LogOut size={14} />
+                  <span>Sign out</span>
+                </button>
+              </div>
+            )}
+          </div>
+          <a href={MARKETING_URL} className="sidebar-back-link" title="Back to public site">
+            <ArrowLeft size={14} />
+            <span>Back to public site</span>
           </a>
         </div>
       </aside>
