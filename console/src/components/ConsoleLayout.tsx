@@ -17,7 +17,6 @@ import {
   CreditCard,
   Key,
   LogOut,
-  Shield,
   Bell,
   Check,
   Building2,
@@ -66,7 +65,6 @@ const NAV_GROUPS: Array<{
   {
     label: "Account",
     items: [
-      { href: "/console/profile", label: "Security & Access", icon: Shield },
       { href: "/console/keys", label: "API Keys", icon: Key },
       { href: "/console/settings", label: "Settings", icon: Settings },
       { href: "/console/billing", label: "Billing & SLA", icon: CreditCard },
