@@ -54,10 +54,22 @@ declare global {
 
 let initialised = false;
 
-export function initAnalytics(): void {
+// Google Consent Mode v2. gtag loads for every visitor, but storage is
+// denied until they allow analytics: without consent GA4 receives only
+// cookieless pings (no _ga cookies, no client ID), which it uses to model
+// the traffic the banner would otherwise hide. Advertising signals are
+// always denied -- the site runs no advertising.
+function consentState(analyticsGranted: boolean) {
+  return {
+    analytics_storage: analyticsGranted ? "granted" : "denied",
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
+  };
+}
+
+export function initAnalytics(analyticsGranted: boolean): void {
   if (typeof window === "undefined") return;
-  // Re-granting consent after a withdrawal in the same page view.
-  if (GA4_MEASUREMENT_ID) delete (window as unknown as Record<string, boolean>)[`ga-disable-${GA4_MEASUREMENT_ID}`];
   if (initialised) return;
   initialised = true;
 
@@ -72,9 +84,14 @@ export function initAnalytics(): void {
   }
 
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag(...args: unknown[]) {
-    window.dataLayer!.push(args);
+  // gtag.js only processes the Arguments object itself; a rest-args array
+  // pushed onto dataLayer is silently ignored, so no hits are ever sent.
+  window.gtag = function gtag() {
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer!.push(arguments);
   };
+  // The consent default must be queued before config.
+  window.gtag("consent", "default", consentState(analyticsGranted));
   window.gtag("js", new Date());
   // send_page_view: false -- this is a SPA, so page views are reported
   // explicitly by trackPageView() on route change instead of on script load.
@@ -90,13 +107,15 @@ export function initAnalytics(): void {
 }
 
 /**
- * Stop measurement after a visitor withdraws analytics consent: GA4 honours
- * the ga-disable flag for the rest of the page, and its first-party cookies
- * are removed so nothing persists into the next visit.
+ * Apply a consent decision made after load. Withdrawing also removes the
+ * GA4 first-party cookies already set so nothing persists into the next
+ * visit; measurement continues cookieless, as for any visitor who never
+ * consented.
  */
-export function disableAnalytics(): void {
+export function updateAnalyticsConsent(analyticsGranted: boolean): void {
   if (!GA4_MEASUREMENT_ID || typeof window === "undefined") return;
-  (window as unknown as Record<string, boolean>)[`ga-disable-${GA4_MEASUREMENT_ID}`] = true;
+  window.gtag?.("consent", "update", consentState(analyticsGranted));
+  if (analyticsGranted) return;
   const host = window.location.hostname;
   const domains = ["", host, `.${host.replace(/^www\./, "")}`];
   for (const name of document.cookie.split(";").map((c) => c.split("=")[0].trim())) {

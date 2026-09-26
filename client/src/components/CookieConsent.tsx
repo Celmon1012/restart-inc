@@ -20,7 +20,7 @@ const CATEGORIES = [
     id: "analytics" as const,
     title: "Analytics",
     locked: false,
-    body: "Google Analytics 4, with IP anonymisation, to count visits and see which pages and steps of the project intake people use. No advertising or cross-site tracking. Off until you allow it.",
+    body: "Google Analytics 4, with IP anonymisation, to count visits and see which pages and steps of the project intake people use. No advertising or cross-site tracking. Until you allow it, no analytics cookies are set and only anonymous, cookieless page counts are sent.",
   },
 ];
 
@@ -64,7 +64,7 @@ export default function CookieConsent() {
         <section className="cc-banner" role="region" aria-label="Cookie consent">
           <h2>We value your privacy</h2>
           <p>
-            We use strictly necessary cookies to run the site, and analytics only if you allow it. No advertising
+            We use strictly necessary cookies to run the site, and analytics cookies only if you allow them. No advertising
             or cross-site tracking. <Link href="/privacy#cookies">Privacy Policy</Link>
           </p>
           <div className="cc-actions">

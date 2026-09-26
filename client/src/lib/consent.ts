@@ -3,8 +3,8 @@
  *
  * Only two categories exist because only two are in use (see the Cookies
  * section of the Privacy Policy): strictly necessary (console session,
- * security, support chat) is always on; analytics (GA4) is opt-in and is
- * not loaded at all until a visitor allows it. There is deliberately no
+ * security) is always on; analytics (GA4) cookies are opt-in -- without
+ * consent GA4 runs cookieless under Consent Mode v2. There is deliberately no
  * "marketing" category -- the site runs no advertising or cross-site
  * tracking, so a toggle for it would control nothing.
  *

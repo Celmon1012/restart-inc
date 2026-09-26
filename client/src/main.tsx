@@ -1,31 +1,17 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import { disableAnalytics, initAnalytics, trackPageView } from "./lib/analytics";
+import { initAnalytics, trackPageView, updateAnalyticsConsent } from "./lib/analytics";
 import { getConsent, onConsentChange } from "./lib/consent";
 
-// GA4 loads only after analytics consent (see lib/consent.ts). A returning
-// visitor who already allowed it is measured from first paint; a new visitor
-// is measured from the moment they accept, starting with the current page.
+// GA4 runs in Consent Mode v2 (see lib/analytics.ts): it loads for every
+// visitor with analytics storage denied, and a stored or newly given
+// consent upgrades it to full, cookie-based measurement.
 let lastPath = window.location.pathname + window.location.search;
 
-let analyticsOn = false;
-
-function startAnalytics() {
-  if (analyticsOn) return;
-  analyticsOn = true;
-  initAnalytics();
-  trackPageView(lastPath);
-}
-
-if (getConsent()?.analytics) startAnalytics();
-onConsentChange((c) => {
-  if (c.analytics) startAnalytics();
-  else if (analyticsOn) {
-    analyticsOn = false;
-    disableAnalytics();
-  }
-});
+initAnalytics(Boolean(getConsent()?.analytics));
+trackPageView(lastPath);
+onConsentChange((c) => updateAnalyticsConsent(c.analytics));
 
 createRoot(document.getElementById("root")!).render(<App />);
 
