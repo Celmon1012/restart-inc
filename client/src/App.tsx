@@ -19,12 +19,14 @@ import SolutionDetail from "./pages/SolutionDetail";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Careers from "./pages/Careers";
+import Platform from "./pages/Platform";
 import NotFound from "./pages/NotFound";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/platform" component={Platform} />
       <Route path="/about" component={About} />
       <Route path="/case-studies" component={CaseStudies} />
       <Route path="/insights" component={Insights} />

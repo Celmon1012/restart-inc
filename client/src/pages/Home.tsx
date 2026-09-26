@@ -12,6 +12,7 @@ import NamedClients from "@/components/NamedClients";
 import { HeroDots, HeroLines, HeroStats } from "@/components/HeroBackdrop";
 import ConsolePreview from "@/components/ConsolePreview";
 import DeliveryPreview from "@/components/DeliveryPreview";
+import { platformStack } from "@/data/stack";
 import { useInsights } from "@/hooks/useInsights";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
@@ -29,24 +30,6 @@ const stackLogos: Record<string, string> = {
   "WhatsApp": "/logos/stacks/whatsapp.svg",
 };
 
-/**
- * The technology row on the platform section. Every entry is a real platform we
- * deploy on, with the asset it ships with — not a decorative logo strip.
- */
-const platformStack: { name: string; logo: string }[] = [
-  { name: "Laravel", logo: "/logos/stacks/laravel.svg" },
-  { name: "PostgreSQL", logo: "/logos/stacks/postgresql.svg" },
-  { name: "Next.js", logo: "/logos/stacks/nextdotjs.svg" },
-  { name: "Supabase", logo: "/logos/stacks/supabase.svg" },
-  { name: "Medusa", logo: "/logos/stacks/medusa.svg" },
-  { name: "Filament", logo: "/logos/stacks/filament.svg" },
-  { name: "Claude API", logo: "/logos/stacks/anthropic.svg" },
-  { name: "n8n", logo: "/logos/stacks/n8n.svg" },
-  { name: "Chatwoot", logo: "/logos/stacks/chatwoot.svg" },
-  { name: "Lago", logo: "/logos/stacks/lago.svg" },
-  { name: "WhatsApp Business", logo: "/logos/stacks/whatsapp.svg" },
-  { name: "PaperclipAI", logo: "/logos/stacks/paperclipai.svg" },
-];
 
 const lanes = [
   { number: "01", slug: "saas-platforms", title: "Build a platform your team can operate.", accent: "teal", icon: Code2, text: "Multi-tenant B2B platforms designed around clear boundaries, resilient jobs, secure access, observable workflows, and the operational detail that makes production sustainable.", tags: ["Laravel", "PostgreSQL", "Supabase", "Filament", "Horizon", "Lago"], action: "Explore SaaS builds" },
@@ -385,6 +368,9 @@ export default function Home() {
               <div><strong>Remove the repeatable friction.</strong><span>Automate the work that slows good teams down and build interfaces around the decisions that matter.</span></div>
               <div><strong>Create capacity for the next stage.</strong><span>Build a foundation that supports growth without forcing a full rewrite every time the business changes direction.</span></div>
             </div>
+            <Link href="/platform" className="button outline small platform-more">
+              How the platform works <ArrowRight size={14} />
+            </Link>
           </div>
           <div className="saas-art platform-art">
             <DeliveryPreview />

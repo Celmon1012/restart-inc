@@ -63,8 +63,8 @@ const QUERY = `
 
 const ENTITY_MAP = {
   amp: "&", lt: "<", gt: ">", quot: '"', "#039": "'", apos: "'",
-  "#8211": "–", "#8212": "—", "#8216": "‘", "#8217": "’",
-  "#8220": "“", "#8221": "”", "#8230": "…", nbsp: " ",
+  "#8211": "â", "#8212": "â", "#8216": "â", "#8217": "â",
+  "#8220": "â", "#8221": "â", "#8230": "â¦", nbsp: " ",
 };
 
 function decodeEntities(str) {
@@ -190,7 +190,7 @@ function buildInsightPage(template, post, allPosts) {
   const category = (post.categories?.nodes?.[0]?.name ?? "Engineering").toUpperCase();
   const description = post.excerpt
     ? stripTags(post.excerpt).slice(0, 160)
-    : `${title} — practical engineering perspective from ${SITE_NAME}`;
+    : `${title} â practical engineering perspective from ${SITE_NAME}`;
   const url = `${SITE_URL}/insights/${post.slug}`;
   const published = post.date;
   const modified = post.modified || post.date;
@@ -276,7 +276,7 @@ function buildInsightPage(template, post, allPosts) {
     </div>
   `;
 
-  return injectPage(template, { title: `${title} — ${SITE_NAME} Insights`, headExtra, bodyHtml: articleHtml });
+  return injectPage(template, { title: `${title} â ${SITE_NAME} Insights`, headExtra, bodyHtml: articleHtml });
 }
 
 function injectPage(template, { title, headExtra, bodyHtml }) {
@@ -295,6 +295,11 @@ function injectPage(template, { title, headExtra, bodyHtml }) {
 
 const STATIC_PAGES = [
   {
+    route: "/platform",
+    title: "Platform",
+    description: "How Restart turns operational friction into technical leverage: map the workflows and costs, automate the repeatable work, and build the platform underneath — tracked in the Restart Console.",
+  },
+  {
     route: "/scorecard",
     title: "Production Readiness Scorecard",
     description: "Score your system in five minutes across observability, deployment safety, data recovery, security, architecture, and ownership, with the first concrete fix for your weakest areas.",
@@ -302,12 +307,12 @@ const STATIC_PAGES = [
   {
     route: "/about",
     title: "About",
-    description: "Restart Inc. is an engineering firm built on senior ownership, production discipline, and scoped delivery — not open-ended retainers.",
+    description: "Restart Inc. is an engineering firm built on senior ownership, production discipline, and scoped delivery â not open-ended retainers.",
   },
   {
     route: "/case-studies",
     title: "Case Studies",
-    description: "Verified outcomes from Restart Inc. engagements — private cloud migrations, AI engineering, and commerce infrastructure, with the starting constraint and the production result.",
+    description: "Verified outcomes from Restart Inc. engagements â private cloud migrations, AI engineering, and commerce infrastructure, with the starting constraint and the production result.",
   },
   {
     route: "/insights",
@@ -322,7 +327,7 @@ const STATIC_PAGES = [
   {
     route: "/start-project",
     title: "Start a Project",
-    description: "Scope your build with Restart Inc. — tell us what you're building, where the constraint sits, and what decision you need to make next.",
+    description: "Scope your build with Restart Inc. â tell us what you're building, where the constraint sits, and what decision you need to make next.",
   },
   {
     route: "/privacy",
@@ -337,14 +342,14 @@ const STATIC_PAGES = [
   {
     route: "/careers",
     title: "Careers",
-    description: "Work at Restart Inc. — senior engineering ownership, scoped delivery, and production discipline. Open roles in platform, AI systems, and product engineering.",
+    description: "Work at Restart Inc. â senior engineering ownership, scoped delivery, and production discipline. Open roles in platform, AI systems, and product engineering.",
   },
 ];
 
 const SOLUTIONS = [
   { slug: "saas-platforms", title: "Build a platform your team can operate.", description: "Multi-tenant B2B platforms designed around clear boundaries, resilient jobs, secure access, observable workflows, and the operational detail that makes production sustainable." },
-  { slug: "commerce", title: "Make commerce operations work harder.", description: "Custom commerce platforms built on Medusa — admin workflows, billing, protected data, resilient webhooks, and the realities of high-volume commerce." },
-  { slug: "ai-engineering", title: "Put AI where it can earn trust.", description: "We turn models, retrieval, tools, and agents into useful product capabilities — with evaluation, observability, and cost controls built in from the start." },
+  { slug: "commerce", title: "Make commerce operations work harder.", description: "Custom commerce platforms built on Medusa â admin workflows, billing, protected data, resilient webhooks, and the realities of high-volume commerce." },
+  { slug: "ai-engineering", title: "Put AI where it can earn trust.", description: "We turn models, retrieval, tools, and agents into useful product capabilities â with evaluation, observability, and cost controls built in from the start." },
   { slug: "architecture-leadership", title: "Bring experience to the decisions that matter.", description: "Architecture reviews, fractional technical leadership, hiring support, and hands-on mentorship for teams that need a clearer path from complexity to execution." },
 ];
 
@@ -379,7 +384,7 @@ function buildStaticPage(template, { route, title, description }) {
       </main>
     </div>
   `;
-  return injectPage(template, { title: `${title} — ${SITE_NAME}`, headExtra, bodyHtml });
+  return injectPage(template, { title: `${title} â ${SITE_NAME}`, headExtra, bodyHtml });
 }
 
 async function main() {

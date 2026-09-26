@@ -1522,3 +1522,23 @@ textarea.sp-field{ resize: vertical; min-height: 140px; }
   .platform-art .dpv-activity{ display: block; }
 }
 @media (min-width: 1200px) and (prefers-reduced-motion: reduce){ .platform-art .dpv{ animation: none; } }
+
+/* --- Platform page ----------------------------------------------------------- */
+.platform-more{ margin-top: 28px; }
+.platform-page-hero .saas-copy h1 span{ color: var(--teal); }
+.platform-page-actions{ justify-content: flex-start; }
+/* The page has no clipping section, so the preview stays an in-flow card here. */
+.platform-page-art .dpv{ position: static !important; width: auto !important; border-bottom: 1px solid rgba(255,255,255,.1) !important; border-radius: 12px !important; box-shadow: 24px 25px 0 rgba(0,0,0,.7) !important; }
+.platform-page-art .dpv-body{ display: block !important; }
+.platform-page-art .dpv-activity{ display: none !important; }
+.platform-steps{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 52px; }
+.platform-step{ display: flex; flex-direction: column; }
+.platform-step h3{ color: #f5f6fa; }
+.platform-deliverable{ margin-top: auto; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.07); }
+.platform-step p{ margin-bottom: 20px !important; }
+.platform-deliverable small{ display: block; color: var(--teal); font-size: 0.6875rem; font-weight: 800; letter-spacing: .12em; }
+.platform-deliverable span{ display: block; margin-top: 6px; color: #d8dced; font-size: 0.9375rem; line-height: 1.55; }
+.platform-console-grid{ grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1100px){ .platform-console-grid{ grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 900px){ .platform-steps, .platform-page-hero .saas-wrap{ grid-template-columns: 1fr; } .platform-page-hero{ padding-top: 64px; padding-bottom: 72px; } .platform-page-actions{ flex-direction: column; align-items: stretch; } }
+@media (max-width: 560px){ .platform-console-grid{ grid-template-columns: 1fr !important; } }
