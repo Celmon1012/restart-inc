@@ -1467,3 +1467,44 @@ textarea.sp-field{ resize: vertical; min-height: 140px; }
 .cpv-brand{ display: grid; justify-content: start; justify-items: end; padding: 16px 20px 14px; border-bottom: 1px solid rgba(255,255,255,.07); }
 .cpv-brand img{ height: 38px; width: auto; }
 .cpv-brand span{ margin: -6px calc(10px - .18em) 0 0; color: var(--teal); font-size: 0.625rem; font-weight: 800; letter-spacing: .18em; line-height: 1; }
+
+/* --- Platform section: console Delivery preview ------------------------------ */
+/* Companion to the hero ConsolePreview; tokens mirror console/src/index.css. */
+.saas-art.platform-art{ height: auto !important; min-height: 0; border: 0; background: none; overflow: visible; }
+.dpv{ display: grid; grid-template-columns: 52px 1fr; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: #030304; box-shadow: 24px 25px 0 rgba(0,0,0,.7); overflow: hidden; font-family: "Plus Jakarta Sans", sans-serif; }
+.dpv-rail{ display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 0; border-right: 1px solid rgba(255,255,255,.07); background: #050507; }
+.dpv-mark{ width: 22px; height: 22px; margin-bottom: 12px; object-fit: contain; }
+.dpv-rail span{ display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; color: #6e7485; }
+.dpv-rail span.active{ background: rgba(46,229,193,.1); color: var(--teal); }
+.dpv-main{ min-width: 0; }
+.dpv-top{ display: flex; align-items: center; justify-content: space-between; height: 46px; padding: 0 18px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.dpv-tabs{ display: flex; align-self: stretch; gap: 18px; }
+.dpv-tabs span{ display: flex; align-items: center; color: #6e7485; font-size: 0.75rem; font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.dpv-tabs span.active{ color: var(--teal); border-color: var(--teal); }
+.dpv-icon{ display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid rgba(255,255,255,.08); border-radius: 7px; color: #a6b2c8; }
+.dpv-body{ padding: 18px; }
+.dpv-eyebrow{ color: var(--teal); font-size: 0.6875rem; font-weight: 600; }
+.dpv-body h3{ margin: 4px 0 14px; color: #f2f5ff; font-size: 1.25rem !important; font-weight: 700; letter-spacing: -.02em; }
+.dpv-stats{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.dpv-stats > div{ padding: 11px 12px; border: 1px solid rgba(255,255,255,.07); border-radius: 8px; background: rgba(255,255,255,.015); min-width: 0; }
+.dpv-stats small{ display: block; color: #5c6273; font-size: 0.5625rem; letter-spacing: .08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dpv-stats strong{ display: block; margin-top: 6px; color: #f2f5ff; font-size: 1.25rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.dpv-stats strong span{ color: #5c6273; font-size: .65em; }
+.dpv-card{ margin-top: 10px; padding: 4px 14px; border: 1px solid rgba(255,255,255,.07); border-radius: 8px; background: rgba(255,255,255,.015); }
+.dpv-row{ display: flex; align-items: flex-start; gap: 10px; padding: 11px 0; border-top: 1px solid rgba(255,255,255,.05); }
+.dpv-row:first-child{ border-top: 0; }
+.dpv-state{ display: grid; place-items: center; flex-shrink: 0; width: 16px; height: 16px; margin-top: 1px; border-radius: 50%; border: 1.5px solid #3a3f4c; color: #04120e; }
+.dpv-row.done .dpv-state{ border-color: var(--teal); background: var(--teal); }
+.dpv-row.active .dpv-state{ border-color: var(--teal); box-shadow: inset 0 0 0 3px #030304, inset 0 0 0 8px var(--teal); }
+.dpv-name{ display: flex; flex-direction: column; flex: 1; min-width: 0; color: #e6e9f2; font-size: 0.8125rem; font-weight: 600; }
+.dpv-name small{ margin-top: 2px; color: #6e7485; font-size: 0.6875rem; font-weight: 500; }
+.dpv-row.next .dpv-name{ color: #a6b2c8; }
+.dpv-progress{ display: block; height: 4px; margin-top: 8px; border-radius: 4px; background: rgba(255,255,255,.06); overflow: hidden; }
+.dpv-progress b{ display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2ee5c1, #98ea70); }
+.dpv-pill{ flex-shrink: 0; padding: 2px 8px; border-radius: 20px; font-size: 0.625rem; font-weight: 700; color: #6e7485; border: 1px solid rgba(255,255,255,.1); }
+.dpv-row.done .dpv-pill, .dpv-row.active .dpv-pill{ color: var(--teal); background: rgba(46,229,193,.1); border-color: rgba(46,229,193,.3); }
+@media (max-width: 480px){
+  .dpv{ grid-template-columns: 1fr; box-shadow: 12px 12px 0 rgba(0,0,0,.7); }
+  .dpv-rail{ display: none; }
+  .dpv-stats small{ white-space: normal; }
+}

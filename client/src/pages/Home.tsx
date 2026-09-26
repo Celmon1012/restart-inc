@@ -11,6 +11,7 @@ import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import NamedClients from "@/components/NamedClients";
 import { HeroDots, HeroLines, HeroStats } from "@/components/HeroBackdrop";
 import ConsolePreview from "@/components/ConsolePreview";
+import DeliveryPreview from "@/components/DeliveryPreview";
 import { useInsights } from "@/hooks/useInsights";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
@@ -385,18 +386,8 @@ export default function Home() {
               <div><strong>Create capacity for the next stage.</strong><span>Build a foundation that supports growth without forcing a full rewrite every time the business changes direction.</span></div>
             </div>
           </div>
-          <div className="saas-art">
-            <div className="dash-mock">
-              <div className="dash-mock-chrome"><span className="dash-mock-dot" /><span className="dash-mock-dot" /><span className="dash-mock-dot" /><div className="dash-mock-url" /></div>
-              <div className="dash-mock-body">
-                <div className="dash-mock-nav"><span className="active">Overview</span><span>Systems</span><span>Delivery</span><span>Activity</span></div>
-                <div className="dash-mock-main">
-                  <div className="dash-mock-stats"><div><small>UPTIME</small><strong>99.99%</strong></div><div><small>SYSTEMS</small><strong>10</strong></div><div><small>DEPLOYS</small><strong>24</strong></div></div>
-                  <div className="dash-mock-chart"><i style={{ height: "38%" }} /><i style={{ height: "64%" }} /><i style={{ height: "30%" }} /><i style={{ height: "82%" }} /><i style={{ height: "54%" }} /><i style={{ height: "70%" }} /><i style={{ height: "46%" }} /></div>
-                  <div className="dash-mock-rows"><div><span className="dot" />restart-console<span className="pill">Healthy</span></div><div><span className="dot" />restart-website<span className="pill">Healthy</span></div></div>
-                </div>
-              </div>
-            </div>
+          <div className="saas-art platform-art">
+            <DeliveryPreview />
           </div>
         </div>
       </section>
