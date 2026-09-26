@@ -1508,3 +1508,17 @@ textarea.sp-field{ resize: vertical; min-height: 140px; }
   .dpv-rail{ display: none; }
   .dpv-stats small{ white-space: normal; }
 }
+.dpv-activity{ display: none; }
+.dpv-card-head{ margin: 26px 0 8px; color: #c4c9d6; font-size: 0.75rem; font-weight: 600; }
+.dpv-dot{ flex-shrink: 0; width: 7px; height: 7px; margin-top: 5px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 8px var(--teal); }
+/* Desktop: like the hero preview, the mockup rests on the section's bottom
+   edge and runs off its right side. The grid column stays as the spacer. */
+@media (min-width: 1200px){
+  .platform-section{ position: relative; overflow: hidden; padding-bottom: 112px; }
+  .platform-wrap{ align-items: stretch; }
+  .platform-art{ position: relative; align-self: stretch; }
+  .platform-art .dpv{ position: absolute; left: 0; top: 24px; bottom: -113px; width: 1040px; border-bottom: 0; border-radius: 14px 0 0 0; box-shadow: 0 30px 80px rgba(0,0,0,.6); animation: cp-rise .9s var(--ease-out) both; }
+  .platform-art .dpv-body{ display: grid; grid-template-columns: 560px 340px; gap: 20px; align-items: start; }
+  .platform-art .dpv-activity{ display: block; }
+}
+@media (min-width: 1200px) and (prefers-reduced-motion: reduce){ .platform-art .dpv{ animation: none; } }

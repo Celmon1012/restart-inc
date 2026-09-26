@@ -17,6 +17,13 @@ const MILESTONES = [
   { name: "Billing integration", note: "Scheduled · week 9", state: "next" },
 ] as const;
 
+const ACTIVITY = [
+  { what: "Invoice sync deployed to production", when: "2h ago" },
+  { what: "Ops dashboard preview shared", when: "Yesterday" },
+  { what: "Workflow map signed off", when: "3 days ago" },
+  { what: "Scope agreed: billing integration", when: "Last week" },
+];
+
 export default function DeliveryPreview() {
   return (
     <div className="dpv" role="img" aria-label="Restart Console delivery view: milestones from workflow mapping to automation and a new ops dashboard">
@@ -34,6 +41,7 @@ export default function DeliveryPreview() {
         </div>
 
         <div className="dpv-body">
+          <div className="dpv-col">
           <span className="dpv-eyebrow">Acme Operations</span>
           <h3>Delivery</h3>
 
@@ -55,6 +63,20 @@ export default function DeliveryPreview() {
                 <span className="dpv-pill">{m.state === "done" ? "Done" : m.state === "active" ? `${m.progress}%` : "Next"}</span>
               </div>
             ))}
+          </div>
+          </div>
+
+          {/* Desktop only: runs off the section's right edge, like the hero. */}
+          <div className="dpv-col dpv-activity">
+            <div className="dpv-card-head">Recent activity</div>
+            <div className="dpv-card">
+              {ACTIVITY.map((a) => (
+                <div key={a.what} className="dpv-row">
+                  <span className="dpv-dot" />
+                  <span className="dpv-name">{a.what}<small>{a.when}</small></span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
