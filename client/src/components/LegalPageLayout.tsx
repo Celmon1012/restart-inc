@@ -206,10 +206,16 @@ export default function LegalPageLayout({
             <Link href="/careers">Careers</Link>
           </div>
           <div>
-            <strong>LEGAL</strong>
-            <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/terms">Terms of Service</Link><button type="button" className="footer-cookie-btn" onClick={openCookieSettings}>Cookie settings</button>
-            <a href="mailto:legal@restart.ng">legal@restart.ng</a>
+            <strong>CONNECT</strong>
+            <a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">
+              LinkedIn <ArrowUpRight size={12} />
+            </a>
+            <a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">
+              GitHub <ArrowUpRight size={12} />
+            </a>
+            <Link href="/start-project" className="footer-text-btn">
+              Book an intro <ArrowUpRight size={12} />
+            </Link>
           </div>
         </div>
         <div className="container footer-bottom">
