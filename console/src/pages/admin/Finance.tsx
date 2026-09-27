@@ -77,12 +77,16 @@ function formatCompact(cents: number, currency: string): string {
  * USD stacks instead of cramming both full-precision figures onto one line.
  */
 export function TotalsValue({ totals }: { totals: Totals | undefined }) {
-  const entries = nonZero(totals);
+  // NGN is the home currency (Restart invoices from Nigeria), so it leads at
+  // full size; any other currency sits underneath, smaller and muted.
+  const entries = nonZero(totals).sort(([a], [b]) => (a === "NGN" ? -1 : b === "NGN" ? 1 : a.localeCompare(b)));
   if (entries.length === 0) return <>—</>;
   return (
-    <span className={`stat-totals ${entries.length > 1 ? "multi" : ""}`} title={formatTotals(totals)}>
-      {entries.map(([currency, cents]) => (
-        <span key={currency}>{formatCompact(cents, currency)}</span>
+    <span className="stat-totals" title={formatTotals(totals)}>
+      {entries.map(([currency, cents], i) => (
+        <span key={currency} className={i === 0 ? "stat-totals-primary" : "stat-totals-secondary"}>
+          {formatCompact(cents, currency)}
+        </span>
       ))}
     </span>
   );

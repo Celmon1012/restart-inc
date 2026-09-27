@@ -2841,11 +2841,11 @@
 .admin-toolbar .workspace-search-box input{ font-size: 0.8125rem; }
 @media (max-width: 640px){ .admin-toolbar .workspace-search-box{ min-width: 0; width: 100%; } }
 .stat-totals{ display: flex; flex-direction: column; gap: 4px; }
-.stat-totals.multi{ font-size: 1.25rem; }
 .admin-board-col{ border-radius: 8px; transition: background .12s, outline-color .12s; outline: 1px dashed transparent; outline-offset: 4px; }
 .admin-board-col.drag-over{ background: rgba(46,229,193,.04); outline-color: rgba(46,229,193,.45); }
 .admin-board-card[draggable="true"]{ cursor: grab; }
 .admin-board-card[draggable="true"]:active{ cursor: grabbing; }
 /* .cp-stats strong span shrinks "/total" suffixes -- not these values. */
 .cp-stats strong .stat-totals, .cp-stats strong .stat-totals span{ color: inherit; font-size: inherit; }
-.cp-stats strong .stat-totals.multi{ font-size: 1.25rem; line-height: 1.15; }
+.cp-stats strong .stat-totals{ gap: 6px; }
+.cp-stats strong .stat-totals .stat-totals-secondary{ color: #a6abb9; font-size: 0.8125rem; font-weight: 600; line-height: 1; }
