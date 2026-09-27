@@ -99,9 +99,10 @@ export default function InquirySubmitted() {
       path: "/thank-you",
     });
 
-    // Reported here rather than only in the form so that the conversion has a
-    // real page view behind it in GA4.
-    track("generate_lead", { source: "thank_you_page", has_reference: Boolean(referenceId) });
+    // Not generate_lead: StartProject already fires that after a successful
+    // insert. Firing it here too double-counted every conversion, and counted
+    // honeypot bots (redirected here without a reference) as leads.
+    track("thank_you_view", { has_reference: Boolean(referenceId) });
 
     return () => resetSeoToDefault();
   }, [referenceId]);

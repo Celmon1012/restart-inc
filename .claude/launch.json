@@ -12,6 +12,13 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "console", "run", "dev", "--", "--port", "3002"],
       "port": 3002
+    },
+    {
+      "name": "restart-web-ga",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "3005", "--strictPort"],
+      "env": { "VITE_GA4_MEASUREMENT_ID": "G-4P8B2H15B0" },
+      "port": 3005
     }
   ]
 }
