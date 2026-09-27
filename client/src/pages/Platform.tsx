@@ -23,8 +23,8 @@ import { platformStack } from "@/data/stack";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
 /*
- * The three steps are the homepage platform section's three points, each
- * with what the client actually receives at the end of it. The console
+ * The three steps are the platform method, each with what the client
+ * actually receives at the end of it. The console
  * features are the console's real navigation, not a wish list.
  */
 const steps = [

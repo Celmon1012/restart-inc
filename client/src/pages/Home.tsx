@@ -363,11 +363,6 @@ export default function Home() {
               workflows, constraints, and costs shaping your business, then connect the product,
               platform, and operational surfaces that keep it moving.
             </p>
-            <div className="saas-points">
-              <div><strong>See the system clearly.</strong><span>Map the workflows, constraints, dependencies, and costs that are shaping the business.</span></div>
-              <div><strong>Remove the repeatable friction.</strong><span>Automate the work that slows good teams down and build interfaces around the decisions that matter.</span></div>
-              <div><strong>Create capacity for the next stage.</strong><span>Build a foundation that supports growth without forcing a full rewrite every time the business changes direction.</span></div>
-            </div>
             <Link href="/platform" className="button outline small platform-more">
               How the platform works <ArrowRight size={14} />
             </Link>
