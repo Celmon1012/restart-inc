@@ -4,7 +4,6 @@
 export const ENGAGEMENTS = [
   { id: "build", label: "Build something new", hint: "A product, platform, or internal tool" },
   { id: "scale", label: "Fix, scale, or migrate a system", hint: "Something live that's under pressure" },
-  { id: "operate", label: "Have Restart run our web assets", hint: "Sites, domains, hosting, and vendors — managed" },
   { id: "ai", label: "Add an AI capability", hint: "Agents, LLM features, or automation" },
   { id: "advisory", label: "Architecture or technical leadership", hint: "A review or senior direction" },
   { id: "exploring", label: "Just looking around", hint: "No project in mind yet" }

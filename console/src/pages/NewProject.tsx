@@ -24,7 +24,12 @@ export default function NewProject() {
   const { refresh, setActiveWorkspaceId } = useWorkspace();
   const [step, setStep] = useState<Step>("name");
   const [name, setName] = useState("");
-  const [engagement, setEngagement] = useState("");
+  // ?engagement= preselects the need step (e.g. the sidebar's AI promo);
+  // only known ids are taken, so a stale or hand-edited link just starts blank.
+  const [engagement, setEngagement] = useState(() => {
+    const preset = new URLSearchParams(window.location.search).get("engagement") ?? "";
+    return ENGAGEMENTS.some((e) => e.id === preset) ? preset : "";
+  });
   const [timeline, setTimeline] = useState("");
   const [budget, setBudget] = useState("");
   const [brief, setBrief] = useState("");

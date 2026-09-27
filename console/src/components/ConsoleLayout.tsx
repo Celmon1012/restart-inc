@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import {
   ArrowLeft,
-  ArrowUpRight,
-  Briefcase,
+  ArrowRight,
   MoreHorizontal,
   User,
   ChevronDown,
@@ -118,19 +117,6 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
     setAiPromoDismissed(true);
     try {
       localStorage.setItem("console.promoDismissed.ai-engineering", "1");
-    } catch {}
-  };
-  const [operatorPromoDismissed, setOperatorPromoDismissed] = useState(() => {
-    try {
-      return localStorage.getItem("console.promoDismissed.operator-as-a-service") === "1";
-    } catch {
-      return false;
-    }
-  });
-  const dismissOperatorPromo = () => {
-    setOperatorPromoDismissed(true);
-    try {
-      localStorage.setItem("console.promoDismissed.operator-as-a-service", "1");
     } catch {}
   };
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -383,23 +369,6 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
         </nav>
 
         <div className="console-sidebar-footer">
-          {!operatorPromoDismissed && !sidebarCollapsed && (
-            <div className="sidebar-promo-card">
-              <button className="sidebar-promo-close" onClick={dismissOperatorPromo} aria-label="Dismiss">
-                <X size={12} />
-              </button>
-              <span className="sidebar-promo-kicker">
-                <Briefcase size={11} />
-                BUSINESS OPERATOR AS A SERVICE
-              </span>
-              <h5>Let a Restart operator run your web assets</h5>
-              <p>Ongoing management of your sites, domains, and vendors — one operator accountable for all of it.</p>
-              <a href={`${MARKETING_URL}/start-project`} className="sidebar-promo-cta">
-                Explore the offer
-                <ArrowUpRight size={12} />
-              </a>
-            </div>
-          )}
           {!aiPromoDismissed && !sidebarCollapsed && (
             <div className="sidebar-promo-card">
               <button className="sidebar-promo-close" onClick={dismissAiPromo} aria-label="Dismiss">
@@ -411,10 +380,13 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
               </span>
               <h5>Put AI where it can earn trust</h5>
               <p>Agentic workflows, LLM integration, and automation built into your own stack.</p>
-              <a href={`${MARKETING_URL}/solutions/ai-engineering`} className="sidebar-promo-cta">
-                Explore the offer
-                <ArrowUpRight size={12} />
-              </a>
+              {/* Straight into the new-project flow with the AI engagement
+                  preselected -- the member is already signed in, so there's
+                  no reason to bounce them to the marketing page. */}
+              <Link href="/console/new-project?engagement=ai" className="sidebar-promo-cta">
+                Start an AI project
+                <ArrowRight size={12} />
+              </Link>
             </div>
           )}
           <div className="sidebar-account" ref={accountMenuRef}>
@@ -522,10 +494,10 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
               )}
             </button>
 
-            <a href={`${MARKETING_URL}/start-project`} className="dash-action-btn">
+            <Link href="/console/new-project" className="dash-action-btn">
+              <Plus size={14} />
               <span>Start a Project</span>
-              <ArrowUpRight size={14} />
-            </a>
+            </Link>
 
             <div className="dash-user-menu-wrapper" ref={userMenuRef}>
               <button
