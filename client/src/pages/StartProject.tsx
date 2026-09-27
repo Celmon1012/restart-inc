@@ -100,27 +100,31 @@ const urgencyOptions: Array<{ label: string; weight: number }> = [
 ];
 
 const timelineOptions: Array<{ label: string; weight: number }> = [
-  { label: "Need a decision or audit within 1–2 weeks", weight: 15 },
-  { label: "Want to start within 30 days", weight: 12 },
-  { label: "Targeting the next quarter", weight: 7 },
+  { label: "Within 2 weeks", weight: 15 },
+  { label: "Within 30 days", weight: 12 },
+  { label: "Next quarter", weight: 7 },
   { label: "Planning ahead", weight: 3 },
-  { label: "Exploring architecture options", weight: 0 },
+  { label: "Still exploring", weight: 0 },
 ];
 
 /**
  * The floor is real, and it is stated in the UI rather than hidden.
  *
- * The sub-$10k band was removed: an option that low invites exactly the
- * buyer this work is not priced for, and the negotiation costs more than
- * the enquiry is worth. "Not yet budgeted" is kept deliberately -- a
- * specific problem with an unclear budget is still a qualified lead,
- * unlike a specific budget with a vague problem.
+ * Same bands as the console intake (console/src/lib/intakeOptions.ts).
+ * Under $10k is offered while the client base is being built -- some of
+ * that work is worth taking at a concession -- but it scores lowest, so it
+ * lands in nurture unless the rest of the brief is strong. "Not yet
+ * budgeted" is kept deliberately -- a specific problem with an unclear
+ * budget is still a qualified lead, unlike a specific budget with a vague
+ * problem.
  */
 const budgetOptions: Array<{ label: string; weight: number; tier: string }> = [
-  { label: "$25,000–$50,000 — focused engagement", weight: 14, tier: "$25k–$50k" },
-  { label: "$50,000–$100,000 — platform or product build", weight: 19, tier: "$50k–$100k" },
-  { label: "$100,000+ — multi-quarter programme or dedicated pod", weight: 22, tier: "$100k+" },
-  { label: "Not yet budgeted — needs a scoping conversation first", weight: 6, tier: "Unbudgeted" },
+  { label: "Under $10,000", weight: 4, tier: "Under $10k" },
+  { label: "$10,000–$25,000", weight: 10, tier: "$10k–$25k" },
+  { label: "$25,000–$50,000", weight: 14, tier: "$25k–$50k" },
+  { label: "$50,000–$100,000", weight: 19, tier: "$50k–$100k" },
+  { label: "$100,000+", weight: 22, tier: "$100k+" },
+  { label: "Not yet budgeted", weight: 6, tier: "Unbudgeted" },
 ];
 
 /**
@@ -259,12 +263,12 @@ export default function StartProject() {
   // Step 2 — the stakes
   const [selectedOutcomes, setSelectedOutcomes] = useState<string[]>([]);
   const [impactMetric, setImpactMetric] = useState("");
-  const [selectedUrgency, setSelectedUrgency] = useState(urgencyOptions[0].label);
-  const [selectedRole, setSelectedRole] = useState(decisionRoles[0].label);
+  const [selectedUrgency, setSelectedUrgency] = useState("");
+  const [selectedRole, setSelectedRole] = useState("");
 
   // Step 3 — scope and contact
-  const [selectedBudget, setSelectedBudget] = useState(budgetOptions[0].label);
-  const [selectedTimeline, setSelectedTimeline] = useState(timelineOptions[0].label);
+  const [selectedBudget, setSelectedBudget] = useState("");
+  const [selectedTimeline, setSelectedTimeline] = useState("");
   const [referral, setReferral] = useState(referralSources[0]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -328,7 +332,7 @@ export default function StartProject() {
         );
         setSelectedUrgency(urgencyOptions[0].label);
         setSelectedRole(decisionRoles[0].label);
-        setSelectedBudget(budgetOptions[1].label);
+        setSelectedBudget(budgetOptions[3].label);
         setSelectedTimeline(timelineOptions[1].label);
       }
     } catch {}
@@ -366,8 +370,14 @@ export default function StartProject() {
     if (current === 2) {
       if (selectedOutcomes.length === 0) return "Select at least one outcome you're hoping for.";
       if (!impactMetric.trim()) return "Tell us what would be measurably different if this worked.";
+      // No defaults on the scored questions: a preselected answer is scored
+      // as if the prospect chose it, which inflated leads that clicked through.
+      if (!selectedUrgency) return "Tell us what leaving this unresolved costs.";
+      if (!selectedRole) return "Tell us who owns this decision.";
       return null;
     }
+    if (!selectedTimeline) return "Pick the timing that fits.";
+    if (!selectedBudget) return "Pick an investment range — it isn't a commitment.";
     if (!name.trim()) return "Please add your name.";
     if (!emailLooksReal) return "Please add a valid work email so we can reply.";
     return null;
@@ -691,7 +701,7 @@ export default function StartProject() {
               {step === 3 && (
                 <>
                   <OptionCards legend="Desired timing" name="timeline" options={timelineOptions.map((t) => t.label)} value={selectedTimeline} onChange={setSelectedTimeline} />
-                  <OptionCards legend="Investment range" name="budget" options={budgetOptions.map((b) => b.label)} value={selectedBudget} onChange={setSelectedBudget} note="Engagements start at $25,000. Naming a range now saves a round trip — it isn't a commitment." />
+                  <OptionCards legend="Investment range" name="budget" options={budgetOptions.map((b) => b.label)} value={selectedBudget} onChange={setSelectedBudget} note="Naming a range now saves a round trip — it isn't a commitment." />
                   <fieldset className="scorecard-question">
                     <legend>How do we reach you?</legend>
                     <div className="sp-fields">
