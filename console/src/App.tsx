@@ -22,6 +22,8 @@ import AdminOverview from "./pages/admin/Overview";
 import AdminClients from "./pages/admin/Clients";
 import AdminLeads from "./pages/admin/Leads";
 import AdminProjects from "./pages/admin/Projects";
+import AdminProjectDetail from "./pages/admin/ProjectDetail";
+import AdminClientDetail from "./pages/admin/ClientDetail";
 import AdminTasks from "./pages/admin/Tasks";
 import AdminServerRequests from "./pages/admin/ServerRequests";
 import AdminSupport from "./pages/admin/Support";
@@ -132,6 +134,13 @@ function Router() {
           </AdminRoute>
         </ProtectedRoute>
       </Route>
+      <Route path="/admin/clients/:key">
+        <ProtectedRoute>
+          <AdminRoute>
+            <AdminClientDetail />
+          </AdminRoute>
+        </ProtectedRoute>
+      </Route>
       <Route path="/admin/leads">
         <ProtectedRoute>
           <AdminRoute>
@@ -143,6 +152,13 @@ function Router() {
         <ProtectedRoute>
           <AdminRoute>
             <AdminProjects />
+          </AdminRoute>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/projects/:id">
+        <ProtectedRoute>
+          <AdminRoute>
+            <AdminProjectDetail />
           </AdminRoute>
         </ProtectedRoute>
       </Route>

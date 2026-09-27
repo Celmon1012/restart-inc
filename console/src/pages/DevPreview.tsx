@@ -12,6 +12,33 @@ import AdminOverview from "./admin/Overview";
 import AdminFinance from "./admin/Finance";
 import AdminLeads from "./admin/Leads";
 import AdminTasks from "./admin/Tasks";
+import AdminProjects from "./admin/Projects";
+import AdminProjectDetail from "./admin/ProjectDetail";
+import AdminClients from "./admin/Clients";
+import AdminClientDetail from "./admin/ClientDetail";
+
+// Portfolio fixtures for the admin Projects/Clients pages (dev only): answer
+// PostgREST reads on these tables and the support-data function locally.
+const d = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
+const tableFixtures: Record<string, unknown[]> = {
+  workspaces: [
+    { id: "ws-steadfast", name: "Steadfast Life", tier_label: null, created_at: d(4), coolify_project_uuid: null, lago_customer_id: null, contact_email: "ops@steadfast.test", client_type: "sme", engagement_type: "build", qualification: "nurture", created_by: "u1", onboarding: { full_name: "Tolu Ade", role: "COO", website: "steadfast.test", budget: "10-25k", timeline: "30d" } },
+    { id: "ws-steadfast-2", name: "Claims portal", tier_label: null, created_at: d(2), coolify_project_uuid: null, lago_customer_id: null, contact_email: "ops@steadfast.test", client_type: null, engagement_type: "ai", qualification: "qualified", created_by: "u1", onboarding: { source: "console_new_project", budget: "25-50k", timeline: "now", brief: "Automate first-pass claims triage with an LLM, with a human approving every decision." } },
+    { id: "dev-ws", name: "Acme Operations", tier_label: "Pro", created_at: d(40), coolify_project_uuid: "c1", lago_customer_id: "c1", contact_email: "dev@acme.test", client_type: "enterprise", engagement_type: "scale", qualification: "priority", created_by: "u2", onboarding: { full_name: "Dana Okafor", role: "CTO", website: "acme.test" } },
+  ],
+  deliverables: [
+    { id: "m1", workspace_id: "dev-ws", title: "Discovery & audit", status: "completed", due_at: d(20), sort_order: 0 },
+    { id: "m2", workspace_id: "dev-ws", title: "Database migration", status: "in-progress", due_at: d(-5), sort_order: 1 },
+    { id: "m3", workspace_id: "dev-ws", title: "Cutover", status: "not-started", due_at: d(-20), sort_order: 2 },
+    { id: "m4", workspace_id: "ws-steadfast", title: "MVP build", status: "blocked", due_at: d(1), sort_order: 0 },
+  ],
+  deliverable_tasks: [
+    { deliverable_id: "m2", is_done: true }, { deliverable_id: "m2", is_done: false }, { deliverable_id: "m2", is_done: false }, { deliverable_id: "m4", is_done: false },
+  ],
+  server_requests: [{ workspace_id: "dev-ws", status: "pending_review" }],
+  inquiries: [],
+};
+
 
 // Finance fixture: answer console-admin-finance locally so the tiles and tables
 // can be checked with realistic multi-currency figures (dev only).
@@ -47,6 +74,14 @@ if (import.meta.env.DEV && typeof window !== "undefined" && !(window as { __fina
   const realFetch = window.fetch.bind(window);
   window.fetch = (input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    const table = url.match(/\/rest\/v1\/([a-z_]+)/)?.[1];
+    if (table && tableFixtures[table]) {
+      return Promise.resolve(new Response(JSON.stringify(tableFixtures[table]), { headers: { "Content-Type": "application/json" } }));
+    }
+    if (url.includes("console-support-data")) {
+      const conversations = [{ id: "t1", workspaceId: "dev-ws", workspaceName: "Acme Operations", status: "open", lastMessage: "Staging is slow since Tuesday", lastActivityAt: Date.now() - 3_600_000 }];
+      return Promise.resolve(new Response(JSON.stringify({ conversations }), { headers: { "Content-Type": "application/json" } }));
+    }
     if (url.includes("console-admin-finance")) {
       return Promise.resolve(new Response(JSON.stringify(financeFixture), { headers: { "Content-Type": "application/json" } }));
     }
@@ -115,7 +150,7 @@ export default function DevPreview() {
   return (
     <AuthContext.Provider value={auth}>
       <WorkspaceContext.Provider value={ws}>
-        {page === "new-project" ? <NewProject /> : page === "systems" ? <Systems /> : page === "admin" ? <AdminOverview /> : page === "admin-finance" ? <AdminFinance /> : page === "admin-leads" ? <AdminLeads /> : page === "admin-tasks" ? <AdminTasks /> : <Overview />}
+        {page === "new-project" ? <NewProject /> : page === "systems" ? <Systems /> : page === "admin" ? <AdminOverview /> : page === "admin-finance" ? <AdminFinance /> : page === "admin-leads" ? <AdminLeads /> : page === "admin-tasks" ? <AdminTasks /> : page === "admin-projects" ? <AdminProjects /> : page === "admin-project" ? <AdminProjectDetail id="dev-ws" /> : page === "admin-clients" ? <AdminClients /> : page === "admin-client" ? <AdminClientDetail clientKey="dev@acme.test" /> : <Overview />}
       </WorkspaceContext.Provider>
     </AuthContext.Provider>
   );

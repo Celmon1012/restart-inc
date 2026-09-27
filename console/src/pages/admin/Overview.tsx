@@ -104,10 +104,10 @@ export default function AdminOverview() {
   const dash = (loading: boolean, error: string | null, v: React.ReactNode) => (loading ? "…" : error ? "!" : v);
 
   const attention = [
-    ...blocked.map((m) => ({ key: `b-${m.id}`, text: `${m.workspace?.name ?? "Client"}: “${m.title}” is blocked`, href: `/admin/projects?workspace=${m.workspace?.id ?? ""}` })),
+    ...blocked.map((m) => ({ key: `b-${m.id}`, text: `${m.workspace?.name ?? "Client"}: “${m.title}” is blocked`, href: `/admin/projects/${m.workspace?.id ?? ""}` })),
     ...overdueMilestones
       .filter((m) => m.status !== "blocked")
-      .map((m) => ({ key: `o-${m.id}`, text: `${m.workspace?.name ?? "Client"}: “${m.title}” was due ${formatDate(m.due_at)}`, href: `/admin/projects?workspace=${m.workspace?.id ?? ""}` })),
+      .map((m) => ({ key: `o-${m.id}`, text: `${m.workspace?.name ?? "Client"}: “${m.title}” was due ${formatDate(m.due_at)}`, href: `/admin/projects/${m.workspace?.id ?? ""}` })),
     ...pendingReview.map((r) => ({ key: `r-${r.id}`, text: `${r.workspace?.name ?? "Client"} requested ${r.kind === "upgrade" ? "a server upgrade" : "a new server"} ${formatRelative(r.created_at)}`, href: "/admin/requests" })),
     ...followUpsDue.map((l) => ({ key: `l-${l.id}`, text: `Follow-up due: ${l.name}${l.company ? ` (${l.company})` : ""}`, href: `/admin/leads?id=${l.id}` })),
     ...openTickets.map((c) => ({ key: `t-${c.id}`, text: `Open ticket from ${c.workspaceName ?? "a client"}: ${c.lastMessage ?? "no message"}`, href: `/admin/support?id=${c.id}` })),

@@ -401,7 +401,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
                   key={href}
                   href={href}
                   title={label}
-                  className={`console-sidebar-link ${location === href ? "active" : ""}`}
+                  className={`console-sidebar-link ${location === href || (href !== "/admin" && location.startsWith(`${href}/`)) ? "active" : ""}`}
                 >
                   <Icon size={15} />
                   <span>{label}</span>

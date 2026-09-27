@@ -175,7 +175,7 @@ export default function AdminTasks() {
             <div className="admin-group-head">
               <span>{g.name}</span>
               {g.workspaceId && (
-                <Link href={`/admin/projects?workspace=${g.workspaceId}`} className="overview-section-link">
+                <Link href={`/admin/projects/${g.workspaceId}`} className="overview-section-link">
                   Open project <ArrowRight size={12} />
                 </Link>
               )}

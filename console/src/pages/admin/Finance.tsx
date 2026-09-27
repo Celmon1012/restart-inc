@@ -244,7 +244,7 @@ export default function AdminFinance() {
                       <tr key={c.customerId}>
                         <td>
                           {c.workspaceId ? (
-                            <Link href={`/admin/projects?workspace=${c.workspaceId}`}><strong>{c.name}</strong></Link>
+                            <Link href={`/admin/projects/${c.workspaceId}`}><strong>{c.name}</strong></Link>
                           ) : (
                             <strong>{c.name}</strong>
                           )}

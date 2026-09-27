@@ -2849,3 +2849,10 @@
 .cp-stats strong .stat-totals, .cp-stats strong .stat-totals span{ color: inherit; font-size: inherit; }
 .cp-stats strong .stat-totals{ gap: 6px; }
 .cp-stats strong .stat-totals .stat-totals-secondary{ color: #a6abb9; font-size: 0.8125rem; font-weight: 600; line-height: 1; }
+.admin-progress-cell{ display: inline-flex; align-items: center; gap: 8px; min-width: 110px; }
+.admin-progress-cell .cp-progress{ flex: 1; min-width: 48px; }
+.admin-progress-cell > span:last-child{ font-variant-numeric: tabular-nums; color: #a6abb9; font-size: 0.75rem; }
+.dash-kicker a{ color: inherit; text-decoration: none; }
+.dash-kicker a:hover{ color: var(--teal); }
+.admin-table td{ white-space: nowrap; }
+.admin-table td.wrap{ white-space: normal; min-width: 220px; }

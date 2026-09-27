@@ -1,497 +1,158 @@
-// Admin project management: every client's delivery milestones, with the
-// controls that used to sit behind isAdmin checks on the client Delivery tab
-// (status, checklist edits, internal notes, agent proposals) plus creating and
-// removing milestones. The client's Delivery tab is now read-only; this is the
-// only place the work gets curated.
-//
-// Writes go straight to console.deliverables/deliverable_tasks/
-// deliverable_activities under the admin's own JWT -- RLS
-// ("admins can manage ...") is the boundary. Approving a client-facing agent
-// proposal still goes through console-deliverable-send, the only step allowed
-// to actually contact the client.
+// Every project (console workspace) across every client, with delivery state
+// at a glance. Clicking a row opens the project's own page (ProjectDetail),
+// where milestones, requests, support, and billing are managed.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
+import { Search } from "lucide-react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
-import { ActivityTimeline, type AgentActivity } from "@/components/ActivityTimeline";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { useAuth } from "@/contexts/AuthContext";
-import { consoleSchema, supabase } from "@/lib/supabase";
-import { loadAdminWorkspaces, queryParam, type AdminWorkspace } from "@/lib/admin";
-import type { Deliverable } from "@/lib/deliverables";
-import { formatDate } from "@/lib/format";
-import { Check, Plus, Send, Trash2, X } from "lucide-react";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
-import { toast } from "sonner";
+import { formatDate } from "@/lib/format";
+import {
+  ENGAGEMENT_LABEL,
+  PROJECT_STATUS_LABEL,
+  PROJECT_STATUS_TONE,
+  loadPortfolio,
+  type ProjectStatus
+} from "@/lib/admin";
 
-interface DeliverableTask {
-  id: string;
-  deliverable_id: string;
-  title: string;
-  is_done: boolean;
-  sort_order: number;
-}
+type Filter = "all" | ProjectStatus;
 
-interface DeliverableActivity extends AgentActivity {
-  deliverable_id: string;
-}
-
-const STATUS_LABEL: Record<Deliverable["status"], string> = {
-  "not-started": "NOT STARTED",
-  "in-progress": "IN PROGRESS",
-  completed: "COMPLETED",
-  blocked: "BLOCKED"
-};
-
-const STATUS_CYCLE: Deliverable["status"][] = ["not-started", "in-progress", "completed", "blocked"];
-
-function MilestoneCard({
-  milestone,
-  order,
-  tasks,
-  activities,
-  detailsLoading,
-  onStatusChange,
-  onAddTask,
-  onToggleTask,
-  onDeleteTask,
-  onAddNote,
-  onApprove,
-  onReject,
-  onDelete
-}: {
-  milestone: Deliverable;
-  order: number;
-  tasks: DeliverableTask[];
-  activities: DeliverableActivity[];
-  detailsLoading: boolean;
-  onStatusChange: (id: string, status: Deliverable["status"]) => void;
-  onAddTask: (deliverableId: string, title: string) => Promise<void>;
-  onToggleTask: (task: DeliverableTask) => Promise<void>;
-  onDeleteTask: (task: DeliverableTask) => Promise<void>;
-  onAddNote: (deliverableId: string, body: string) => Promise<void>;
-  onApprove: (activity: AgentActivity, subject: string, body: string) => Promise<void>;
-  onReject: (activity: AgentActivity) => Promise<void>;
-  onDelete: (milestone: Deliverable) => void;
-}) {
-  const [newTask, setNewTask] = useState("");
-  const [noteDraft, setNoteDraft] = useState("");
-  const doneCount = tasks.filter((t) => t.is_done).length;
-
-  const addTask = async () => {
-    if (!newTask.trim()) return;
-    await onAddTask(milestone.id, newTask.trim());
-    setNewTask("");
-  };
-
+export function ProjectStatusPill({ status }: { status: ProjectStatus }) {
+  const tone = PROJECT_STATUS_TONE[status];
   return (
-    <div className={`sprint-card ${milestone.status === "in-progress" ? "in-progress" : ""}`}>
-      <div className={`sprint-status-tag ${milestone.status === "in-progress" ? "active" : ""}`}>
-        {STATUS_LABEL[milestone.status]} · MILESTONE {String(order).padStart(2, "0")}
-        {milestone.due_at && ` · DUE ${formatDate(milestone.due_at).toUpperCase()}`}
-      </div>
-      <h4>{milestone.title}</h4>
-      {milestone.description && <p>{milestone.description}</p>}
-      {milestone.meta && <div className="sprint-meta">{milestone.meta}</div>}
-
-      <div className="lead-stage-buttons mt-4">
-        {STATUS_CYCLE.filter((s) => s !== milestone.status).map((s) => (
-          <button key={s} className="dash-tab-btn" onClick={() => onStatusChange(milestone.id, s)}>
-            {STATUS_LABEL[s].toLowerCase()}
-          </button>
-        ))}
-        <button className="dash-tab-btn" onClick={() => onDelete(milestone)} aria-label={`Delete ${milestone.title}`}>
-          <Trash2 size={13} />
-          <span>delete</span>
-        </button>
-      </div>
-
-      <div className="deliverable-tasklist-section">
-        <span className="meta-k">Checklist {tasks.length > 0 && `(${doneCount}/${tasks.length})`}</span>
-        {tasks.length === 0 ? (
-          <p className="key-desc">No checklist items yet.</p>
-        ) : (
-          <div className="deliverable-tasklist">
-            {tasks.map((task) => (
-              <div className="deliverable-task-row" key={task.id}>
-                <button
-                  className={`deliverable-task-check ${task.is_done ? "done" : ""}`}
-                  onClick={() => onToggleTask(task)}
-                  aria-label={task.is_done ? "Mark not done" : "Mark done"}
-                >
-                  {task.is_done && <Check size={12} />}
-                </button>
-                <span className={task.is_done ? "done" : ""}>{task.title}</span>
-                <button className="deliverable-task-remove" onClick={() => onDeleteTask(task)} aria-label="Remove item">
-                  <Trash2 size={12} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="deliverable-task-add">
-          <input
-            className="console-input"
-            placeholder="Add a checklist item…"
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void addTask();
-            }}
-          />
-          <button className="dash-tab-btn" disabled={!newTask.trim()} onClick={addTask} aria-label="Add checklist item">
-            <Plus size={13} />
-          </button>
-        </div>
-      </div>
-
-      <div className="lead-activity-section">
-        <span className="card-kicker">ACTIVITY (INTERNAL)</span>
-        <ActivityTimeline activities={activities} loading={detailsLoading} onApprove={onApprove} onReject={onReject} />
-        <div className="lead-note-form">
-          <textarea placeholder="Add a note…" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} rows={2} />
-          <button
-            className="dash-action-btn"
-            disabled={!noteDraft.trim()}
-            onClick={async () => {
-              await onAddNote(milestone.id, noteDraft.trim());
-              setNoteDraft("");
-            }}
-          >
-            <Send size={13} />
-            <span>Add note</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>{PROJECT_STATUS_LABEL[status].toUpperCase()}</span>
   );
 }
 
-function NewMilestoneForm({
-  nextOrder,
-  onCreate,
-  onCancel
-}: {
-  nextOrder: number;
-  onCreate: (row: Pick<Deliverable, "title" | "description" | "status" | "due_at" | "meta" | "sort_order">) => Promise<void>;
-  onCancel: () => void;
-}) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<Deliverable["status"]>("not-started");
-  const [dueAt, setDueAt] = useState("");
-  const [meta, setMeta] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    setSaving(true);
-    try {
-      await onCreate({
-        title: title.trim(),
-        description: description.trim() || null,
-        status,
-        due_at: dueAt ? new Date(dueAt).toISOString() : null,
-        meta: meta.trim() || null,
-        sort_order: nextOrder
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
+export function ProgressCell({ completed, total }: { completed: number; total: number }) {
+  if (total === 0) return <span className="admin-muted">—</span>;
+  const pct = Math.round((completed / total) * 100);
   return (
-    <form className="console-card mb-4" onSubmit={submit}>
-      <div className="card-top-header">
-        <span className="card-kicker">NEW MILESTONE</span>
-        <button type="button" className="deliverable-task-remove" onClick={onCancel} aria-label="Close">
-          <X size={14} />
-        </button>
-      </div>
-      <div className="admin-new-form">
-        <input className="console-input wide" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
-        <textarea
-          className="wide"
-          placeholder="What this milestone delivers (the client sees this)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-        <select className="console-select" value={status} onChange={(e) => setStatus(e.target.value as Deliverable["status"])} aria-label="Status">
-          {STATUS_CYCLE.map((s) => (
-            <option key={s} value={s}>{STATUS_LABEL[s].toLowerCase()}</option>
-          ))}
-        </select>
-        <input className="console-input" type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} aria-label="Due date" />
-        <input className="console-input wide" placeholder="Meta line, e.g. Sprint 3 · Week of 6 Oct (optional)" value={meta} onChange={(e) => setMeta(e.target.value)} />
-        <div className="admin-form-actions">
-          <button type="button" className="console-btn-secondary" onClick={onCancel} disabled={saving}>Cancel</button>
-          <button type="submit" className="dash-action-btn" disabled={saving || !title.trim()}>
-            <Plus size={13} />
-            <span>Create milestone</span>
-          </button>
-        </div>
-      </div>
-    </form>
+    <span className="admin-progress-cell">
+      <span className="cp-progress"><i style={{ width: `${pct}%` }} /></span>
+      <span>{completed}/{total}</span>
+    </span>
   );
 }
 
 export default function AdminProjects() {
-  const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [workspaceId, setWorkspaceId] = useState<string | null>(() => queryParam("workspace"));
-  const [tasksByDeliverable, setTasksByDeliverable] = useState<Record<string, DeliverableTask[]>>({});
-  const [activitiesByDeliverable, setActivitiesByDeliverable] = useState<Record<string, DeliverableActivity[]>>({});
-  const [detailsLoading, setDetailsLoading] = useState(true);
-  const [showNew, setShowNew] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<Deliverable | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
 
-  const { data: workspaceData, loading: workspacesLoading, error: workspacesError, retry: retryWorkspaces } =
-    useAsyncResource<AdminWorkspace[]>(() => loadAdminWorkspaces(), [], { errorMessage: "Failed to load clients" });
-  const workspaces = workspaceData ?? [];
+  const { data, loading, error, retry, refresh, refreshing } = useAsyncResource(() => loadPortfolio(), [], {
+    errorMessage: "Failed to load projects"
+  });
+  const projects = data?.projects ?? [];
+  const clientName = new Map((data?.clients ?? []).flatMap((c) => c.projects.map((p) => [p.id, c.name] as const)));
 
-  // Default to the first client once the list arrives, and keep ?workspace= in
-  // the URL so a project view can be linked from Clients/Tasks and bookmarked.
-  useEffect(() => {
-    if (!workspaceId && workspaces.length > 0) setWorkspaceId(workspaces[0].id);
-  }, [workspaceId, workspaces]);
-  useEffect(() => {
-    if (workspaceId) setLocation(`/admin/projects?workspace=${workspaceId}`, { replace: true });
-  }, [workspaceId, setLocation]);
-
-  const loadDetails = async (ids: string[]) => {
-    if (ids.length === 0) {
-      setTasksByDeliverable({});
-      setActivitiesByDeliverable({});
-      setDetailsLoading(false);
-      return;
-    }
-    setDetailsLoading(true);
-    const [tasksRes, activitiesRes] = await Promise.all([
-      consoleSchema().from("deliverable_tasks").select("*").in("deliverable_id", ids).order("sort_order"),
-      consoleSchema().from("deliverable_activities").select("*").in("deliverable_id", ids).order("created_at", { ascending: true })
-    ]);
-    const tasksMap: Record<string, DeliverableTask[]> = {};
-    const activitiesMap: Record<string, DeliverableActivity[]> = {};
-    for (const id of ids) {
-      tasksMap[id] = [];
-      activitiesMap[id] = [];
-    }
-    for (const t of tasksRes.data ?? []) (tasksMap[t.deliverable_id] ??= []).push(t);
-    for (const a of activitiesRes.data ?? []) (activitiesMap[a.deliverable_id] ??= []).push(a);
-    setTasksByDeliverable(tasksMap);
-    setActivitiesByDeliverable(activitiesMap);
-    setDetailsLoading(false);
-  };
-
-  const {
-    data: deliverableData,
-    loading,
-    error,
-    retry,
-    refresh
-  } = useAsyncResource<Deliverable[]>(
-    async (signal) => {
-      if (!workspaceId) return [];
-      const { data, error: dbError } = await consoleSchema()
-        .from("deliverables")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .order("sort_order", { ascending: true });
-      if (signal.aborted) return [];
-      if (dbError) throw dbError;
-      const rows: Deliverable[] = data ?? [];
-      await loadDetails(rows.map((d) => d.id));
-      return rows;
-    },
-    [workspaceId],
-    { enabled: Boolean(workspaceId), errorMessage: "Failed to load milestones" }
-  );
-  const deliverables = deliverableData ?? [];
-  const reloadDetails = () => loadDetails(deliverables.map((d) => d.id));
-  const activeWorkspace = workspaces.find((w) => w.id === workspaceId) ?? null;
-
-  const report = (err: { message: string } | null, fallback: string) => {
-    if (err) toast.error(err.message || fallback);
-    return !err;
-  };
-
-  const handleCreate = async (row: Pick<Deliverable, "title" | "description" | "status" | "due_at" | "meta" | "sort_order">) => {
-    if (!workspaceId) return;
-    const { error: insertError } = await consoleSchema().from("deliverables").insert({ ...row, workspace_id: workspaceId });
-    if (report(insertError, "Failed to create milestone")) {
-      toast.success("Milestone created");
-      setShowNew(false);
-      await refresh();
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!pendingDelete) return;
-    setDeleting(true);
-    const { error: deleteError } = await consoleSchema().from("deliverables").delete().eq("id", pendingDelete.id);
-    setDeleting(false);
-    if (report(deleteError, "Failed to delete milestone")) {
-      toast.success("Milestone deleted");
-      setPendingDelete(null);
-      await refresh();
-    }
-  };
-
-  const handleStatusChange = async (id: string, status: Deliverable["status"]) => {
-    const { error: updateError } = await consoleSchema().from("deliverables").update({ status }).eq("id", id);
-    if (report(updateError, "Failed to update status")) await refresh();
-  };
-
-  const handleAddTask = async (deliverableId: string, title: string) => {
-    const { error: insertError } = await consoleSchema()
-      .from("deliverable_tasks")
-      .insert({ deliverable_id: deliverableId, title, sort_order: (tasksByDeliverable[deliverableId] ?? []).length });
-    if (report(insertError, "Failed to add item")) await reloadDetails();
-  };
-
-  const handleToggleTask = async (task: DeliverableTask) => {
-    const { error: updateError } = await consoleSchema().from("deliverable_tasks").update({ is_done: !task.is_done }).eq("id", task.id);
-    if (report(updateError, "Failed to update item")) await reloadDetails();
-  };
-
-  const handleDeleteTask = async (task: DeliverableTask) => {
-    const { error: deleteError } = await consoleSchema().from("deliverable_tasks").delete().eq("id", task.id);
-    if (report(deleteError, "Failed to remove item")) await reloadDetails();
-  };
-
-  const handleAddNote = async (deliverableId: string, body: string) => {
-    if (!user) return;
-    const { error: insertError } = await consoleSchema()
-      .from("deliverable_activities")
-      .insert({ deliverable_id: deliverableId, actor: "admin", actor_user_id: user.id, activity_type: "note", body });
-    if (report(insertError, "Failed to add note")) await reloadDetails();
-  };
-
-  const handleApproveProposal = async (activity: AgentActivity, subject: string, body: string) => {
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke("console-deliverable-send", {
-        body: { activity_id: activity.id, subject, body }
-      });
-      if (fnError) throw fnError;
-      if (data?.error) throw new Error(data.error);
-      toast.success("Client update sent");
-      await reloadDetails();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to send client update");
-    }
-  };
-
-  const handleRejectProposal = async (activity: AgentActivity) => {
-    if (!user) return;
-    const { error: updateError } = await consoleSchema()
-      .from("deliverable_activities")
-      .update({ status: "rejected", decided_by: user.id, decided_at: new Date().toISOString() })
-      .eq("id", activity.id);
-    if (report(updateError, "Failed to reject proposal")) await reloadDetails();
-  };
-
-  const completed = deliverables.filter((d) => d.status === "completed").length;
-  const allTasks = Object.values(tasksByDeliverable).flat();
+  const needle = search.trim().toLowerCase();
+  const visible = projects
+    .filter((p) => filter === "all" || p.status === filter)
+    .filter(
+      (p) =>
+        !needle ||
+        [p.name, clientName.get(p.id), p.contact_email, p.currentMilestone].some((v) => v?.toLowerCase().includes(needle))
+    )
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const count = (s: ProjectStatus) => projects.filter((p) => p.status === s).length;
 
   return (
-    <ConsoleLayout area="admin" onRefresh={() => void refresh()}>
-      <StatusRegion
-        message={loading ? "Loading milestones" : error ? `Could not load milestones: ${error}` : `${deliverables.length} milestones loaded`}
-      />
+    <ConsoleLayout area="admin" onRefresh={() => void refresh()} isRefreshing={refreshing}>
+      <StatusRegion message={loading ? "Loading projects" : error ? `Could not load projects: ${error}` : `${visible.length} projects shown`} />
       <div className="dash-header-row">
         <div>
           <span className="dash-kicker">DELIVERY</span>
           <h1>Projects</h1>
-          <p>Milestones, checklists, and client updates for every engagement.</p>
+          <p>Every engagement, where it stands, and what's next. Open one to manage it.</p>
         </div>
-        {workspaceId && (
-          <button className="dash-action-btn" onClick={() => setShowNew((v) => !v)}>
-            <Plus size={14} />
-            <span>New milestone</span>
-          </button>
-        )}
       </div>
 
-      {workspacesError && <ErrorAlert message={`Couldn't load clients: ${workspacesError}`} onRetry={retryWorkspaces} />}
+      {error && <ErrorAlert message={`Couldn't load projects: ${error}`} onRetry={retry} />}
+
+      {!loading && projects.length > 0 && (
+        <div className="cp-stats mb-6">
+          <div>
+            <small>PROJECTS</small>
+            <strong>{projects.length}</strong>
+            <em>{data?.clients.length ?? 0} clients</em>
+          </div>
+          <div>
+            <small>IN PROGRESS</small>
+            <strong>{count("active")}</strong>
+            <em>{count("not-started")} not started</em>
+          </div>
+          <div>
+            <small>BLOCKED</small>
+            <strong className={count("blocked") ? "warn" : undefined}>{count("blocked")}</strong>
+            <em>{count("blocked") ? "need unblocking" : "Nothing blocked"}</em>
+          </div>
+          <div>
+            <small>SCOPING</small>
+            <strong>{count("onboarding")}</strong>
+            <em>no milestones yet</em>
+          </div>
+        </div>
+      )}
 
       <div className="admin-toolbar">
-        <select
-          className="console-select"
-          value={workspaceId ?? ""}
-          onChange={(e) => {
-            setShowNew(false);
-            setWorkspaceId(e.target.value);
-          }}
-          aria-label="Client"
-          disabled={workspacesLoading || workspaces.length === 0}
-        >
-          {workspaces.length === 0 && <option value="">{workspacesLoading ? "Loading clients…" : "No clients yet"}</option>}
-          {workspaces.map((w) => (
-            <option key={w.id} value={w.id}>{w.name}</option>
-          ))}
-        </select>
-        {activeWorkspace && deliverables.length > 0 && (
-          <span className="admin-muted">
-            {completed}/{deliverables.length} milestones complete · {allTasks.filter((t) => t.is_done).length}/{allTasks.length} checklist items done
-          </span>
-        )}
+        {(["all", "active", "blocked", "not-started", "onboarding", "completed"] as Filter[]).map((f) => (
+          <button key={f} className={`dash-tab-btn ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>
+            {f === "all" ? `All (${projects.length})` : `${PROJECT_STATUS_LABEL[f]} (${count(f)})`}
+          </button>
+        ))}
+        <span className="admin-toolbar-spacer" />
+        <div className="workspace-search-box">
+          <Search size={13} />
+          <input type="text" placeholder="Search projects or clients…" aria-label="Search projects" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
       </div>
 
-      {showNew && workspaceId && (
-        <NewMilestoneForm nextOrder={deliverables.length} onCreate={handleCreate} onCancel={() => setShowNew(false)} />
-      )}
-
-      {!workspaceId ? (
-        workspacesLoading ? <LoadingState label="Loading clients…" /> : <EmptyState title="No clients yet" hint="Projects appear once a client workspace exists." />
-      ) : loading ? (
-        <LoadingState label="Loading milestones…" />
-      ) : error ? (
-        <ErrorAlert message={`Couldn't load milestones: ${error}`} onRetry={retry} retryLabel="Reload milestones" />
-      ) : deliverables.length === 0 ? (
-        <EmptyState
-          title="No milestones for this client yet"
-          hint="Create the first milestone -- the client sees its title, description, status, and checklist on their Delivery tab."
-        />
+      {loading ? (
+        <LoadingState label="Loading projects…" />
+      ) : error ? null : projects.length === 0 ? (
+        <EmptyState title="No projects yet" hint="Projects appear when a client finishes onboarding or starts a new project." />
+      ) : visible.length === 0 ? (
+        <div className="dash-empty-state">No projects match this view.</div>
       ) : (
-        <div className="dash-sprints-view">
-          {deliverables.map((milestone, idx) => (
-            <MilestoneCard
-              key={milestone.id}
-              milestone={milestone}
-              order={idx + 1}
-              tasks={tasksByDeliverable[milestone.id] ?? []}
-              activities={activitiesByDeliverable[milestone.id] ?? []}
-              detailsLoading={detailsLoading}
-              onStatusChange={handleStatusChange}
-              onAddTask={handleAddTask}
-              onToggleTask={handleToggleTask}
-              onDeleteTask={handleDeleteTask}
-              onAddNote={handleAddNote}
-              onApprove={handleApproveProposal}
-              onReject={handleRejectProposal}
-              onDelete={setPendingDelete}
-            />
-          ))}
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Status</th>
+                <th>Engagement</th>
+                <th>Milestones</th>
+                <th>Current milestone</th>
+                <th className="num">Open tasks</th>
+                <th>Next due</th>
+                <th>Started</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((p) => (
+                <tr key={p.id} className="clickable" onClick={() => setLocation(`/admin/projects/${p.id}`)}>
+                  <td>
+                    <strong>{p.name}</strong>
+                    <div className="admin-muted">{clientName.get(p.id) !== p.name ? clientName.get(p.id) : p.contact_email ?? "—"}</div>
+                  </td>
+                  <td><ProjectStatusPill status={p.status} /></td>
+                  <td>{p.engagement_type ? ENGAGEMENT_LABEL[p.engagement_type] ?? p.engagement_type : p.tier_label ?? "—"}</td>
+                  <td><ProgressCell completed={p.completed} total={p.milestones} /></td>
+                  <td>{p.currentMilestone ?? <span className="admin-muted">—</span>}</td>
+                  <td className="num">{p.tasksTotal ? p.tasksOpen : "—"}</td>
+                  <td className={p.nextDue && new Date(p.nextDue) < new Date() ? "admin-warn" : undefined}>
+                    {p.nextDue ? formatDate(p.nextDue) : "—"}
+                  </td>
+                  <td>{formatDate(p.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
-
-      <ConfirmDialog
-        open={Boolean(pendingDelete)}
-        title="Delete this milestone?"
-        description={
-          <>
-            <strong>{pendingDelete?.title}</strong> and its checklist and activity thread are removed for good, and it
-            disappears from the client's Delivery tab.
-          </>
-        }
-        confirmLabel="Delete milestone"
-        busy={deleting}
-        onConfirm={handleDelete}
-        onCancel={() => setPendingDelete(null)}
-      />
     </ConsoleLayout>
   );
 }
