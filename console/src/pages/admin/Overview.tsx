@@ -7,11 +7,11 @@ import { ArrowRight } from "lucide-react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { consoleSchema } from "@/lib/supabase";
 import { invokeFunction } from "@/lib/functions";
-import { OPEN_STAGES, PIPELINE_STAGES, type PipelineStage } from "@/lib/admin";
+import { OPEN_STAGES, PIPELINE_STAGES, loadWorkspaceNames, type PipelineStage } from "@/lib/admin";
 import { OPEN as OPEN_REQUEST_STATUSES, STATUS_LABEL as REQUEST_STATUS_LABEL, type Status as RequestStatus } from "@/components/ServerRequests";
 import { formatDate, formatRelative } from "@/lib/format";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
-import { loadFinanceOverview, formatTotals } from "./Finance";
+import { loadFinanceOverview, formatTotals, TotalsValue } from "./Finance";
 
 interface LeadRow {
   id: string;
@@ -51,16 +51,30 @@ export default function AdminOverview() {
   }, []);
 
   const delivery = useAsyncResource(async () => {
-    const [deliverables, tasks, requests] = await Promise.all([
-      consoleSchema().from("deliverables").select("id,title,status,due_at,workspace:workspaces(id,name)"),
+    const [deliverables, tasks, requests, names] = await Promise.all([
+      consoleSchema().from("deliverables").select("id,title,status,due_at,workspace_id"),
       consoleSchema().from("deliverable_tasks").select("id,is_done"),
-      consoleSchema().from("server_requests").select("id,status,kind,created_at,workspace:workspaces(name)").order("created_at", { ascending: false })
+      consoleSchema().from("server_requests").select("id,status,kind,created_at,workspace_id").order("created_at", { ascending: false }),
+      loadWorkspaceNames()
     ]);
     for (const r of [deliverables, tasks, requests]) if (r.error) throw r.error;
+    const ws = (id: string) => (names.has(id) ? { id, name: names.get(id)! } : null);
     return {
-      deliverables: (deliverables.data ?? []) as unknown as Array<{ id: string; title: string; status: string; due_at: string | null; workspace: { id: string; name: string } | null }>,
+      deliverables: (deliverables.data ?? []).map((d) => ({ ...d, workspace: ws(d.workspace_id) })) as Array<{
+        id: string;
+        title: string;
+        status: string;
+        due_at: string | null;
+        workspace: { id: string; name: string } | null;
+      }>,
       tasks: tasks.data ?? [],
-      requests: (requests.data ?? []) as unknown as Array<{ id: string; status: RequestStatus; kind: string; created_at: string; workspace: { name: string } | null }>
+      requests: (requests.data ?? []).map((r) => ({ ...r, workspace: ws(r.workspace_id) })) as Array<{
+        id: string;
+        status: RequestStatus;
+        kind: string;
+        created_at: string;
+        workspace: { name: string } | null;
+      }>
     };
   }, []);
 
@@ -133,7 +147,7 @@ export default function AdminOverview() {
         <Tile
           label="MRR"
           href="/admin/finance"
-          value={dash(finance.loading, finance.error, formatTotals(finance.data?.totals.mrr))}
+          value={dash(finance.loading, finance.error, <TotalsValue totals={finance.data?.totals.mrr} />)}
           hint={finance.error ? "Couldn't reach billing" : `${formatTotals(finance.data?.totals.outstanding)} outstanding`}
           warn={Boolean(finance.data && Object.keys(finance.data.totals.overdue).length)}
         />

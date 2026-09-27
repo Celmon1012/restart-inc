@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { RequestRow, OPEN, STATUS_LABEL, type ServerRequest, type Status } from "@/components/ServerRequests";
 import { consoleSchema } from "@/lib/supabase";
+import { loadWorkspaceNames } from "@/lib/admin";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 
@@ -16,14 +17,16 @@ export default function AdminServerRequests() {
 
   const { data, loading, error, retry, refresh, refreshing } = useAsyncResource<Row[]>(
     async (signal) => {
-      const { data: rows, error: dbError } = await consoleSchema()
-        .from("server_requests")
-        .select("*, workspace:workspaces(id,name)")
-        .order("created_at", { ascending: false })
-        .limit(200);
+      const [requestsRes, names] = await Promise.all([
+        consoleSchema().from("server_requests").select("*").order("created_at", { ascending: false }).limit(200),
+        loadWorkspaceNames()
+      ]);
       if (signal.aborted) return [];
-      if (dbError) throw dbError;
-      return (rows ?? []) as Row[];
+      if (requestsRes.error) throw requestsRes.error;
+      return ((requestsRes.data ?? []) as Array<ServerRequest & { workspace_id: string }>).map((r) => ({
+        ...r,
+        workspace: names.has(r.workspace_id) ? { id: r.workspace_id, name: names.get(r.workspace_id)! } : null
+      }));
     },
     [],
     { errorMessage: "Failed to load server requests" }
@@ -61,7 +64,7 @@ export default function AdminServerRequests() {
 
       {loading ? (
         <LoadingState label="Loading server requests…" />
-      ) : requests.length === 0 ? (
+      ) : error ? null : requests.length === 0 ? (
         <EmptyState title="No server requests yet" hint="When a client asks for an upgrade or another server from their Systems tab, it lands here for review." />
       ) : visible.length === 0 ? (
         <div className="dash-empty-state">No requests in this view.</div>

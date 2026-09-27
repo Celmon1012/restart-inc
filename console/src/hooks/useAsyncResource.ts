@@ -98,7 +98,16 @@ export function useAsyncResource<T>(
         setLoaded(true);
       } catch (err) {
         if (controller.signal.aborted || !mountedRef.current) return;
-        setError(err instanceof Error ? err.message : errorMessage);
+        // supabase-js PostgrestErrors are plain objects, not Error instances --
+        // read their message too, or a real database error hides behind the
+        // generic fallback.
+        const message =
+          err instanceof Error
+            ? err.message
+            : typeof (err as { message?: unknown })?.message === "string"
+              ? (err as { message: string }).message
+              : null;
+        setError(message || errorMessage);
       } finally {
         if (!controller.signal.aborted && mountedRef.current) {
           setLoading(false);

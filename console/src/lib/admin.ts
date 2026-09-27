@@ -28,6 +28,17 @@ export async function loadAdminWorkspaces(): Promise<AdminWorkspace[]> {
   return data ?? [];
 }
 
+/**
+ * id -> name for every workspace. Admin pages join client names in the browser
+ * rather than with PostgREST resource embedding (workspace:workspaces(...)),
+ * which failed in production against this self-hosted instance.
+ */
+export async function loadWorkspaceNames(): Promise<Map<string, string>> {
+  const { data, error } = await consoleSchema().from("workspaces").select("id,name");
+  if (error) throw error;
+  return new Map((data ?? []).map((w) => [w.id as string, w.name as string]));
+}
+
 // Pipeline stages in funnel order, shared by the Leads board and the overview.
 export const PIPELINE_STAGES = ["new", "contacted", "qualified", "won", "lost", "archived"] as const;
 export type PipelineStage = (typeof PIPELINE_STAGES)[number];

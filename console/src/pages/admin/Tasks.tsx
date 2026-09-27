@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { consoleSchema } from "@/lib/supabase";
+import { loadWorkspaceNames } from "@/lib/admin";
 import { Check, ArrowRight, Search } from "lucide-react";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
@@ -38,15 +39,31 @@ export default function AdminTasks() {
 
   const { data, loading, error, retry, refresh, refreshing } = useAsyncResource<TaskRow[]>(
     async (signal) => {
-      const { data: rows, error: dbError } = await consoleSchema()
-        .from("deliverable_tasks")
-        .select(
-          "id,title,is_done,sort_order,created_at,deliverable:deliverables(id,title,status,due_at,sort_order,workspace:workspaces(id,name))"
-        )
-        .order("sort_order", { ascending: true });
+      const [tasksRes, deliverablesRes, names] = await Promise.all([
+        consoleSchema().from("deliverable_tasks").select("id,title,is_done,sort_order,created_at,deliverable_id").order("sort_order", { ascending: true }),
+        consoleSchema().from("deliverables").select("id,title,status,due_at,sort_order,workspace_id"),
+        loadWorkspaceNames()
+      ]);
       if (signal.aborted) return [];
-      if (dbError) throw dbError;
-      return (rows ?? []) as unknown as TaskRow[];
+      if (tasksRes.error) throw tasksRes.error;
+      if (deliverablesRes.error) throw deliverablesRes.error;
+      const deliverables = new Map((deliverablesRes.data ?? []).map((d) => [d.id as string, d]));
+      return (tasksRes.data ?? []).map((t) => {
+        const d = deliverables.get(t.deliverable_id);
+        return {
+          ...t,
+          deliverable: d
+            ? {
+                id: d.id,
+                title: d.title,
+                status: d.status,
+                due_at: d.due_at,
+                sort_order: d.sort_order,
+                workspace: names.has(d.workspace_id) ? { id: d.workspace_id, name: names.get(d.workspace_id)! } : null
+              }
+            : null
+        } as TaskRow;
+      });
     },
     [],
     { errorMessage: "Failed to load tasks" }
@@ -148,7 +165,7 @@ export default function AdminTasks() {
 
       {loading ? (
         <LoadingState label="Loading tasks…" />
-      ) : tasks.length === 0 ? (
+      ) : error ? null : tasks.length === 0 ? (
         <EmptyState title="No checklist items yet" hint="Add checklist items to milestones from Projects and they appear here." />
       ) : sortedGroups.length === 0 ? (
         <div className="dash-empty-state">No tasks match this view.</div>

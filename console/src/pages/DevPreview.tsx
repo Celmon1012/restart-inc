@@ -9,6 +9,50 @@ import Overview from "./console/Overview";
 import NewProject from "./NewProject";
 import Systems from "./console/Systems";
 import AdminOverview from "./admin/Overview";
+import AdminFinance from "./admin/Finance";
+import AdminLeads from "./admin/Leads";
+import AdminTasks from "./admin/Tasks";
+
+// Finance fixture: answer console-admin-finance locally so the tiles and tables
+// can be checked with realistic multi-currency figures (dev only).
+const financeFixture = {
+  generatedAt: new Date().toISOString(),
+  totals: {
+    collected: { NGN: 1953226 },
+    collectedThisMonth: {},
+    outstanding: { NGN: 162919355, USD: 14900 },
+    overdue: { NGN: 162919355, USD: 14900 },
+    mrr: { NGN: 17333333 },
+  },
+  activeSubscriptions: 2,
+  billedClients: 2,
+  unbilledClients: 1,
+  invoiceCount: 15,
+  invoicesTruncated: false,
+  monthly: Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(); d.setMonth(d.getMonth() - 11 + i);
+    return { month: d.toISOString().slice(0, 7), collected: i === 9 ? { NGN: 1953226 } : {} };
+  }),
+  clients: [
+    { workspaceId: "dev-ws", name: "Acme Operations", customerId: "c1", collected: { NGN: 1953226 }, outstanding: { NGN: 162919355 }, overdue: { NGN: 162919355 }, mrr: { NGN: 17333333 }, invoiceCount: 13, lastInvoiceAt: "2026-07-17" },
+    { workspaceId: null, name: "Northwind Commerce", customerId: "c2", collected: {}, outstanding: { USD: 14900 }, overdue: { USD: 14900 }, mrr: {}, invoiceCount: 2, lastInvoiceAt: "2026-08-01" },
+  ],
+  openInvoices: [
+    { number: "RES-E119-004-001", client: "Acme Operations", workspaceId: "dev-ws", issuingDate: "2026-07-17", dueDate: "2026-07-17", paymentStatus: "pending", overdue: true, totalAmountCents: 169355, currency: "NGN", fileUrl: null },
+    { number: "RES-E120-001-002", client: "Northwind Commerce", workspaceId: null, issuingDate: "2026-08-01", dueDate: "2026-08-15", paymentStatus: "failed", overdue: true, totalAmountCents: 14900, currency: "USD", fileUrl: null },
+  ],
+};
+if (import.meta.env.DEV && typeof window !== "undefined" && !(window as { __financeFixture?: boolean }).__financeFixture) {
+  (window as { __financeFixture?: boolean }).__financeFixture = true;
+  const realFetch = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes("console-admin-finance")) {
+      return Promise.resolve(new Response(JSON.stringify(financeFixture), { headers: { "Content-Type": "application/json" } }));
+    }
+    return realFetch(input, init);
+  };
+}
 
 const now = Date.now();
 const ago = (m: number) => new Date(now - m * 60_000).toISOString();
@@ -71,7 +115,7 @@ export default function DevPreview() {
   return (
     <AuthContext.Provider value={auth}>
       <WorkspaceContext.Provider value={ws}>
-        {page === "new-project" ? <NewProject /> : page === "systems" ? <Systems /> : page === "admin" ? <AdminOverview /> : <Overview />}
+        {page === "new-project" ? <NewProject /> : page === "systems" ? <Systems /> : page === "admin" ? <AdminOverview /> : page === "admin-finance" ? <AdminFinance /> : page === "admin-leads" ? <AdminLeads /> : page === "admin-tasks" ? <AdminTasks /> : <Overview />}
       </WorkspaceContext.Provider>
     </AuthContext.Provider>
   );

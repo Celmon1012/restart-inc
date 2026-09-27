@@ -153,35 +153,43 @@ export default function Leads() {
   ).length;
   const selected = inquiries.find((i) => i.id === selectedId) ?? null;
 
-  const handleStageChange = async (next: InquiryStatus) => {
-    if (!selected || !user) return;
+  // Board drags show the new column immediately; the override clears once the
+  // refreshed list (or a failed write) settles it.
+  const [stageOverrides, setStageOverrides] = useState<Record<string, InquiryStatus>>({});
+  const [dragOver, setDragOver] = useState<InquiryStatus | null>(null);
+  const stageOf = (i: Inquiry) => stageOverrides[i.id] ?? i.status;
+
+  const handleStageChange = async (next: InquiryStatus, target: Inquiry | null = selected) => {
+    if (!target || !user || target.status === next) return;
     setStageSaving(true);
-    const previous = selected.status;
+    setStageOverrides((o) => ({ ...o, [target.id]: next }));
+    const previous = target.status;
     try {
       const { error: updateError } = await consoleSchema()
         .from("inquiries")
         .update({ status: next })
-        .eq("id", selected.id);
+        .eq("id", target.id);
       if (updateError) throw updateError;
       await consoleSchema()
         .from("inquiry_activities")
         .insert({
-          inquiry_id: selected.id,
+          inquiry_id: target.id,
           actor: "admin",
           actor_user_id: user.id,
           activity_type: "stage_change",
           body: `${previous} → ${next}`,
           payload: { from: previous, to: next }
         });
-      loadInquiries();
-      void loadActivities();
-      toast.success(`Moved to ${next}`);
+      await loadInquiries();
+      if (target.id === selectedId) void loadActivities();
+      toast.success(`${target.name} moved to ${next}`);
     } catch (err) {
       // A failed write is not a failed load. It must not replace the page's
       // data state, so it reports through a toast and leaves the loaded list
       // on screen -- the alert channel is reserved for the load itself.
       toast.error(err instanceof Error ? err.message : "Failed to update stage");
     } finally {
+      setStageOverrides(({ [target.id]: _, ...rest }) => rest);
       setStageSaving(false);
     }
   };
@@ -330,10 +338,27 @@ export default function Leads() {
           {view === "board" ? (
             <div className="admin-board">
               {PIPELINE_STAGES.map((stage) => {
-                const cards = searched.filter((i) => i.status === stage);
+                const cards = searched.filter((i) => stageOf(i) === stage);
                 const tone = STAGE_TONE[stage];
                 return (
-                  <div className="admin-board-col" key={stage}>
+                  <div
+                    className={`admin-board-col ${dragOver === stage ? "drag-over" : ""}`}
+                    key={stage}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (dragOver !== stage) setDragOver(stage);
+                    }}
+                    onDragLeave={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(null);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOver(null);
+                      const lead = inquiries.find((i) => i.id === e.dataTransfer.getData("text/plain"));
+                      if (lead && stageOf(lead) !== stage) void handleStageChange(stage, lead);
+                    }}
+                  >
                     <div className={`admin-board-col-head ${tone}`}>
                       <span>{stage}</span>
                       <span>{cards.length}</span>
@@ -345,6 +370,13 @@ export default function Leads() {
                         <button
                           key={i.id}
                           className="admin-board-card"
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData("text/plain", i.id);
+                            e.dataTransfer.effectAllowed = "move";
+                          }}
+                          onDragEnd={() => setDragOver(null)}
+                          title="Drag to another stage, or click to open"
                           onClick={() => {
                             setSelectedId(i.id);
                             setStageFilter("all");

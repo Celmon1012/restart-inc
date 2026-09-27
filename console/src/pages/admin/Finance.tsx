@@ -48,11 +48,44 @@ export interface FinanceOverview {
 
 export const loadFinanceOverview = () => invokeFunction<FinanceOverview>("console-admin-finance");
 
-/** "₦1,200,000.00 · $4,000.00", or an em dash when there's nothing. */
+const nonZero = (t: Totals | undefined) => Object.entries(t ?? {}).filter(([, v]) => v !== 0);
+
+/** "NGN 1,200,000.00 · $4,000.00", or an em dash when there's nothing. For tables and hint lines. */
 export function formatTotals(t: Totals | undefined): string {
-  const entries = Object.entries(t ?? {}).filter(([, v]) => v !== 0);
+  const entries = nonZero(t);
   if (entries.length === 0) return "—";
   return entries.map(([currency, cents]) => formatAmount(cents, currency)).join(" · ");
+}
+
+/** Short form for stat tiles: "₦1.63M", "$149". Full value goes in the title. */
+function formatCompact(cents: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      currencyDisplay: "narrowSymbol",
+      notation: "compact",
+      maximumFractionDigits: 2
+    }).format(cents / 100);
+  } catch {
+    return formatAmount(cents, currency);
+  }
+}
+
+/**
+ * Stat-tile value: one compact line per currency, so a tile holding NGN and
+ * USD stacks instead of cramming both full-precision figures onto one line.
+ */
+export function TotalsValue({ totals }: { totals: Totals | undefined }) {
+  const entries = nonZero(totals);
+  if (entries.length === 0) return <>—</>;
+  return (
+    <span className={`stat-totals ${entries.length > 1 ? "multi" : ""}`} title={formatTotals(totals)}>
+      {entries.map(([currency, cents]) => (
+        <span key={currency}>{formatCompact(cents, currency)}</span>
+      ))}
+    </span>
+  );
 }
 
 function MonthlyBars({ monthly, currency }: { monthly: FinanceOverview["monthly"]; currency: string }) {
@@ -104,22 +137,22 @@ export default function AdminFinance() {
           <div className="cp-stats">
             <div>
               <small>MRR</small>
-              <strong>{formatTotals(data.totals.mrr)}</strong>
+              <strong><TotalsValue totals={data.totals.mrr} /></strong>
               <em>{data.activeSubscriptions} active subscription{data.activeSubscriptions === 1 ? "" : "s"}</em>
             </div>
             <div>
               <small>COLLECTED THIS MONTH</small>
-              <strong>{formatTotals(data.totals.collectedThisMonth)}</strong>
+              <strong><TotalsValue totals={data.totals.collectedThisMonth} /></strong>
               <em>{formatTotals(data.totals.collected)} all-time</em>
             </div>
             <div>
               <small>OUTSTANDING</small>
-              <strong className={Object.keys(data.totals.outstanding).length ? "warn" : undefined}>{formatTotals(data.totals.outstanding)}</strong>
+              <strong className={Object.keys(data.totals.outstanding).length ? "warn" : undefined}><TotalsValue totals={data.totals.outstanding} /></strong>
               <em>{data.openInvoices.length} unpaid invoice{data.openInvoices.length === 1 ? "" : "s"}</em>
             </div>
             <div>
               <small>OVERDUE</small>
-              <strong className={Object.keys(data.totals.overdue).length ? "warn" : undefined}>{formatTotals(data.totals.overdue)}</strong>
+              <strong className={Object.keys(data.totals.overdue).length ? "warn" : undefined}><TotalsValue totals={data.totals.overdue} /></strong>
               <em>{data.openInvoices.filter((i) => i.overdue).length} past due date</em>
             </div>
           </div>
