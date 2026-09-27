@@ -1347,7 +1347,7 @@
 .topbar-close:hover{ color: #f2f5ff; background: rgba(255,255,255,.06); }
 @media (max-width: 640px){ .topbar-cta{ display: none; } .topbar-link{ font-size: 0.8125rem; } }
 
-/* --- Production Readiness Scorecard ------------------------------------------ */
+/* --- Readiness Scorecard ------------------------------------------ */
 .scorecard-main{ max-width: 860px; padding: 72px 0 110px; }
 .scorecard-intro h1{ margin: 20px 0 14px; font-size: clamp(2.25rem, 5vw, 3.5rem); line-height: 1.05; letter-spacing: -.045em; font-weight: 700; }
 .scorecard-intro p{ max-width: 660px; color: #a6abb9; font-size: 1.0625rem; line-height: 1.7; }

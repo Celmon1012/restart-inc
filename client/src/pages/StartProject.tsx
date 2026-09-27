@@ -302,14 +302,14 @@ export default function StartProject() {
         );
         if (matched) setSelectedObjective(matched.label);
       }
-      // Arriving from the Production Readiness Scorecard: carry the result
+      // Arriving from the Readiness Scorecard: carry the result
       // into the brief so the engineer reviewing the inquiry sees it.
       const scorecardParam = params.get("scorecard");
       if (scorecardParam) {
         const [score, weakest] = scorecardParam.split("|");
         if (/^\d{1,3}$/.test(score ?? "")) {
           setProjectBrief(
-            `Production Readiness Scorecard: ${score}/100.${weakest ? ` Weakest areas: ${weakest.slice(0, 200)}.` : ""}\n\n`
+            `Readiness Scorecard: ${score}/100.${weakest ? ` Weakest areas: ${weakest.slice(0, 200)}.` : ""}\n\n`
           );
         }
       }

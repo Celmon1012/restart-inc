@@ -301,7 +301,7 @@ const STATIC_PAGES = [
   },
   {
     route: "/scorecard",
-    title: "Production Readiness Scorecard",
+    title: "Readiness Scorecard",
     description: "Score your system in five minutes across observability, deployment safety, data recovery, security, architecture, and ownership, with the first concrete fix for your weakest areas.",
   },
   {

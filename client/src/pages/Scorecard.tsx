@@ -22,7 +22,7 @@ export default function Scorecard() {
 
   useEffect(() => {
     applyPageSeo({
-      title: "Production Readiness Scorecard",
+      title: "Readiness Scorecard",
       description: "Score your system in five minutes across observability, deployment safety, data recovery, security, architecture, and ownership, with the first concrete fix for your weakest areas.",
       path: "/scorecard",
     });
@@ -101,7 +101,7 @@ export default function Scorecard() {
     setLead({ status: "sending" });
     const reference = `RST-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 899 + 100)}`;
     const brief = [
-      `Production Readiness Scorecard: ${result.total}/100 (${result.band.label}).`,
+      `Readiness Scorecard: ${result.total}/100 (${result.band.label}).`,
       ...result.areas.map(({ area, pct }) => `- ${area.title}: ${pct}%`),
       `Weakest: ${result.weakest.map((w) => w.area.title).join(", ")}.`,
     ].join("\n");
@@ -190,7 +190,7 @@ export default function Scorecard() {
       <main className="scorecard-main container">
         <header className="scorecard-intro">
           <span className="section-label teal">FREE ASSESSMENT · 5 MINUTES</span>
-          <h1>Production Readiness <span>Scorecard</span></h1>
+          <h1>Readiness <span>Scorecard</span></h1>
           <p>
             Six short steps, two questions each, across the areas where systems usually fail in production. You get a score, the two
             areas carrying the most risk, and the first concrete fix for each. No email required.

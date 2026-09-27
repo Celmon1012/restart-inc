@@ -1,5 +1,5 @@
 /**
- * Production Readiness Scorecard: 12 questions across 6 areas, each answer
+ * Readiness Scorecard: 12 questions across 6 areas, each answer
  * scored 0-3. The overall score is the percentage of the 36 available points.
  * Recommendations are written as the first concrete step, not a pitch.
  */
