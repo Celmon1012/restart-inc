@@ -20,9 +20,9 @@ type Kind = "upgrade" | "new_server";
 type Tier = "s" | "m" | "l";
 type Hosting = "restart" | "client";
 type CloudProvider = "aws" | "gcp" | "azure" | "digitalocean" | "on_prem" | "other";
-type Status = "pending_review" | "awaiting_payment" | "paid" | "in_progress" | "done" | "declined" | "cancelled";
+export type Status = "pending_review" | "awaiting_payment" | "paid" | "in_progress" | "done" | "declined" | "cancelled";
 
-interface ServerRequest {
+export interface ServerRequest {
   id: string;
   created_at: string;
   updated_at: string;
@@ -66,7 +66,7 @@ function requestSummary(r: ServerRequest): string {
   return tier ? `${tier.name} · ${tier.spec}` : (r.requested_tier ?? "").toUpperCase();
 }
 
-const STATUS_LABEL: Record<Status, string> = {
+export const STATUS_LABEL: Record<Status, string> = {
   pending_review: "Engineer reviewing",
   awaiting_payment: "Awaiting payment",
   paid: "Paid — scheduling",
@@ -86,9 +86,11 @@ const STATUS_TONE: Record<Status, "healthy" | "warning" | "down" | "muted"> = {
   cancelled: "muted",
 };
 
-const OPEN: Status[] = ["pending_review", "awaiting_payment", "paid", "in_progress"];
+export const OPEN: Status[] = ["pending_review", "awaiting_payment", "paid", "in_progress"];
 
-export function ServerRequests({ workspace, isAdmin }: { workspace: Workspace; isAdmin: boolean }) {
+// Client-facing: members request and pay here; engineers review them in the
+// admin area (pages/admin/ServerRequests.tsx), which reuses RequestRow.
+export function ServerRequests({ workspace }: { workspace: Workspace }) {
   const [formKind, setFormKind] = useState<Kind | null>(null);
 
   const { data, error, retry } = useAsyncResource<ServerRequest[]>(
@@ -152,7 +154,7 @@ export function ServerRequests({ workspace, isAdmin }: { workspace: Workspace; i
             <RequestRow
               key={r.id}
               request={r}
-              isAdmin={isAdmin}
+              reviewable={false}
               paymentUrl={r.lago_invoice_id ? paymentUrls[r.lago_invoice_id] : undefined}
               onChanged={retry}
             />
@@ -199,14 +201,16 @@ function usePaymentUrls(workspaceId: string, enabled: boolean): Record<string, s
   return urls;
 }
 
-function RequestRow({
+export function RequestRow({
   request: r,
-  isAdmin,
+  reviewable,
+  clientName,
   paymentUrl,
   onChanged,
 }: {
   request: ServerRequest;
-  isAdmin: boolean;
+  reviewable: boolean;
+  clientName?: string;
   paymentUrl: string | null | undefined;
   onChanged: () => void;
 }) {
@@ -236,7 +240,7 @@ function RequestRow({
     <div className="sr-row">
       <div className="sr-row-main">
         <div className="sr-row-title">
-          <strong>{r.kind === "upgrade" ? "Upgrade server" : "Add a server"}</strong>
+          <strong>{clientName ? `${clientName} · ` : ""}{r.kind === "upgrade" ? "Upgrade server" : "Add a server"}</strong>
           <span>{requestSummary(r)}</span>
         </div>
         <span className={`sr-status ${STATUS_TONE[r.status]}`}>{STATUS_LABEL[r.status]}</span>
@@ -247,7 +251,7 @@ function RequestRow({
       )}
       <div className="sr-row-foot">
         <span>Requested {formatRelativeTime(r.created_at)}</span>
-        {r.status === "awaiting_payment" &&
+        {r.status === "awaiting_payment" && !reviewable &&
           (paymentUrl ? (
             <a className="dash-action-btn sr-pay" href={paymentUrl} target="_blank" rel="noreferrer">
               <span>Pay invoice</span>
@@ -256,12 +260,12 @@ function RequestRow({
           ) : (
             <Link href="/console/billing" className="sr-link">Pay from Billing & SLA</Link>
           ))}
-        {isAdmin && !editing && (
+        {reviewable && !editing && (
           <button type="button" className="sr-link" onClick={() => setEditing(true)}>Review</button>
         )}
       </div>
 
-      {isAdmin && editing && (
+      {reviewable && editing && (
         <div className="sr-admin">
           <label>
             <span>Status</span>

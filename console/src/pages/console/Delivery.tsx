@@ -1,22 +1,20 @@
-// Per-workspace deliverables with a real checklist and the same follow-up
-// agent trust pattern already proven on Leads: internal flags land as
-// 'agent_auto_action' automatically, anything client-facing is an
-// 'agent_proposal' an admin must approve (via console-deliverable-send)
-// or reject before it goes anywhere near the client. See
-// supabase/migrations/20260917200000_console_deliverable_activities.sql
-// for why this table is staff-only even though deliverables itself isn't.
+// Client-facing, read-only view of this workspace's delivery milestones and
+// their checklists. Restart curates all of it from the admin area
+// (pages/admin/Projects.tsx) -- status changes, checklist edits, internal notes,
+// and agent proposals all live there, so nothing here writes.
+//
+// Members can read console.deliverables and deliverable_tasks for their own
+// workspace (RLS); deliverable_activities is staff-only and never loaded here.
 
 import { useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
-import { ActivityTimeline, type AgentActivity } from "@/components/ActivityTimeline";
-import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { consoleSchema, supabase } from "@/lib/supabase";
+import { consoleSchema } from "@/lib/supabase";
 import type { Deliverable } from "@/lib/deliverables";
-import { Check, Plus, Send, Trash2 } from "lucide-react";
+import { formatDate } from "@/lib/format";
+import { Check } from "lucide-react";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
-import { toast } from "sonner";
 
 interface DeliverableTask {
   id: string;
@@ -26,10 +24,6 @@ interface DeliverableTask {
   sort_order: number;
 }
 
-interface DeliverableActivity extends AgentActivity {
-  deliverable_id: string;
-}
-
 const STATUS_LABEL: Record<Deliverable["status"], string> = {
   "not-started": "NOT STARTED",
   "in-progress": "IN PROGRESS",
@@ -37,143 +31,32 @@ const STATUS_LABEL: Record<Deliverable["status"], string> = {
   blocked: "BLOCKED"
 };
 
-const STATUS_CYCLE: Deliverable["status"][] = ["not-started", "in-progress", "completed", "blocked"];
-
-function DeliverableCard({
-  milestone,
-  order,
-  isAdmin,
-  tasks,
-  activities,
-  detailsLoading,
-  onStatusChange,
-  onAddTask,
-  onToggleTask,
-  onDeleteTask,
-  onAddNote,
-  onApprove,
-  onReject
-}: {
-  milestone: Deliverable;
-  order: number;
-  isAdmin: boolean;
-  tasks: DeliverableTask[];
-  activities: DeliverableActivity[];
-  detailsLoading: boolean;
-  onStatusChange: (id: string, status: Deliverable["status"]) => void;
-  onAddTask: (deliverableId: string, title: string) => Promise<void>;
-  onToggleTask: (taskId: string, isDone: boolean) => Promise<void>;
-  onDeleteTask: (taskId: string) => Promise<void>;
-  onAddNote: (deliverableId: string, body: string) => Promise<void>;
-  onApprove: (activity: AgentActivity, subject: string, body: string) => Promise<void>;
-  onReject: (activity: AgentActivity) => Promise<void>;
-}) {
-  const [newTask, setNewTask] = useState("");
-  const [noteDraft, setNoteDraft] = useState("");
+function DeliverableCard({ milestone, order, tasks }: { milestone: Deliverable; order: number; tasks: DeliverableTask[] }) {
   const doneCount = tasks.filter((t) => t.is_done).length;
-
   return (
     <div className={`sprint-card ${milestone.status === "in-progress" ? "in-progress" : ""}`}>
       <div className={`sprint-status-tag ${milestone.status === "in-progress" ? "active" : ""}`}>
         {STATUS_LABEL[milestone.status]} · MILESTONE {String(order).padStart(2, "0")}
+        {milestone.due_at && ` · DUE ${formatDate(milestone.due_at).toUpperCase()}`}
       </div>
       <h4>{milestone.title}</h4>
       {milestone.description && <p>{milestone.description}</p>}
       {milestone.meta && <div className="sprint-meta">{milestone.meta}</div>}
 
-      {isAdmin && (
-        <div className="lead-stage-buttons mt-4">
-          {STATUS_CYCLE.filter((s) => s !== milestone.status).map((s) => (
-            <button key={s} className="dash-tab-btn" onClick={() => onStatusChange(milestone.id, s)}>
-              {STATUS_LABEL[s].toLowerCase()}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="deliverable-tasklist-section">
-        <span className="meta-k">
-          Checklist {tasks.length > 0 && `(${doneCount}/${tasks.length})`}
-        </span>
-        {tasks.length === 0 ? (
-          <p className="key-desc">No checklist items yet.</p>
-        ) : (
+      {tasks.length > 0 && (
+        <div className="deliverable-tasklist-section">
+          <span className="meta-k">
+            Checklist ({doneCount}/{tasks.length})
+          </span>
           <div className="deliverable-tasklist">
             {tasks.map((task) => (
               <div className="deliverable-task-row" key={task.id}>
-                <button
-                  className={`deliverable-task-check ${task.is_done ? "done" : ""}`}
-                  disabled={!isAdmin}
-                  onClick={() => onToggleTask(task.id, !task.is_done)}
-                  aria-label={task.is_done ? "Mark not done" : "Mark done"}
-                >
+                <span className={`deliverable-task-check ${task.is_done ? "done" : ""}`} aria-label={task.is_done ? "Done" : "Not done"}>
                   {task.is_done && <Check size={12} />}
-                </button>
+                </span>
                 <span className={task.is_done ? "done" : ""}>{task.title}</span>
-                {isAdmin && (
-                  <button className="deliverable-task-remove" onClick={() => onDeleteTask(task.id)}>
-                    <Trash2 size={12} />
-                  </button>
-                )}
               </div>
             ))}
-          </div>
-        )}
-        {isAdmin && (
-          <div className="deliverable-task-add">
-            <input
-              className="console-input"
-              placeholder="Add a checklist item…"
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              onKeyDown={async (e) => {
-                if (e.key === "Enter" && newTask.trim()) {
-                  await onAddTask(milestone.id, newTask.trim());
-                  setNewTask("");
-                }
-              }}
-            />
-            <button
-              className="dash-tab-btn"
-              disabled={!newTask.trim()}
-              onClick={async () => {
-                await onAddTask(milestone.id, newTask.trim());
-                setNewTask("");
-              }}
-            >
-              <Plus size={13} />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {isAdmin && (
-        <div className="lead-activity-section">
-          <span className="card-kicker">ACTIVITY</span>
-          <ActivityTimeline
-            activities={activities}
-            loading={detailsLoading}
-            onApprove={onApprove}
-            onReject={onReject}
-          />
-          <div className="lead-note-form">
-            <textarea
-              placeholder="Add a note…"
-              value={noteDraft}
-              onChange={(e) => setNoteDraft(e.target.value)}
-              rows={2}
-            />
-            <button
-              className="dash-action-btn"
-              disabled={!noteDraft.trim()}
-              onClick={async () => {
-                await onAddNote(milestone.id, noteDraft.trim());
-                setNoteDraft("");
-              }}
-            >
-              <Send size={13} />
-              <span>Add note</span>
-            </button>
           </div>
         </div>
       )}
@@ -182,127 +65,38 @@ function DeliverableCard({
 }
 
 export default function Delivery() {
-  const { user } = useAuth();
-  const { activeWorkspace, isAdmin } = useWorkspace();
+  const { activeWorkspace } = useWorkspace();
   const [tasksByDeliverable, setTasksByDeliverable] = useState<Record<string, DeliverableTask[]>>({});
-  const [activitiesByDeliverable, setActivitiesByDeliverable] = useState<Record<string, DeliverableActivity[]>>({});
-  const [detailsLoading, setDetailsLoading] = useState(true);
 
-  const loadDetails = async (ids: string[]) => {
-    if (ids.length === 0 || !isAdmin) {
-      setDetailsLoading(false);
-      return;
-    }
-    setDetailsLoading(true);
-    const [tasksRes, activitiesRes] = await Promise.all([
-      consoleSchema().from("deliverable_tasks").select("*").in("deliverable_id", ids).order("sort_order"),
-      consoleSchema()
-        .from("deliverable_activities")
-        .select("*")
-        .in("deliverable_id", ids)
-        .order("created_at", { ascending: true })
-    ]);
-    const tasksMap: Record<string, DeliverableTask[]> = {};
-    for (const id of ids) tasksMap[id] = [];
-    for (const t of tasksRes.data ?? []) (tasksMap[t.deliverable_id] ??= []).push(t);
-    const activitiesMap: Record<string, DeliverableActivity[]> = {};
-    for (const id of ids) activitiesMap[id] = [];
-    for (const a of activitiesRes.data ?? []) (activitiesMap[a.deliverable_id] ??= []).push(a);
-    setTasksByDeliverable(tasksMap);
-    setActivitiesByDeliverable(activitiesMap);
-    setDetailsLoading(false);
-  };
-
-  // Milestones load through the shared hook, keyed on the active workspace and
-  // aborting the previous request on a switch. The effect this replaces needed
-  // an eslint-disable and had no cancellation at all, so switching workspaces
-  // mid-flight could land one workspace's milestones under another's name.
-  const {
-    data: deliverableData,
-    loading,
-    error,
-    retry: retryDeliverables,
-    refresh: refreshDeliverables,
-    refreshing,
-  } = useAsyncResource<Deliverable[]>(
+  // Keyed on the active workspace; a switch aborts the previous request so one
+  // workspace's milestones can never land under another's name.
+  const { data, loading, error, retry, refresh, refreshing } = useAsyncResource<Deliverable[]>(
     async (signal) => {
       if (!activeWorkspace) return [];
-      const { data, error: dbError } = await consoleSchema()
+      const { data: rows, error: dbError } = await consoleSchema()
         .from("deliverables")
         .select("*")
         .eq("workspace_id", activeWorkspace.id)
         .order("sort_order", { ascending: true });
       if (signal.aborted) return [];
       if (dbError) throw dbError;
-      const rows: Deliverable[] = data ?? [];
-      await loadDetails(rows.map((d) => d.id));
-      return rows;
+      const deliverables: Deliverable[] = rows ?? [];
+      const ids = deliverables.map((d) => d.id);
+      const map: Record<string, DeliverableTask[]> = {};
+      if (ids.length > 0) {
+        const { data: tasks } = await consoleSchema().from("deliverable_tasks").select("*").in("deliverable_id", ids).order("sort_order");
+        for (const t of tasks ?? []) (map[t.deliverable_id] ??= []).push(t);
+      }
+      if (!signal.aborted) setTasksByDeliverable(map);
+      return deliverables;
     },
     [activeWorkspace?.id],
     { enabled: Boolean(activeWorkspace), errorMessage: "Failed to load delivery data" }
   );
-  const deliverables = deliverableData ?? [];
-  // Aliased so the existing post-write call sites keep working unchanged.
-  const load = refreshDeliverables;
-
-  const reloadDeliverableDetails = (deliverableId: string) => loadDetails(deliverables.map((d) => d.id));
-
-  const handleStatusChange = async (id: string, status: Deliverable["status"]) => {
-    const { error: updateError } = await consoleSchema().from("deliverables").update({ status }).eq("id", id);
-    if (!updateError) load();
-  };
-
-  const handleAddTask = async (deliverableId: string, title: string) => {
-    await consoleSchema()
-      .from("deliverable_tasks")
-      .insert({ deliverable_id: deliverableId, title, sort_order: (tasksByDeliverable[deliverableId] ?? []).length });
-    await reloadDeliverableDetails(deliverableId);
-  };
-
-  const handleToggleTask = async (taskId: string, isDone: boolean) => {
-    const deliverableId = Object.values(tasksByDeliverable).flat().find((t) => t.id === taskId)?.deliverable_id;
-    await consoleSchema().from("deliverable_tasks").update({ is_done: isDone }).eq("id", taskId);
-    if (deliverableId) await reloadDeliverableDetails(deliverableId);
-  };
-
-  const handleDeleteTask = async (taskId: string) => {
-    const deliverableId = Object.values(tasksByDeliverable).flat().find((t) => t.id === taskId)?.deliverable_id;
-    await consoleSchema().from("deliverable_tasks").delete().eq("id", taskId);
-    if (deliverableId) await reloadDeliverableDetails(deliverableId);
-  };
-
-  const handleAddNote = async (deliverableId: string, body: string) => {
-    if (!user) return;
-    await consoleSchema()
-      .from("deliverable_activities")
-      .insert({ deliverable_id: deliverableId, actor: "admin", actor_user_id: user.id, activity_type: "note", body });
-    await reloadDeliverableDetails(deliverableId);
-  };
-
-  const handleApproveProposal = async (activity: AgentActivity, subject: string, body: string) => {
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke("console-deliverable-send", {
-        body: { activity_id: activity.id, subject, body }
-      });
-      if (fnError) throw fnError;
-      if (data?.error) throw new Error(data.error);
-      await loadDetails(deliverables.map((d) => d.id));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to send client update");
-    }
-  };
-
-  const handleRejectProposal = async (activity: AgentActivity) => {
-    if (!user) return;
-    await consoleSchema()
-      .from("deliverable_activities")
-      .update({ status: "rejected", decided_by: user.id, decided_at: new Date().toISOString() })
-      .eq("id", activity.id);
-    await loadDetails(deliverables.map((d) => d.id));
-  };
+  const deliverables = data ?? [];
 
   return (
-    <ConsoleLayout>
+    <ConsoleLayout onRefresh={() => void refresh()} isRefreshing={refreshing}>
       <StatusRegion
         message={
           loading
@@ -323,31 +117,16 @@ export default function Delivery() {
       {loading ? (
         <LoadingState label="Loading delivery milestones…" />
       ) : error ? (
-        <ErrorAlert message={`Couldn't load delivery data: ${error}`} onRetry={retryDeliverables} retryLabel="Reload milestones" />
+        <ErrorAlert message={`Couldn't load delivery data: ${error}`} onRetry={retry} retryLabel="Reload milestones" />
       ) : deliverables.length === 0 ? (
         <EmptyState
           title="No delivery milestones yet"
-          hint="Milestones appear here as soon as your engagement starts, each with its own checklist and activity thread."
+          hint="Milestones appear here as soon as your engagement starts, each with its own checklist."
         />
       ) : (
         <div className="dash-sprints-view">
           {deliverables.map((milestone, idx) => (
-            <DeliverableCard
-              key={milestone.id}
-              milestone={milestone}
-              order={idx + 1}
-              isAdmin={isAdmin}
-              tasks={tasksByDeliverable[milestone.id] ?? []}
-              activities={activitiesByDeliverable[milestone.id] ?? []}
-              detailsLoading={detailsLoading}
-              onStatusChange={handleStatusChange}
-              onAddTask={handleAddTask}
-              onToggleTask={handleToggleTask}
-              onDeleteTask={handleDeleteTask}
-              onAddNote={handleAddNote}
-              onApprove={handleApproveProposal}
-              onReject={handleRejectProposal}
-            />
+            <DeliverableCard key={milestone.id} milestone={milestone} order={idx + 1} tasks={tasksByDeliverable[milestone.id] ?? []} />
           ))}
         </div>
       )}

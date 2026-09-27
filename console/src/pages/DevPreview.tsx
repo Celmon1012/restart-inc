@@ -8,6 +8,7 @@ import type { Workspace } from "@/lib/resources";
 import Overview from "./console/Overview";
 import NewProject from "./NewProject";
 import Systems from "./console/Systems";
+import AdminOverview from "./admin/Overview";
 
 const now = Date.now();
 const ago = (m: number) => new Date(now - m * 60_000).toISOString();
@@ -55,7 +56,8 @@ const ws: WorkspaceContextType = {
     { id: "ws-3", name: "Kestrel Health", tier: null },
   ],
   activeWorkspace: workspace,
-  isAdmin: false,
+  // ?admin=1 previews the console as an admin (shows the Admin area button).
+  isAdmin: new URLSearchParams(window.location.search).get("admin") === "1",
   needsOnboarding: false,
   loaded: true,
   loading: false,
@@ -69,7 +71,7 @@ export default function DevPreview() {
   return (
     <AuthContext.Provider value={auth}>
       <WorkspaceContext.Provider value={ws}>
-        {page === "new-project" ? <NewProject /> : page === "systems" ? <Systems /> : <Overview />}
+        {page === "new-project" ? <NewProject /> : page === "systems" ? <Systems /> : page === "admin" ? <AdminOverview /> : <Overview />}
       </WorkspaceContext.Provider>
     </AuthContext.Provider>
   );

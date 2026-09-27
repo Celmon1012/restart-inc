@@ -27,7 +27,14 @@ import {
   LifeBuoy,
   Sparkles,
   X,
-  Menu
+  Menu,
+  ShieldCheck,
+  Gauge,
+  KanbanSquare,
+  ListChecks,
+  Inbox,
+  Wallet,
+  HardDrive
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,12 +48,19 @@ interface ConsoleLayoutProps {
   children: React.ReactNode;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  // "console" is the client-facing workspace view; "admin" is Restart's own
+  // cross-workspace back office (pipeline, project management, support desk,
+  // finance). Same shell, different nav -- routes under /admin are gated by
+  // AdminRoute in App.tsx and, for real, by console.is_admin() in RLS.
+  area?: "console" | "admin";
 }
 
-const NAV_GROUPS: Array<{
+type NavGroup = {
   label: string | null;
-  items: Array<{ href: string; label: string; icon: typeof Server; adminOnly?: boolean; external?: boolean }>;
-}> = [
+  items: Array<{ href: string; label: string; icon: typeof Server }>;
+};
+
+const CONSOLE_NAV: NavGroup[] = [
   {
     label: null,
     items: [
@@ -56,10 +70,6 @@ const NAV_GROUPS: Array<{
       { href: "/console/activity", label: "Activity", icon: Terminal },
       { href: "/console/timeline", label: "Timeline", icon: History }
     ]
-  },
-  {
-    label: "Admin",
-    items: [{ href: "/console/leads", label: "Leads", icon: Users, adminOnly: true }]
   },
   {
     label: "Account",
@@ -72,14 +82,54 @@ const NAV_GROUPS: Array<{
   }
 ];
 
-const TOP_TABS = [
+const ADMIN_NAV: NavGroup[] = [
+  {
+    label: null,
+    items: [
+      { href: "/admin", label: "Overview", icon: Gauge },
+      { href: "/admin/clients", label: "Clients", icon: Building2 }
+    ]
+  },
+  {
+    label: "Sales",
+    items: [{ href: "/admin/leads", label: "Leads & Pipeline", icon: Users }]
+  },
+  {
+    label: "Delivery",
+    items: [
+      { href: "/admin/projects", label: "Projects", icon: KanbanSquare },
+      { href: "/admin/tasks", label: "Tasks", icon: ListChecks },
+      { href: "/admin/requests", label: "Server Requests", icon: HardDrive }
+    ]
+  },
+  {
+    label: "Operations",
+    items: [
+      { href: "/admin/support", label: "Support Desk", icon: Inbox },
+      { href: "/admin/finance", label: "Finance", icon: Wallet }
+    ]
+  }
+];
+
+const CONSOLE_TABS = [
   { href: "/console/overview", label: "Overview" },
   { href: "/console/systems", label: "Systems" },
   { href: "/console/delivery", label: "Delivery" }
 ];
 
-export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: ConsoleLayoutProps) {
+const ADMIN_TABS = [
+  { href: "/admin", label: "Overview" },
+  { href: "/admin/leads", label: "Pipeline" },
+  { href: "/admin/projects", label: "Projects" },
+  { href: "/admin/support", label: "Support" },
+  { href: "/admin/finance", label: "Finance" }
+];
+
+export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area = "console" }: ConsoleLayoutProps) {
   const [location, setLocation] = useLocation();
+  const isAdminArea = area === "admin";
+  const navGroups = isAdminArea ? ADMIN_NAV : CONSOLE_NAV;
+  const topTabs = isAdminArea ? ADMIN_TABS : CONSOLE_TABS;
   const { user, signOut } = useAuth();
   const { workspaces, activeWorkspace, isAdmin, loading: workspaceLoading, setActiveWorkspaceId } = useWorkspace();
   const displayName = getDisplayName(user);
@@ -238,7 +288,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
   };
 
   return (
-    <div className="console-app-shell">
+    <div className={`console-app-shell ${isAdminArea ? "admin-area" : ""}`}>
       {mobileSidebarOpen && (
         <div className="console-sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)} />
       )}
@@ -251,7 +301,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
             ) : (
               <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />
             )}
-            <span className="dash-tag">CONSOLE</span>
+            <span className="dash-tag">{isAdminArea ? "ADMIN" : "CONSOLE"}</span>
           </a>
           <button
             onClick={() => setMobileSidebarOpen(false)}
@@ -262,6 +312,9 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
           </button>
         </div>
 
+        {/* The admin area is cross-workspace -- each admin page picks its own
+            client -- so the workspace switcher only belongs to the console. */}
+        {!isAdminArea && (
         <div className="ws-switcher" ref={workspaceMenuRef}>
           <button
             onClick={(e) => { if (!workspaceMenuOpen) placeMenu(e.currentTarget); setWorkspaceMenuOpen(!workspaceMenuOpen); }}
@@ -337,39 +390,29 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
             </div>
           )}
         </div>
+        )}
 
-        <nav className="console-sidebar-nav" aria-label="Console">
-          {NAV_GROUPS.map((group, idx) => {
-            const visibleItems = group.items.filter((item) => !item.adminOnly || isAdmin);
-            if (visibleItems.length === 0) return null;
-            return (
+        <nav className="console-sidebar-nav" aria-label={isAdminArea ? "Admin" : "Console"}>
+          {navGroups.map((group, idx) => (
             <div className="console-sidebar-group" key={group.label ?? `group-${idx}`}>
               {group.label && <span className="console-sidebar-group-label">{group.label}</span>}
-              {visibleItems.map(({ href, label, icon: Icon, external }) =>
-                external ? (
-                  <a key={href} href={href} title={label} className="console-sidebar-link">
-                    <Icon size={15} />
-                    <span>{label}</span>
-                  </a>
-                ) : (
-                  <Link
-                    key={href}
-                    href={href}
-                    title={label}
-                    className={`console-sidebar-link ${location === href ? "active" : ""}`}
-                  >
-                    <Icon size={15} />
-                    <span>{label}</span>
-                  </Link>
-                )
-              )}
+              {group.items.map(({ href, label, icon: Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  title={label}
+                  className={`console-sidebar-link ${location === href ? "active" : ""}`}
+                >
+                  <Icon size={15} />
+                  <span>{label}</span>
+                </Link>
+              ))}
             </div>
-            );
-          })}
+          ))}
         </nav>
 
         <div className="console-sidebar-footer">
-          {!aiPromoDismissed && !sidebarCollapsed && (
+          {!isAdminArea && !aiPromoDismissed && !sidebarCollapsed && (
             <div className="sidebar-promo-card">
               <button className="sidebar-promo-close" onClick={dismissAiPromo} aria-label="Dismiss">
                 <X size={12} />
@@ -419,6 +462,17 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
                   <Settings size={14} />
                   <span>Settings</span>
                 </Link>
+                {isAdmin && (
+                  <Link
+                    role="menuitem"
+                    href={isAdminArea ? "/console/overview" : "/admin"}
+                    className="ws-menu-item"
+                    onClick={() => setAccountMenuOpen(false)}
+                  >
+                    {isAdminArea ? <LayoutGrid size={14} /> : <ShieldCheck size={14} />}
+                    <span>{isAdminArea ? "Client console" : "Admin area"}</span>
+                  </Link>
+                )}
                 <div className="ws-menu-sep" />
                 <button
                   role="menuitem"
@@ -431,10 +485,17 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
               </div>
             )}
           </div>
-          <a href={MARKETING_URL} className="sidebar-back-link" title="Back to public site">
-            <ArrowLeft size={14} />
-            <span>Back to public site</span>
-          </a>
+          {isAdminArea ? (
+            <Link href="/console/overview" className="sidebar-back-link" title="Back to client console">
+              <ArrowLeft size={14} />
+              <span>Back to console</span>
+            </Link>
+          ) : (
+            <a href={MARKETING_URL} className="sidebar-back-link" title="Back to public site">
+              <ArrowLeft size={14} />
+              <span>Back to public site</span>
+            </a>
+          )}
         </div>
       </aside>
       {/* Collapse control sits on the sidebar's right edge. It lives outside
@@ -459,8 +520,8 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
             >
               <Menu size={17} />
             </button>
-            <nav className="cp-tabs" aria-label="Workspace views">
-              {TOP_TABS.map((t) => (
+            <nav className="cp-tabs" aria-label={isAdminArea ? "Admin views" : "Workspace views"}>
+              {topTabs.map((t) => (
                 <Link key={t.href} href={t.href} className={location === t.href ? "active" : undefined} aria-current={location === t.href ? "page" : undefined}>
                   {t.label}
                 </Link>
@@ -472,6 +533,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
             {/* Was a placeholder that only explained it did nothing. It now
                 carries the count of resources that are not healthy and links to
                 the timeline, so it reports something real and has somewhere to go. */}
+            {!isAdminArea && (
             <button
               onClick={() => setLocation(attentionHref)}
               className="dash-icon-btn dash-notif-btn"
@@ -493,11 +555,29 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false }: Con
                 </span>
               )}
             </button>
+            )}
 
-            <Link href="/console/new-project" className="dash-action-btn">
-              <Plus size={14} />
-              <span>Start a Project</span>
-            </Link>
+            {/* Admin entry point, rendered only for admins (isAdmin comes from
+                console-data's server-side read of app_metadata). The area
+                itself is still enforced by AdminRoute + RLS, not this button. */}
+            {isAdmin && !isAdminArea && (
+              <Link href="/admin" className="dash-admin-btn" title="Open the Restart admin area">
+                <ShieldCheck size={14} />
+                <span>Admin area</span>
+              </Link>
+            )}
+
+            {isAdminArea ? (
+              <Link href="/console/overview" className="dash-admin-btn" title="Back to the client console">
+                <LayoutGrid size={14} />
+                <span>Client console</span>
+              </Link>
+            ) : (
+              <Link href="/console/new-project" className="dash-action-btn">
+                <Plus size={14} />
+                <span>Start a Project</span>
+              </Link>
+            )}
 
             <div className="dash-user-menu-wrapper" ref={userMenuRef}>
               <button

@@ -17,13 +17,14 @@ import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { ActivityTimeline, type AgentActivity } from "@/components/ActivityTimeline";
 import { useAuth } from "@/contexts/AuthContext";
 import { consoleSchema, supabase } from "@/lib/supabase";
-import { Mail, Building2, Clock, Send } from "lucide-react";
+import { Mail, Building2, Clock, Send, Search, LayoutList, Columns3 } from "lucide-react";
+import { PIPELINE_STAGES, OPEN_STAGES, queryParam, type PipelineStage } from "@/lib/admin";
 import { formatDate } from "@/lib/format";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { toast } from "sonner";
 
-type InquiryStatus = "new" | "contacted" | "qualified" | "won" | "lost" | "archived";
+type InquiryStatus = PipelineStage;
 
 interface Inquiry {
   id: string;
@@ -79,7 +80,10 @@ function StagePill({ status }: { status: InquiryStatus }) {
 export default function Leads() {
   const { user } = useAuth();
   const [stageFilter, setStageFilter] = useState<"all" | InquiryStatus>("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // ?id= deep-links a lead from the admin overview.
+  const [selectedId, setSelectedId] = useState<string | null>(() => queryParam("id"));
+  const [search, setSearch] = useState("");
+  const [view, setView] = useState<"list" | "board">("list");
   const [noteDraft, setNoteDraft] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [stageSaving, setStageSaving] = useState(false);
@@ -133,7 +137,20 @@ export default function Leads() {
   const activities = activityData ?? [];
   const loadActivities = refreshActivities;
 
-  const filtered = inquiries.filter((i) => stageFilter === "all" || i.status === stageFilter);
+  const needle = search.trim().toLowerCase();
+  const searched = needle
+    ? inquiries.filter((i) =>
+        [i.name, i.email, i.company, i.reference_id, i.project_brief]
+          .some((v) => v?.toLowerCase().includes(needle))
+      )
+    : inquiries;
+  const filtered = searched.filter((i) => stageFilter === "all" || i.status === stageFilter);
+  const openCount = inquiries.filter((i) => OPEN_STAGES.includes(i.status)).length;
+  const wonCount = inquiries.filter((i) => i.status === "won").length;
+  const closedCount = wonCount + inquiries.filter((i) => i.status === "lost").length;
+  const followUpsDue = inquiries.filter(
+    (i) => OPEN_STAGES.includes(i.status) && i.next_follow_up_at && new Date(i.next_follow_up_at) <= new Date()
+  ).length;
   const selected = inquiries.find((i) => i.id === selectedId) ?? null;
 
   const handleStageChange = async (next: InquiryStatus) => {
@@ -224,7 +241,7 @@ export default function Leads() {
   };
 
   return (
-    <ConsoleLayout onRefresh={() => void refreshInquiries()} isRefreshing={refreshing}>
+    <ConsoleLayout area="admin" onRefresh={() => void refreshInquiries()} isRefreshing={refreshing}>
       <StatusRegion
         message={
           loading
@@ -238,11 +255,36 @@ export default function Leads() {
       />
       <div className="dash-header-row">
         <div>
-          <span className="dash-kicker">LEADS</span>
-          <h1>Leads</h1>
+          <span className="dash-kicker">SALES</span>
+          <h1>Leads & Pipeline</h1>
           <p>Inquiries from the marketing site, and what we're doing about them.</p>
         </div>
       </div>
+
+      {inquiries.length > 0 && (
+        <div className="cp-stats mb-6">
+          <div>
+            <small>OPEN PIPELINE</small>
+            <strong>{openCount}</strong>
+            <em>new, contacted, or qualified</em>
+          </div>
+          <div>
+            <small>FOLLOW-UPS DUE</small>
+            <strong className={followUpsDue ? "warn" : undefined}>{followUpsDue}</strong>
+            <em>{followUpsDue ? "past their follow-up date" : "Nothing overdue"}</em>
+          </div>
+          <div>
+            <small>WON</small>
+            <strong>{wonCount}</strong>
+            <em>{inquiries.length} leads all-time</em>
+          </div>
+          <div>
+            <small>WIN RATE</small>
+            <strong>{closedCount ? `${Math.round((wonCount / closedCount) * 100)}%` : "—"}</strong>
+            <em>{closedCount ? `of ${closedCount} closed leads` : "No closed leads yet"}</em>
+          </div>
+        </div>
+      )}
 
       {error && <ErrorAlert message={`Couldn't load leads: ${error}`} onRetry={retryInquiries} retryLabel="Reload leads" />}
 
@@ -255,6 +297,72 @@ export default function Leads() {
         />
       ) : (
         <>
+          <div className="admin-toolbar">
+            <div className="workspace-search-box">
+              <Search size={13} />
+              <input
+                type="text"
+                placeholder="Search name, email, company, reference…"
+                aria-label="Search leads"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <span className="admin-toolbar-spacer" />
+            <button
+              className={`dash-tab-btn ${view === "list" ? "active" : ""}`}
+              onClick={() => setView("list")}
+              aria-pressed={view === "list"}
+            >
+              <LayoutList size={13} />
+              <span>List</span>
+            </button>
+            <button
+              className={`dash-tab-btn ${view === "board" ? "active" : ""}`}
+              onClick={() => setView("board")}
+              aria-pressed={view === "board"}
+            >
+              <Columns3 size={13} />
+              <span>Board</span>
+            </button>
+          </div>
+
+          {view === "board" ? (
+            <div className="admin-board">
+              {PIPELINE_STAGES.map((stage) => {
+                const cards = searched.filter((i) => i.status === stage);
+                const tone = STAGE_TONE[stage];
+                return (
+                  <div className="admin-board-col" key={stage}>
+                    <div className={`admin-board-col-head ${tone}`}>
+                      <span>{stage}</span>
+                      <span>{cards.length}</span>
+                    </div>
+                    {cards.length === 0 ? (
+                      <div className="admin-board-empty">Empty</div>
+                    ) : (
+                      cards.map((i) => (
+                        <button
+                          key={i.id}
+                          className="admin-board-card"
+                          onClick={() => {
+                            setSelectedId(i.id);
+                            setStageFilter("all");
+                            setView("list");
+                          }}
+                        >
+                          <strong>{i.name}</strong>
+                          <span>{i.company ?? i.email}</span>
+                          <span>{[i.budget_range, formatDate(i.created_at)].filter(Boolean).join(" · ")}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+          <>
           <div className="dash-tabs-bar">
             {STAGE_TABS.map((tab) => (
               <button
@@ -264,7 +372,7 @@ export default function Leads() {
               >
                 <span>
                   {tab.label} (
-                  {tab.key === "all" ? inquiries.length : inquiries.filter((i) => i.status === tab.key).length})
+                  {tab.key === "all" ? searched.length : searched.filter((i) => i.status === tab.key).length})
                 </span>
               </button>
             ))}
@@ -355,7 +463,7 @@ export default function Leads() {
                   <div className="lead-stage-actions">
                     <span className="meta-k">Move to</span>
                     <div className="lead-stage-buttons">
-                      {(["new", "contacted", "qualified", "won", "lost", "archived"] as InquiryStatus[])
+                      {PIPELINE_STAGES
                         .filter((s) => s !== selected.status)
                         .map((s) => (
                           <button
@@ -400,6 +508,8 @@ export default function Leads() {
               )}
             </div>
           </div>
+          </>
+          )}
         </>
       )}
     </ConsoleLayout>

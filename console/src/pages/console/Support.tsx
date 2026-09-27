@@ -3,12 +3,15 @@
 // reads/writes through the console-support-* edge functions, which are
 // the only things holding CHATWOOT_API_ACCESS_TOKEN. No message content
 // is stored in our own Postgres.
+//
+// Client-facing only. Staff tooling (agent-drafted replies, internal notes,
+// resolve/reopen, the cross-client inbox) lives in the admin Support Desk.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { supabase } from "@/lib/supabase";
-import { Clock, Plus, Send, Check, X, Lock } from "lucide-react";
+import { invokeFunction as invoke } from "@/lib/functions";
+import { Clock, Plus, Send } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
@@ -16,6 +19,7 @@ import { toast } from "sonner";
 
 interface ConversationSummary {
   id: string;
+  workspaceId?: string;
   workspaceName: string | null;
   status: string;
   lastMessage: string | null;
@@ -35,37 +39,8 @@ interface ChatwootMessage {
   created_at: number;
 }
 
-interface Proposal {
-  id: string;
-  body: string;
-  status: "proposed" | "approved" | "rejected";
-}
-
-async function invoke<T = any>(name: string, options: { body?: unknown; query?: string } = {}): Promise<T> {
-  const path = options.query ? `${name}?${options.query}` : name;
-  const { data, error } = await supabase.functions.invoke(path, options.body ? { body: options.body } : undefined);
-  if (error) {
-    // supabase-js's own error.message is just "Edge Function returned a
-    // non-2xx status code" -- the function's actual {error} body (which is
-    // what we want to show) is only reachable via error.context, the raw
-    // Response object, and has to be read out explicitly.
-    const context = (error as { context?: Response }).context;
-    if (context) {
-      try {
-        const body = await context.json();
-        if (body?.error) throw new Error(body.error);
-      } catch {
-        // fall through to the generic error below
-      }
-    }
-    throw error;
-  }
-  if (data?.error) throw new Error(data.error);
-  return data;
-}
-
 export default function Support() {
-  const { activeWorkspace, isAdmin } = useWorkspace();
+  const { activeWorkspace } = useWorkspace();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [replyDraft, setReplyDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -73,7 +48,6 @@ export default function Support() {
   const [newSubject, setNewSubject] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const [creating, setCreating] = useState(false);
-  const [proposalDraft, setProposalDraft] = useState("");
 
   // Conversations and the open thread are two resources, each with its own
   // loading/error state and its own retry. Both previously shared one error
@@ -95,20 +69,21 @@ export default function Support() {
     [],
     { errorMessage: "Failed to load conversations" }
   );
-  const conversations = conversationData ?? [];
+  // console-support-data returns everything RLS lets the caller see -- for an
+  // admin that is every client, so scope to the active workspace here.
+  const conversations = (conversationData ?? []).filter(
+    (c) => !c.workspaceId || !activeWorkspace || c.workspaceId === activeWorkspace.id
+  );
   const loadConversations = refreshConversations;
 
   // The open thread is keyed by selection, so switching conversations aborts the
-  // previous request rather than racing it. Messages and any pending proposal
-  // arrive from the same call and must stay in step, so they travel together.
+  // previous request rather than racing it.
   const { data: threadData, loading: threadLoading, refresh: refreshThread } = useAsyncResource<{
     conversation: { messages: ChatwootMessage[]; status: string };
-    proposal: Proposal | null;
   }>(
     async (signal) => {
       const data = await invoke<{
         conversation: { messages: ChatwootMessage[]; status: string };
-        proposal: Proposal | null;
       }>("console-support-data", { query: `conversation_id=${selectedId}` });
       if (signal.aborted) throw new Error("cancelled");
       return data;
@@ -117,14 +92,7 @@ export default function Support() {
     { enabled: Boolean(selectedId), errorMessage: "Failed to load conversation" }
   );
   const thread = threadData?.conversation ?? null;
-  const proposal = threadData?.proposal ?? null;
   const loadThread = refreshThread;
-
-  // Seed the reply-to-proposal draft once a proposal loads, so the operator
-  // edits the agent's text instead of retyping it.
-  useEffect(() => {
-    setProposalDraft(threadData?.proposal?.body ?? "");
-  }, [threadData?.proposal?.id]);
 
   const handleCreateTicket = async () => {
     if (!activeWorkspace || !newMessage.trim()) return;
@@ -154,37 +122,6 @@ export default function Support() {
       void loadThread();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send reply");
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const handleApproveProposal = async () => {
-    if (!selectedId || !proposal || !proposalDraft.trim()) return;
-    setSending(true);
-    try {
-      await invoke("console-support-send", { body: { proposal_id: proposal.id, body: proposalDraft.trim() } });
-      void loadThread();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to send reply");
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const handleRejectProposal = async () => {
-    if (!proposal) return;
-    setSending(true);
-    try {
-      const { error: updateError } = await supabase
-        .schema("console")
-        .from("support_proposals")
-        .update({ status: "rejected", decided_at: new Date().toISOString() })
-        .eq("id", proposal.id);
-      if (updateError) throw updateError;
-      if (selectedId) void loadThread();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to reject draft");
     } finally {
       setSending(false);
     }
@@ -294,38 +231,19 @@ export default function Support() {
             ) : (
               <div className="console-card lead-detail-card">
                 <div className="support-thread">
-                  {(thread?.messages ?? []).map((m) => (
+                  {/* The function already strips private notes for members; an
+                      admin previewing the console gets them too, so drop them
+                      here -- this page shows what the client sees. */}
+                  {(thread?.messages ?? []).filter((m) => !m.private).map((m) => (
                     <div
                       key={m.id}
-                      className={`support-message ${m.message_type === 1 ? "outgoing" : "incoming"} ${m.private ? "private" : ""}`}
+                      className={`support-message ${m.message_type === 1 ? "outgoing" : "incoming"}`}
                     >
-                      {m.private && (
-                        <span className="support-message-badge">
-                          <Lock size={10} /> INTERNAL NOTE
-                        </span>
-                      )}
                       <p>{m.content}</p>
                       <span className="support-message-time">{formatDateTime(m.created_at * 1000)}</span>
                     </div>
                   ))}
                 </div>
-
-                {isAdmin && proposal && proposal.status === "proposed" && (
-                  <div className="activity-proposal-draft mt-4">
-                    <span className="meta-k">Agent-drafted reply, pending approval</span>
-                    <textarea rows={4} value={proposalDraft} onChange={(e) => setProposalDraft(e.target.value)} />
-                    <div className="lead-stage-buttons mt-2">
-                      <button className="dash-action-btn" disabled={sending} onClick={handleApproveProposal}>
-                        <Check size={13} />
-                        <span>Approve & Send</span>
-                      </button>
-                      <button className="dash-tab-btn" disabled={sending} onClick={handleRejectProposal}>
-                        <X size={13} />
-                        <span>Reject</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 <div className="lead-note-form mt-4">
                   <textarea

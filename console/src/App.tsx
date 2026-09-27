@@ -12,20 +12,28 @@ import Systems from "./pages/console/Systems";
 import Delivery from "./pages/console/Delivery";
 import Activity from "./pages/console/Activity";
 import Timeline from "./pages/console/Timeline";
-import Leads from "./pages/console/Leads";
 import Support from "./pages/console/Support";
 import ProfileSecurity from "./pages/console/ProfileSecurity";
 import ConsoleSettings from "./pages/console/ConsoleSettings";
 import ApiKeyVault from "./pages/console/ApiKeyVault";
 import BillingSla from "./pages/console/BillingSla";
 import NewProject from "./pages/NewProject";
+import AdminOverview from "./pages/admin/Overview";
+import AdminClients from "./pages/admin/Clients";
+import AdminLeads from "./pages/admin/Leads";
+import AdminProjects from "./pages/admin/Projects";
+import AdminTasks from "./pages/admin/Tasks";
+import AdminServerRequests from "./pages/admin/ServerRequests";
+import AdminSupport from "./pages/admin/Support";
+import AdminFinance from "./pages/admin/Finance";
 import { lazy, Suspense } from "react";
 
 // Dev-only fixture page (see pages/DevPreview.tsx); tree-shaken from production.
 const DevPreview = import.meta.env.DEV ? lazy(() => import("./pages/DevPreview")) : null;
 
-// UX-only gate -- console.inquiries/inquiry_activities RLS (console.is_admin())
-// is the real boundary. This just avoids flashing the page at a non-admin
+// UX-only gate for the /admin area -- RLS (console.is_admin()) on every
+// console.* table, and the is_admin check in the admin edge functions, are the
+// real boundary. This just avoids flashing the page at a non-admin
 // before bouncing them, same spirit as ProtectedRoute's own session check.
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { isAdmin, loading } = useWorkspace();
@@ -80,12 +88,9 @@ function Router() {
           <Timeline />
         </ProtectedRoute>
       </Route>
+      {/* Leads moved to the admin area; keep old links working. */}
       <Route path="/console/leads">
-        <ProtectedRoute>
-          <AdminRoute>
-            <Leads />
-          </AdminRoute>
-        </ProtectedRoute>
+        <Redirect to="/admin/leads" />
       </Route>
       <Route path="/console/support">
         <ProtectedRoute>
@@ -110,6 +115,63 @@ function Router() {
       <Route path="/console/billing">
         <ProtectedRoute>
           <BillingSla />
+        </ProtectedRoute>
+      </Route>
+      {/* Admin area: Restart staff only. The console links here only for admins. */}
+      <Route path="/admin">
+        <ProtectedRoute>
+          <AdminRoute>
+            <AdminOverview />
+          </AdminRoute>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/clients">
+        <ProtectedRoute>
+          <AdminRoute>
+            <AdminClients />
+          </AdminRoute>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/leads">
+        <ProtectedRoute>
+          <AdminRoute>
+            <AdminLeads />
+          </AdminRoute>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/projects">
+        <ProtectedRoute>
+          <AdminRoute>
+            <AdminProjects />
+          </AdminRoute>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/tasks">
+        <ProtectedRoute>
+          <AdminRoute>
+            <AdminTasks />
+          </AdminRoute>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/requests">
+        <ProtectedRoute>
+          <AdminRoute>
+            <AdminServerRequests />
+          </AdminRoute>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/support">
+        <ProtectedRoute>
+          <AdminRoute>
+            <AdminSupport />
+          </AdminRoute>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/finance">
+        <ProtectedRoute>
+          <AdminRoute>
+            <AdminFinance />
+          </AdminRoute>
         </ProtectedRoute>
       </Route>
       {/* Root and any unmatched path land on the overview, which bounces to

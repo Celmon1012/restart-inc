@@ -71,19 +71,43 @@ Deno.serve(async (req) => {
   const caller = await getUser(jwt);
   if (!caller) return json({ error: "Unauthorized" }, 401);
 
-  let payload: { conversation_id?: string; body?: string };
+  // Admin-only extras, used by the admin Support Desk:
+  //   private: true   -> post as a Chatwoot private note (staff-only by construction)
+  //   status: "open" | "pending" | "resolved" -> toggle the conversation's status;
+  //                      body is optional when only changing status
+  let payload: { conversation_id?: string; body?: string; private?: boolean; status?: string };
   try {
     payload = await req.json();
   } catch {
     return json({ error: "Invalid JSON body" }, 400);
   }
-  if (!payload.conversation_id || !payload.body?.trim()) {
+  const wantsStatus = typeof payload.status === "string";
+  if (!payload.conversation_id || (!payload.body?.trim() && !wantsStatus)) {
     return json({ error: "conversation_id and body are required" }, 400);
+  }
+  if ((wantsStatus || payload.private) && !caller.isAdmin) {
+    return json({ error: "Forbidden" }, 403);
+  }
+  if (wantsStatus && !["open", "pending", "resolved"].includes(payload.status!)) {
+    return json({ error: "status must be open, pending, or resolved" }, 400);
   }
 
   try {
     const row = await getConversationRow(jwt, payload.conversation_id);
     if (!row) return json({ error: "Not found" }, 404);
+
+    if (wantsStatus) {
+      const res = await fetch(
+        `${CHATWOOT_API_URL}/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/conversations/${row.chatwoot_conversation_id}/toggle_status`,
+        {
+          method: "POST",
+          headers: { api_access_token: CHATWOOT_API_ACCESS_TOKEN, "Content-Type": "application/json" },
+          body: JSON.stringify({ status: payload.status }),
+        }
+      );
+      if (!res.ok) throw new Error(`Chatwoot toggle_status -> ${res.status}: ${await res.text()}`);
+      if (!payload.body?.trim()) return json({ status: payload.status });
+    }
 
     if (caller.isAdmin) {
       const res = await fetch(
@@ -91,7 +115,7 @@ Deno.serve(async (req) => {
         {
           method: "POST",
           headers: { api_access_token: CHATWOOT_API_ACCESS_TOKEN, "Content-Type": "application/json" },
-          body: JSON.stringify({ content: payload.body.trim(), message_type: "outgoing" }),
+          body: JSON.stringify({ content: payload.body!.trim(), message_type: "outgoing", private: Boolean(payload.private) }),
         }
       );
       if (!res.ok) throw new Error(`Chatwoot messages -> ${res.status}: ${await res.text()}`);
@@ -104,7 +128,7 @@ Deno.serve(async (req) => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: payload.body.trim() }),
+          body: JSON.stringify({ content: payload.body!.trim() }),
         }
       );
       if (!res.ok) throw new Error(`Chatwoot public messages -> ${res.status}: ${await res.text()}`);

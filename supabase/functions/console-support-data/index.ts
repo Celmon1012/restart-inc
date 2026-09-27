@@ -130,9 +130,9 @@ Deno.serve(async (req) => {
       rows.map(async (row) => {
         try {
           const conversation = await chatwootFetch(`/conversations/${row.chatwoot_conversation_id}`);
-          return { id: row.id, workspaceName: row.workspaces?.name ?? null, ...summarize(conversation) };
+          return { id: row.id, workspaceId: row.workspace_id, workspaceName: row.workspaces?.name ?? null, ...summarize(conversation) };
         } catch {
-          return { id: row.id, workspaceName: row.workspaces?.name ?? null, status: "unknown", lastMessage: null, lastActivityAt: null };
+          return { id: row.id, workspaceId: row.workspace_id, workspaceName: row.workspaces?.name ?? null, status: "unknown", lastMessage: null, lastActivityAt: null };
         }
       })
     );

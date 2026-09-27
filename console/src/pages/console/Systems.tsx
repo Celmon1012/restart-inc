@@ -26,7 +26,7 @@ function initialTab(): "systems" | "infrastructure" {
 }
 
 export default function Systems() {
-  const { activeWorkspace, loading: workspaceLoading, error: workspaceError, refresh, isAdmin } = useWorkspace();
+  const { activeWorkspace, loading: workspaceLoading, error: workspaceError, refresh } = useWorkspace();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"systems" | "infrastructure">(initialTab);
   const resources = activeWorkspace ? getResources(activeWorkspace) : [];
@@ -133,7 +133,7 @@ export default function Systems() {
 
           {activeTab === "infrastructure" && (
             <div className="dash-hosting-view">
-              <ServerRequests workspace={activeWorkspace} isAdmin={isAdmin} />
+              <ServerRequests workspace={activeWorkspace} />
 
               <div className="hosting-overview-grid">
                 <div className="hosting-card">
