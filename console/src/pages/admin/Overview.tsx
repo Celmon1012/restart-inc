@@ -44,7 +44,10 @@ export default function AdminOverview() {
   const leads = useAsyncResource<LeadRow[]>(async () => {
     const { data, error } = await consoleSchema()
       .from("inquiries")
-      .select("id,name,company,status,created_at,next_follow_up_at")
+      // Same "*" read as the Leads page: next_follow_up_at comes from a
+      // pipeline migration that may not be applied everywhere, and naming it
+      // explicitly fails the whole query where it is missing.
+      .select("*")
       .order("created_at", { ascending: false });
     if (error) throw error;
     return data ?? [];
@@ -127,7 +130,7 @@ export default function AdminOverview() {
           label="OPEN LEADS"
           href="/admin/leads"
           value={dash(leads.loading, leads.error, openLeads.length)}
-          hint={leads.error ? "Couldn't load leads" : `${newLeads.length} new · ${followUpsDue.length} follow-ups due`}
+          hint={leads.error ? `Couldn't load leads: ${leads.error}` : `${newLeads.length} new · ${followUpsDue.length} follow-ups due`}
           warn={followUpsDue.length > 0}
         />
         <Tile
