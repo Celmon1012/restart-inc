@@ -212,12 +212,18 @@ function mapResources(env: Record<string, any>) {
 // app's deploy history being unavailable doesn't blank the whole feed.
 async function fetchDeployments(appUuid: string, appName: string) {
   try {
-    const rows = await coolifyFetch(`/deployments/applications/${appUuid}?take=10`);
-    return (Array.isArray(rows) ? rows : []).map((d: Record<string, any>) => ({
+    // Coolify wraps this list as { count, deployments: [...] }; accept a bare
+    // array too so an API shape change doesn't silently blank the feed again.
+    const body = await coolifyFetch(`/deployments/applications/${appUuid}?take=10`);
+    const rows = Array.isArray(body) ? body : Array.isArray(body?.deployments) ? body.deployments : [];
+    return rows.map((d: Record<string, any>) => ({
       uuid: d.deployment_uuid,
       applicationName: appName,
       status: d.status,
       commitSha: typeof d.commit === "string" ? d.commit.slice(0, 7) : null,
+      // Subject line only -- the body is for engineers, the console shows
+      // clients what changed.
+      commitMessage: typeof d.commit_message === "string" ? d.commit_message.split("\n")[0].trim() || null : null,
       createdAt: d.created_at,
       trigger: d.is_webhook ? "webhook" : d.is_api ? "api" : "manual",
     }));

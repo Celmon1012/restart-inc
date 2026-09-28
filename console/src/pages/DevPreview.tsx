@@ -81,7 +81,7 @@ if (import.meta.env.DEV && typeof window !== "undefined" && !(window as { __fina
       return Promise.resolve(new Response(JSON.stringify(tableFixtures[table]), { headers: { "Content-Type": "application/json" } }));
     }
     if (url.includes("console-support-data")) {
-      const conversations = [{ id: "t1", workspaceId: "dev-ws", workspaceName: "Acme Operations", status: "open", lastMessage: "Staging is slow since Tuesday", lastActivityAt: Date.now() - 3_600_000 }];
+      const conversations = [{ id: "t1", workspaceId: "dev-ws", workspaceName: "Acme Operations", status: "open", awaitingClient: true, lastMessage: "Can you confirm the staging slowdown is gone on your side?", lastActivityAt: Date.now() - 3_600_000 }];
       return Promise.resolve(new Response(JSON.stringify({ conversations }), { headers: { "Content-Type": "application/json" } }));
     }
     if (url.includes("console-billing")) {
@@ -142,7 +142,8 @@ const workspace: Workspace = {
   }],
   deployments: Array.from({ length: 10 }, (_, i) => ({
     uuid: `d${i}`, applicationName: ["api-gateway", "storefront", "admin"][i % 3],
-    status: i === 4 ? "failed" : "finished", commitSha: null, createdAt: ago(i * 60 * 14), trigger: "webhook" as const,
+    status: i === 4 ? "failed" : "finished", commitSha: `a0${i}5f25`,
+    commitMessage: ["Checkout: retry failed card payments once before erroring", "Admin: export orders as CSV", "Cut storefront image weight by 40%"][i % 3], createdAt: ago(i * 60 * 14), trigger: "webhook" as const,
   })),
 };
 

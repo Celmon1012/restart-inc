@@ -78,8 +78,16 @@ async function chatwootFetch(path: string) {
 function summarize(conversation: any) {
   const messages = conversation.messages ?? [];
   const lastVisible = [...messages].reverse().find((m: any) => !m.private);
+  // The ball is in the client's court when Restart spoke last (message_type
+  // 1 = outgoing) on a thread still open. The show endpoint only embeds the
+  // latest message, so if that one is a private note or activity we can't
+  // tell -- report false rather than nag the client on a guess.
+  const awaitingClient =
+    conversation.status !== "resolved" &&
+    lastVisible?.message_type === 1;
   return {
     status: conversation.status,
+    awaitingClient,
     lastMessage: lastVisible?.content ?? null,
     lastActivityAt: conversation.last_activity_at ? conversation.last_activity_at * 1000 : conversation.created_at * 1000,
   };
@@ -132,7 +140,7 @@ Deno.serve(async (req) => {
           const conversation = await chatwootFetch(`/conversations/${row.chatwoot_conversation_id}`);
           return { id: row.id, workspaceId: row.workspace_id, workspaceName: row.workspaces?.name ?? null, ...summarize(conversation) };
         } catch {
-          return { id: row.id, workspaceId: row.workspace_id, workspaceName: row.workspaces?.name ?? null, status: "unknown", lastMessage: null, lastActivityAt: null };
+          return { id: row.id, workspaceId: row.workspace_id, workspaceName: row.workspaces?.name ?? null, status: "unknown", awaitingClient: false, lastMessage: null, lastActivityAt: null };
         }
       })
     );

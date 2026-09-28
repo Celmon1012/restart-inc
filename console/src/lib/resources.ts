@@ -77,6 +77,7 @@ export interface Deployment {
   applicationName: string;
   status: string;
   commitSha: string | null;
+  commitMessage?: string | null;
   createdAt: string;
   trigger: "webhook" | "api" | "manual";
 }

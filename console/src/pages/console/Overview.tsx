@@ -3,54 +3,39 @@ import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { getResources, statusMeta, deploymentStatusLabel, deploymentTone, formatRelativeTime, RESOURCE_KIND_LABEL } from "@/lib/resources";
+import { getResources, statusMeta, deploymentStatusLabel, formatRelativeTime, RESOURCE_KIND_LABEL } from "@/lib/resources";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { consoleSchema } from "@/lib/supabase";
 import { getCurrentDeliverable, type Deliverable } from "@/lib/deliverables";
-import type { BarChartColumn } from "@/components/BarChart";
-import { CheckCircle2, AlertTriangle, ArrowRight, Clock, Terminal, Rocket, XCircle, Loader2 } from "lucide-react";
-import type { Deployment } from "@/lib/resources";
+import { invokeFunction } from "@/lib/functions";
+import { formatAmount, formatDate } from "@/lib/format";
+import { CheckCircle2, AlertTriangle, ArrowRight, Clock, Rocket, XCircle, Loader2, Receipt, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
-// Grouped oldest-to-newest so the chart reads left to right; capped at
-// whatever the backend hands back (last 10 deploys), not a calendar window
-// -- there's no history beyond that to back a fixed "last 14 days" claim.
-function deploysByDay(deployments: Deployment[]): BarChartColumn[] {
-  const byDay = new Map<string, Record<"healthy" | "warning" | "down", number>>();
-  for (const d of [...deployments].reverse()) {
-    const day = new Date(d.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const entry = byDay.get(day) ?? { healthy: 0, warning: 0, down: 0 };
-    entry[deploymentTone(d.status)]++;
-    byDay.set(day, entry);
-  }
-  return Array.from(byDay.entries()).map(([label, counts]) => ({
-    label,
-    segments: [
-      { tone: "healthy" as const, value: counts.healthy },
-      { tone: "warning" as const, value: counts.warning },
-      { tone: "down" as const, value: counts.down }
-    ]
-  }));
+// "Waiting on you" is built from the two places where the next move is the
+// client's: an unpaid invoice (Lago) and a support thread where Restart spoke
+// last (Chatwoot). Each source loads and fails on its own so one outage never
+// reads as "nothing waiting".
+interface WaitingInvoice {
+  number: string;
+  issuingDate: string;
+  status: string;
+  paymentStatus: string;
+  totalAmountCents: number;
+  currency: string;
+  paymentUrl: string | null;
 }
 
-// Compact stacked bars matching the marketing-site console preview: one bar
-// per day, segment colour by deploy outcome, day label on hover.
-function DeployBars({ columns }: { columns: BarChartColumn[] }) {
-  const totals = columns.map((c) => c.segments.reduce((sum, s) => sum + s.value, 0));
-  const max = Math.max(1, ...totals);
-  return (
-    <div className="cp-bars" role="img" aria-label={`Deploys per day: ${columns.map((c, i) => `${c.label} ${totals[i]}`).join(", ")}`}>
-      {columns.map((col, i) => (
-        <i key={col.label} title={`${col.label}: ${totals[i]} deploy${totals[i] === 1 ? "" : "s"}`} style={{ height: `${Math.max((totals[i] / max) * 100, 6)}%` }}>
-          {col.segments.filter((s) => s.value > 0).map((s) => (
-            <b key={s.tone} className={s.tone} style={{ flexGrow: s.value }} />
-          ))}
-        </i>
-      ))}
-    </div>
-  );
+interface WaitingConversation {
+  id: string;
+  workspaceId?: string;
+  awaitingClient?: boolean;
+  lastMessage: string | null;
+  lastActivityAt: number | null;
 }
+
+type OverviewTab = "shipped" | "waiting";
 
 function activityStatusIcon(status: string) {
   if (status === "finished") return <CheckCircle2 size={15} className="text-teal" />;
@@ -97,6 +82,53 @@ export default function Overview() {
     { enabled: Boolean(activeWorkspace), errorMessage: "Failed to load delivery milestones" }
   );
   const deliverables = deliverableData ?? [];
+
+  const {
+    data: invoiceData,
+    error: invoicesError,
+    retry: retryInvoices,
+  } = useAsyncResource<WaitingInvoice[]>(
+    async (signal) => {
+      if (!activeWorkspace) return [];
+      const data = await invokeFunction<{ invoices?: WaitingInvoice[] }>("console-billing", {
+        query: `workspace_id=${activeWorkspace.id}`,
+      });
+      if (signal.aborted) return [];
+      return data.invoices ?? [];
+    },
+    [activeWorkspace?.id],
+    { enabled: Boolean(activeWorkspace), errorMessage: "Failed to check invoices" }
+  );
+
+  const {
+    data: conversationData,
+    error: conversationsError,
+    retry: retryConversations,
+  } = useAsyncResource<WaitingConversation[]>(
+    async (signal) => {
+      const data = await invokeFunction<{ conversations?: WaitingConversation[] }>("console-support-data");
+      if (signal.aborted) return [];
+      return data.conversations ?? [];
+    },
+    [],
+    { errorMessage: "Failed to check support threads" }
+  );
+
+  // A draft invoice isn't billable yet, and a voided one never will be --
+  // only a finalized invoice that hasn't succeeded is actually owed.
+  const unpaidInvoices = (invoiceData ?? []).filter(
+    (inv) => inv.status === "finalized" && inv.paymentStatus !== "succeeded"
+  );
+  // console-support-data returns every thread RLS allows (all clients, for an
+  // admin), so scope to the workspace on screen.
+  const awaitingReplies = (conversationData ?? []).filter(
+    (c) => c.awaitingClient && (!c.workspaceId || c.workspaceId === activeWorkspace?.id)
+  );
+  const waitingCount = unpaidInvoices.length + awaitingReplies.length;
+
+  // Open on whatever needs the client first; once they pick a tab, keep it.
+  const [pickedTab, setPickedTab] = useState<OverviewTab | null>(null);
+  const tab: OverviewTab = pickedTab ?? (waitingCount > 0 ? "waiting" : "shipped");
 
   // Derived from the loaded milestones, so they must sit after the hook rather
   // than above it.
@@ -234,15 +266,108 @@ export default function Overview() {
             </div>
 
             <div className="cp-card cp-deploys">
-              <div className="cp-card-head">
-                <span>Deployment activity</span>
-                {deployments.length > 0 && <em>Last {deployments.length} deploys</em>}
+              <div className="cp-card-head cp-switch-head">
+                <div className="cp-switch" role="tablist" aria-label="Recent work and open items">
+                  <button
+                    type="button"
+                    role="tab"
+                    id="cp-tab-shipped"
+                    aria-selected={tab === "shipped"}
+                    aria-controls="cp-panel"
+                    className={tab === "shipped" ? "active" : undefined}
+                    onClick={() => setPickedTab("shipped")}
+                  >
+                    What shipped
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    id="cp-tab-waiting"
+                    aria-selected={tab === "waiting"}
+                    aria-controls="cp-panel"
+                    className={tab === "waiting" ? "active" : undefined}
+                    onClick={() => setPickedTab("waiting")}
+                  >
+                    Waiting on you
+                    {waitingCount > 0 && <span className="cp-tab-count">{waitingCount}</span>}
+                  </button>
+                </div>
+                {tab === "shipped" && (
+                  <Link href="/timeline" className="cp-head-link">Timeline <ArrowRight size={11} /></Link>
+                )}
               </div>
-              {deployments.length === 0 ? (
-                <p className="cp-empty">Deployments appear here once they run.</p>
-              ) : (
-                <DeployBars columns={deploysByDay(deployments)} />
-              )}
+
+              <div id="cp-panel" role="tabpanel" aria-labelledby={tab === "shipped" ? "cp-tab-shipped" : "cp-tab-waiting"}>
+                {tab === "shipped" ? (
+                  deployments.length === 0 ? (
+                    <p className="cp-empty">Nothing shipped yet. Each release appears here once it deploys.</p>
+                  ) : (
+                    <div className="cp-list">
+                      {deployments.slice(0, 5).map((d) => (
+                        <div className="cp-item" key={d.uuid}>
+                          <span className="cp-item-icon">{activityStatusIcon(d.status)}</span>
+                          <span className="cp-item-body">
+                            <span className="cp-item-title">{d.commitMessage || `Deployed ${d.applicationName}`}</span>
+                            <small>
+                              {d.applicationName}
+                              {d.commitSha ? ` · ${d.commitSha}` : ""}
+                              {d.status !== "finished" ? ` · ${deploymentStatusLabel(d.status)}` : ""}
+                              {` · ${formatRelativeTime(d.createdAt)}`}
+                            </small>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  <div className="cp-list">
+                    {unpaidInvoices.map((inv) => (
+                      <div className="cp-item" key={inv.number}>
+                        <span className="cp-item-icon"><Receipt size={15} className={inv.paymentStatus === "failed" ? "text-rose" : "text-amber"} /></span>
+                        <span className="cp-item-body">
+                          <span className="cp-item-title">
+                            {inv.paymentStatus === "failed" ? "Payment failed" : "Invoice to pay"} · {formatAmount(inv.totalAmountCents, inv.currency)}
+                          </span>
+                          <small>{inv.number} · issued {formatDate(inv.issuingDate)}</small>
+                        </span>
+                        {inv.paymentUrl ? (
+                          <a href={inv.paymentUrl} target="_blank" rel="noopener noreferrer" className="cp-item-action">Pay now</a>
+                        ) : (
+                          <Link href="/billing" className="cp-item-action">View</Link>
+                        )}
+                      </div>
+                    ))}
+                    {awaitingReplies.map((c) => (
+                      <div className="cp-item" key={c.id}>
+                        <span className="cp-item-icon"><MessageSquare size={15} className="text-amber" /></span>
+                        <span className="cp-item-body">
+                          <span className="cp-item-title">Reply needed on a support thread</span>
+                          <small>
+                            {c.lastMessage ? `"${c.lastMessage}"` : "Restart replied"}
+                            {c.lastActivityAt ? ` · ${formatRelativeTime(new Date(c.lastActivityAt).toISOString())}` : ""}
+                          </small>
+                        </span>
+                        <Link href="/support" className="cp-item-action">Reply</Link>
+                      </div>
+                    ))}
+                    {invoicesError && (
+                      <div className="cp-empty cp-error">
+                        <span>Couldn't check invoices.</span>
+                        <button type="button" className="console-retry-btn" onClick={retryInvoices}>Retry</button>
+                      </div>
+                    )}
+                    {conversationsError && (
+                      <div className="cp-empty cp-error">
+                        <span>Couldn't check support threads.</span>
+                        <button type="button" className="console-retry-btn" onClick={retryConversations}>Retry</button>
+                      </div>
+                    )}
+                    {waitingCount === 0 && !invoicesError && !conversationsError && (
+                      <p className="cp-empty">Nothing waiting on you. Invoices to pay and support replies show up here.</p>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className="cp-card-head cp-sub">
                 <span>Current delivery</span>
@@ -285,36 +410,6 @@ export default function Overview() {
               </div>
             </div>
           )}
-
-          {/* Recent activity */}
-          <div className="overview-section">
-            <div className="overview-section-head">
-              <h2 className="overview-section-title">Recent activity</h2>
-              <Link href="/timeline" className="overview-section-link">
-                Open full timeline <ArrowRight size={12} />
-              </Link>
-            </div>
-            {(activeWorkspace.deployments ?? []).length === 0 ? (
-              <div className="overview-not-connected">
-                <Terminal size={16} />
-                <span>Nothing deployed yet — deployments will appear here once they run.</span>
-              </div>
-            ) : (
-              <div className="activity-list">
-                {activeWorkspace.deployments.slice(0, 5).map((d) => (
-                  <div className="activity-row" key={d.uuid}>
-                    <div className="activity-row-icon">{activityStatusIcon(d.status)}</div>
-                    <div className="activity-row-body">
-                      <p>
-                        <strong>{d.applicationName}</strong> — {deploymentStatusLabel(d.status)}
-                      </p>
-                      <span className="activity-row-meta">{formatRelativeTime(d.createdAt)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </>
       )}
     </ConsoleLayout>
