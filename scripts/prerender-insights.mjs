@@ -63,8 +63,8 @@ const QUERY = `
 
 const ENTITY_MAP = {
   amp: "&", lt: "<", gt: ">", quot: '"', "#039": "'", apos: "'",
-  "#8211": "â", "#8212": "â", "#8216": "â", "#8217": "â",
-  "#8220": "â", "#8221": "â", "#8230": "â¦", nbsp: " ",
+  "#8211": "–", "#8212": "—", "#8216": "‘", "#8217": "’",
+  "#8220": "“", "#8221": "”", "#8230": "…", nbsp: " ",
 };
 
 function decodeEntities(str) {
@@ -190,7 +190,7 @@ function buildInsightPage(template, post, allPosts) {
   const category = (post.categories?.nodes?.[0]?.name ?? "Engineering").toUpperCase();
   const description = post.excerpt
     ? stripTags(post.excerpt).slice(0, 160)
-    : `${title} â practical engineering perspective from ${SITE_NAME}`;
+    : `${title} — practical engineering perspective from ${SITE_NAME}`;
   const url = `${SITE_URL}/insights/${post.slug}`;
   const published = post.date;
   const modified = post.modified || post.date;
@@ -276,7 +276,7 @@ function buildInsightPage(template, post, allPosts) {
     </div>
   `;
 
-  return injectPage(template, { title: `${title} â ${SITE_NAME} Insights`, headExtra, bodyHtml: articleHtml });
+  return injectPage(template, { title: `${title} — ${SITE_NAME} Insights`, headExtra, bodyHtml: articleHtml });
 }
 
 function injectPage(template, { title, headExtra, bodyHtml }) {
@@ -312,12 +312,12 @@ const STATIC_PAGES = [
   {
     route: "/about",
     title: "About",
-    description: "Restart Inc. is an engineering firm built on senior ownership, production discipline, and scoped delivery â not open-ended retainers.",
+    description: "Restart Inc. is an engineering firm built on senior ownership, production discipline, and scoped delivery — not open-ended retainers.",
   },
   {
     route: "/case-studies",
     title: "Case Studies",
-    description: "Verified outcomes from Restart Inc. engagements â private cloud migrations, AI engineering, and commerce infrastructure, with the starting constraint and the production result.",
+    description: "Verified outcomes from Restart Inc. engagements — private cloud migrations, AI engineering, and commerce infrastructure, with the starting constraint and the production result.",
   },
   {
     route: "/insights",
@@ -332,7 +332,7 @@ const STATIC_PAGES = [
   {
     route: "/start-project",
     title: "Start a Project",
-    description: "Scope your build with Restart Inc. â tell us what you're building, where the constraint sits, and what decision you need to make next.",
+    description: "Scope your build with Restart Inc. — tell us what you're building, where the constraint sits, and what decision you need to make next.",
   },
   {
     route: "/privacy",
@@ -347,19 +347,77 @@ const STATIC_PAGES = [
   {
     route: "/careers",
     title: "Careers",
-    description: "Work at Restart Inc. â senior engineering ownership, scoped delivery, and production discipline. Open roles in platform, AI systems, and product engineering.",
+    description: "Work at Restart Inc. — senior engineering ownership, scoped delivery, and production discipline. Open roles in platform, AI systems, and product engineering.",
   },
 ];
 
-const SOLUTIONS = [
-  { slug: "saas-platforms", title: "Build a platform your team can operate.", description: "Multi-tenant B2B platforms designed around clear boundaries, resilient jobs, secure access, observable workflows, and the operational detail that makes production sustainable." },
-  { slug: "commerce", title: "Make commerce operations work harder.", description: "Custom commerce platforms built on Medusa â admin workflows, billing, protected data, resilient webhooks, and the realities of high-volume commerce." },
-  { slug: "ai-engineering", title: "Put AI where it can earn trust.", description: "We turn models, retrieval, tools, and agents into useful product capabilities â with evaluation, observability, and cost controls built in from the start." },
-  { slug: "architecture-leadership", title: "Bring experience to the decisions that matter.", description: "Architecture reviews, fractional technical leadership, hiring support, and hands-on mentorship for teams that need a clearer path from complexity to execution." },
+// Structured data and crawlable content for the non-article routes. Answer
+// engines mostly don't run JavaScript, so what they can quote is what is in
+// this HTML: a real heading, the page's substance, links to the rest of the
+// site, and schema.org JSON-LD naming what the page is.
+const ORG_REF = { "@type": "Organization", name: SITE_NAME, url: SITE_URL };
+
+const PAGE_TYPES = {
+  "/about": "AboutPage",
+  "/contact": "ContactPage",
+  "/solutions": "CollectionPage",
+  "/case-studies": "CollectionPage",
+  "/insights": "CollectionPage",
+};
+
+const NAV_LINKS = [
+  ["/platform", "Platform"],
+  ["/solutions", "Solutions"],
+  ["/case-studies", "Proof"],
+  ["/insights", "Insights"],
+  ["/about", "About"],
 ];
 
-function buildStaticPage(template, { route, title, description }) {
+const FOOTER_LINKS = [
+  ["/contact", "Contact"],
+  ["/careers", "Careers"],
+  ["/start-project", "Start a Project"],
+  ["/privacy", "Privacy Policy"],
+  ["/terms", "Terms of Service"],
+];
+
+const jsonLdTag = (data) => `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
+
+function breadcrumbLd(crumbs) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: crumbs.map(([route, name], i) => ({ "@type": "ListItem", position: i + 1, name, item: `${SITE_URL}${route}` })),
+  };
+}
+
+function pageShell(mainHtml) {
+  const nav = NAV_LINKS.map(([href, label]) => `<a href="${href}">${label}</a>`).join("");
+  const footer = FOOTER_LINKS.map(([href, label]) => `<a href="${href}">${label}</a>`).join("");
+  return `
+    <div class="page-shell">
+      <header class="site-header">
+        <a href="/" class="site-logo" aria-label="Restart home"><img src="/brand/restart-logo.svg" alt="Restart Inc." class="site-logo-img" /></a>
+        <nav>${nav}</nav>
+      </header>
+      <main>${mainHtml}</main>
+      <footer class="site-footer"><div class="container">${footer}</div></footer>
+    </div>
+  `;
+}
+
+function buildStaticPage(template, { route, title, description, crumbs, contentHtml = "", kicker = "", jsonLd = [] }) {
   const url = `${SITE_URL}${route}`;
+  const trail = crumbs ?? [["/", "Home"], [route, title]];
+  const webPage = {
+    "@context": "https://schema.org",
+    "@type": PAGE_TYPES[route] ?? "WebPage",
+    name: title,
+    description,
+    url,
+    isPartOf: { "@type": "WebSite", name: SITE_NAME, url: SITE_URL },
+    publisher: ORG_REF,
+  };
   const headExtra = `
     <meta name="description" content="${escapeAttr(description)}" />
     <link rel="canonical" href="${url}" />
@@ -373,23 +431,123 @@ function buildStaticPage(template, { route, title, description }) {
     <meta name="twitter:title" content="${escapeAttr(title)}" />
     <meta name="twitter:description" content="${escapeAttr(description)}" />
     <meta name="twitter:image" content="${DEFAULT_OG_IMAGE}" />
+    ${[webPage, breadcrumbLd(trail), ...jsonLd].map(jsonLdTag).join("\n    ")}
   `;
-  const bodyHtml = `
-    <div class="page-shell">
-      <header class="site-header">
-        <a href="/" class="site-logo" aria-label="Restart home"><img src="/brand/restart-logo.svg" alt="Restart Inc." class="site-logo-img" /></a>
-      </header>
-      <main>
+  const bodyHtml = pageShell(`
         <section class="portfolio-hero container">
           <div class="section-intro centered">
+            ${kicker ? `<span class="section-label teal">${escapeAttr(kicker)}</span>` : ""}
             <h1>${escapeAttr(title)}</h1>
             <p>${escapeAttr(description)}</p>
           </div>
         </section>
-      </main>
-    </div>
-  `;
-  return injectPage(template, { title: `${title} â ${SITE_NAME}`, headExtra, bodyHtml });
+        ${contentHtml}
+  `);
+  return injectPage(template, { title: `${title} — ${SITE_NAME}`, headExtra, bodyHtml });
+}
+
+function solutionsIndexContent(solutions) {
+  const items = solutions
+    .map(
+      (s) => `
+          <article class="lane-card ${s.accent}">
+            <span class="lane-number">${s.number}</span>
+            <h2><a href="/solutions/${s.slug}">${escapeAttr(s.title)}</a></h2>
+            <p>${escapeAttr(s.intro)}</p>
+          </article>`
+    )
+    .join("");
+  const list = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: solutions.map((s, i) => ({ "@type": "ListItem", position: i + 1, name: s.title, url: `${SITE_URL}/solutions/${s.slug}` })),
+  };
+  return { contentHtml: `<section class="lanes-section container"><div class="lane-grid">${items}</div></section>`, jsonLd: [list] };
+}
+
+function solutionDetailContent(s) {
+  const service = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: s.title,
+    serviceType: s.kicker,
+    description: s.description,
+    url: `${SITE_URL}/solutions/${s.slug}`,
+    provider: ORG_REF,
+    hasOfferCatalog: {
+      "@type": "OfferCatalog",
+      name: "Deliverables",
+      itemListElement: s.deliverables.map((d) => ({ "@type": "Offer", itemOffered: { "@type": "Service", name: d } })),
+    },
+  };
+  const contentHtml = `
+        <section class="portfolio-grid-section container">
+          <p>${escapeAttr(s.description)}</p>
+          <h2>Deliverables</h2>
+          <ul>${s.deliverables.map((d) => `<li>${escapeAttr(d)}</li>`).join("")}</ul>
+          <h2>Stack</h2>
+          <p>${s.tags.map(escapeAttr).join(", ")}</p>
+          <p><a href="/start-project?tier=${encodeURIComponent(s.tierId)}">Start a project</a> · <a href="/solutions">All solutions</a></p>
+        </section>`;
+  return { contentHtml, jsonLd: [service] };
+}
+
+function caseStudiesContent(studies) {
+  const items = studies
+    .map(
+      (s) => `
+          <article class="case-study-card">
+            <h2>${escapeAttr(s.title)}</h2>
+            <p>${escapeAttr(s.summary)}</p>
+            <ul>${s.metrics.map((m) => `<li><strong>${escapeAttr(m.value)}</strong> ${escapeAttr(m.label)}</li>`).join("")}</ul>
+          </article>`
+    )
+    .join("");
+  return { contentHtml: items ? `<section class="container">${items}</section>` : "" };
+}
+
+function insightsIndexContent(posts) {
+  const published = posts.filter(isPublished);
+  if (!published.length) return {};
+  const items = published
+    .map((p) => `<li><a href="/insights/${p.slug}">${escapeAttr(decodeEntities(p.title))}</a> <time datetime="${p.date}">${formatDate(p.date)}</time></li>`)
+    .join("");
+  return { contentHtml: `<section class="container"><ul>${items}</ul></section>` };
+}
+
+// The homepage is dist/index.html itself, which is also the SPA fallback for
+// routes with no prerendered file. Its head meta already describes the
+// homepage; this adds the hero, the four disciplines, and the FAQ as real HTML
+// plus FAQPage JSON-LD -- the question/answer pairs answer engines quote.
+function buildHomePage(template, { solutions, faqs }) {
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
+  };
+  const description = template.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? "";
+  const disciplines = solutions
+    .map((s) => `<li><a href="/solutions/${s.slug}">${escapeAttr(s.title)}</a> ${escapeAttr(s.intro)}</li>`)
+    .join("");
+  const faqHtml = faqs.map(([q, a]) => `<h3>${escapeAttr(q)}</h3><p>${escapeAttr(a)}</p>`).join("");
+  const bodyHtml = pageShell(`
+        <section class="hero-section container">
+          <h1>Build systems your growth depends on.</h1>
+          <p>${description}</p>
+          <p><a href="/start-project">Tell us what you're building</a></p>
+        </section>
+        ${disciplines ? `<section class="container"><h2>Four disciplines</h2><ul>${disciplines}</ul></section>` : ""}
+        ${faqHtml ? `<section class="faq-section container"><h2>Frequently asked questions</h2>${faqHtml}</section>` : ""}
+  `);
+  let html = template;
+  if (faqs.length) html = html.replace("</head>", `  ${jsonLdTag(faqLd)}\n  </head>`);
+  return html.replace(/<div id="root"><\/div>|<div id="root">.*?<\/div>/s, `<div id="root">${bodyHtml}</div>`);
+}
+
+function writePage(route, html) {
+  const outDir = path.join(DIST_DIR, route);
+  fs.mkdirSync(outDir, { recursive: true });
+  fs.writeFileSync(path.join(outDir, "index.html"), html, "utf-8");
 }
 
 async function main() {
@@ -399,6 +557,7 @@ async function main() {
   }
 
   const template = fs.readFileSync(TEMPLATE_PATH, "utf-8");
+  const data = await loadSiteData();
 
   let posts = [];
   try {
@@ -409,52 +568,85 @@ async function main() {
 
   let count = 0;
   for (const post of posts) {
-    const page = buildInsightPage(template, post, posts);
-    const outDir = path.join(DIST_DIR, "insights", post.slug);
-    fs.mkdirSync(outDir, { recursive: true });
-    fs.writeFileSync(path.join(outDir, "index.html"), page, "utf-8");
+    writePage(`insights/${post.slug}`, buildInsightPage(template, post, posts));
     count++;
   }
   console.log(`[prerender] Wrote ${count} static insight page(s) to dist/insights/<slug>/index.html`);
 
+  const pageContent = {
+    "/solutions": () => solutionsIndexContent(data.solutions),
+    "/case-studies": () => caseStudiesContent(data.studies),
+    "/insights": () => insightsIndexContent(posts),
+  };
   for (const staticPage of STATIC_PAGES) {
-    const page = buildStaticPage(template, staticPage);
-    const outDir = path.join(DIST_DIR, staticPage.route);
-    fs.mkdirSync(outDir, { recursive: true });
-    fs.writeFileSync(path.join(outDir, "index.html"), page, "utf-8");
+    writePage(staticPage.route, buildStaticPage(template, { ...staticPage, ...(pageContent[staticPage.route]?.() ?? {}) }));
   }
-  for (const solution of SOLUTIONS) {
-    const page = buildStaticPage(template, { route: `/solutions/${solution.slug}`, title: solution.title, description: solution.description });
-    const outDir = path.join(DIST_DIR, "solutions", solution.slug);
-    fs.mkdirSync(outDir, { recursive: true });
-    fs.writeFileSync(path.join(outDir, "index.html"), page, "utf-8");
+  for (const s of data.solutions) {
+    const route = `/solutions/${s.slug}`;
+    writePage(route, buildStaticPage(template, {
+      route,
+      title: s.title,
+      description: s.intro,
+      kicker: `DISCIPLINE ${s.number} / ${s.kicker}`,
+      crumbs: [["/", "Home"], ["/solutions", "Solutions"], [route, s.title]],
+      ...solutionDetailContent(s),
+    }));
   }
-  console.log(`[prerender] Wrote ${STATIC_PAGES.length + SOLUTIONS.length} static page(s) with per-route meta`);
+  console.log(`[prerender] Wrote ${STATIC_PAGES.length + data.solutions.length} static page(s) with per-route meta`);
 
-  writeSitemap(posts);
-  await writeLlmsTxt(posts);
+  // Last: every page above was built from the untouched shell template.
+  fs.writeFileSync(TEMPLATE_PATH, buildHomePage(template, data), "utf-8");
+  console.log(`[prerender] Wrote homepage content (${data.faqs.length} FAQs as FAQPage JSON-LD)`);
+
+  writeSitemap(posts, data.solutions);
+  writeLlmsTxt(posts, data);
 }
 
-// Case studies live in TypeScript for the React app. Load them through esbuild
-// (already a build dependency) so llms.txt never drifts from what the site shows.
-async function loadCaseStudies() {
-  const { transformSync } = await import("esbuild");
-  const src = fs.readFileSync(path.resolve(process.cwd(), "client/src/data/caseStudies.ts"), "utf-8");
-  const { code } = transformSync(src, { loader: "ts", format: "esm" });
-  const mod = await import(`data:text/javascript;base64,${Buffer.from(code).toString("base64")}`);
-  return mod.caseStudiesData ?? [];
+// Case studies, solutions, and FAQs live in TypeScript for the React app. Load
+// them through esbuild (already a build dependency) so the prerendered pages and
+// llms.txt never drift from what the site shows. Icon imports are stubbed: the
+// data files reference lucide components, which have no meaning in static HTML.
+async function loadClientData(file) {
+  const { build } = await import("esbuild");
+  const result = await build({
+    entryPoints: [path.resolve(process.cwd(), "client/src/data", file)],
+    bundle: true,
+    format: "esm",
+    platform: "node",
+    write: false,
+    logLevel: "silent",
+    plugins: [{
+      name: "stub-icons",
+      setup(b) {
+        b.onResolve({ filter: /^lucide-react$/ }, () => ({ path: "lucide-react", namespace: "stub" }));
+        b.onLoad({ filter: /.*/, namespace: "stub" }, () => ({ contents: "module.exports = new Proxy({}, { get: () => null });", loader: "js" }));
+      },
+    }],
+  });
+  return import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString("base64")}`);
+}
+
+async function loadSiteData() {
+  const load = async (file, key) => {
+    try {
+      return (await loadClientData(file))[key] ?? [];
+    } catch (err) {
+      console.warn(`[prerender] Could not load ${file} (${err.message}) -- continuing without it.`);
+      return [];
+    }
+  };
+  const [studies, solutions, faqs] = await Promise.all([
+    load("caseStudies.ts", "caseStudiesData"),
+    load("solutions.ts", "solutionsData"),
+    load("faqs.ts", "faqs"),
+  ]);
+  return { studies, solutions, faqs };
 }
 
 // /llms.txt (https://llmstxt.org): a plain-markdown map of the site for AI
 // assistants and agents. /llms-full.txt adds the full case study and article
 // text so an agent can answer from one fetch.
-async function writeLlmsTxt(posts) {
-  let studies = [];
-  try {
-    studies = await loadCaseStudies();
-  } catch (err) {
-    console.warn(`[prerender] Could not load case studies for llms.txt (${err.message}) -- writing without them.`);
-  }
+function writeLlmsTxt(posts, { studies, solutions }) {
   const published = posts.filter(isPublished);
   const metricLine = (s) => s.metrics.map((m) => `${m.label}: ${m.value}`).join("; ");
   const studyUrl = (s) => `${SITE_URL}/case-studies?study=${s.id}`;
@@ -470,7 +662,7 @@ async function writeLlmsTxt(posts) {
 
   const sections = [
     "## Services",
-    ...SOLUTIONS.map((s) => `- [${s.title}](${SITE_URL}/solutions/${s.slug}): ${s.description}`),
+    ...solutions.map((s) => `- [${s.title}](${SITE_URL}/solutions/${s.slug}): ${s.intro}`),
     "",
     "## Case studies",
     ...studies.map((s) => `- [${s.title}](${studyUrl(s)}): ${s.summary} (${metricLine(s)})`),
@@ -521,12 +713,12 @@ async function writeLlmsTxt(posts) {
   console.log(`[prerender] Wrote llms.txt and llms-full.txt (${studies.length} case studies, ${published.length} articles)`);
 }
 
-function writeSitemap(posts) {
+function writeSitemap(posts, solutions) {
   const now = new Date().toISOString();
   const urls = [
     { loc: `${SITE_URL}/`, lastmod: now },
     ...STATIC_PAGES.map((p) => ({ loc: `${SITE_URL}${p.route}`, lastmod: now })),
-    ...SOLUTIONS.map((s) => ({ loc: `${SITE_URL}/solutions/${s.slug}`, lastmod: now })),
+    ...solutions.map((s) => ({ loc: `${SITE_URL}/solutions/${s.slug}`, lastmod: now })),
     // In-progress posts are noindex, so advertising them here would contradict
     // the page's own directive. Only published articles belong in the sitemap.
     ...posts

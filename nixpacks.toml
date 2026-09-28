@@ -9,4 +9,4 @@ nixPkgs = ["nodejs_22", "pnpm-10_x", "curl", "wget"]
 cmds = ["pnpm run build"]
 
 [start]
-cmd = "exec caddy run --config /assets/Caddyfile --adapter caddyfile 2>&1"
+cmd = "exec caddy run --config /app/Caddyfile --adapter caddyfile 2>&1"

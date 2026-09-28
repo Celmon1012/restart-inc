@@ -1,0 +1,34 @@
+# Production server for restart.ng (started by nixpacks.toml).
+#
+# Based on the Nixpacks SPA default, with one change: try_files looks for a
+# prerendered page ({path}/index.html, written by scripts/prerender-insights.mjs)
+# before falling back to the SPA shell. The default only tried {path} and then
+# /index.html, so every route served the homepage's <title>, meta, and JSON-LD
+# to crawlers and answer engines.
+{
+	admin off
+	persist_config off
+	auto_https off
+	log {
+		format json
+	}
+	servers {
+		trusted_proxies static private_ranges 100.0.0.0/8
+	}
+}
+
+:{$PORT:3000} {
+	log {
+		format json
+	}
+
+	rewrite /health /*
+
+	root * ../app/{$NIXPACKS_SPA_OUTPUT_DIR}
+
+	encode gzip
+
+	file_server
+
+	try_files {path}/index.html {path}index.html {path} /index.html
+}
