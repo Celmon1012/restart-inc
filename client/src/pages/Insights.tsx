@@ -5,6 +5,7 @@ import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { AlertCircle, ArrowRight, ArrowUpRight, ChevronRight, Menu, RefreshCw, X } from "lucide-react";
 import { useInsights } from "@/hooks/useInsights";
+import InsightArt from "@/components/InsightArt";
 import { applyPageSeo, applyJsonLd, resetSeoToDefault, SITE_URL } from "@/lib/seo";
 
 function initialCategoryFromUrl(): string {
@@ -174,10 +175,9 @@ export default function Insights() {
           ) : filteredInsights.length > 0 ? (
             <div className="insight-grid">
               {filteredInsights.map((insight) => {
-                const Icon = insight.icon;
                 return (
                   <Link key={insight.id} href={`/insights/${insight.id}`} className="insight-card">
-                    <div className={`insight-image ${insight.image}`}><Icon size={40} /></div>
+                    <InsightArt insight={insight} />
                     <span>{insight.kicker}</span>
                     <h3>{insight.title}</h3>
                     <ArrowUpRight size={15} />

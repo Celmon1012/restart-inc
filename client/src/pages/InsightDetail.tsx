@@ -8,6 +8,7 @@ import { AlertCircle, ArrowUpRight, ChevronLeft, ChevronRight, Clock, Copy, Chec
 import { fetchInsightBySlug, InsightDetail as InsightDetailData, readMinutesFromHtml } from "@/lib/wp";
 import type { Insight } from "@/data/insights";
 import { applyArticleSeo, resetSeoToDefault, SITE_URL } from "@/lib/seo";
+import InsightArt from "@/components/InsightArt";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -290,12 +291,14 @@ export default function InsightDetail({ params }: { params: { slug: string } }) 
               <ChevronLeft size={14} /> All Insights
             </Link>
 
-            {insight.featuredImage && (
+            {insight.featuredImage ? (
               <img
                 src={insight.featuredImage}
                 alt={insight.title}
                 className="insight-featured-image"
               />
+            ) : (
+              <InsightArt insight={insight} className="insight-art-hero" />
             )}
 
             <span className="section-label teal">{insight.kicker}</span>
