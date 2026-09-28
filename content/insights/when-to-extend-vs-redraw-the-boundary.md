@@ -72,6 +72,8 @@ Take the last five incidents or delayed releases and ask: what shared a deploy, 
 
 Then choose one seam and write its contract: the authoritative write, idempotency key, retry rule, eventual side effects, and rollback condition. If it cannot be described without hand-waving, the boundary is not ready to move. If it can, size the change honestly — as an extension or as a migration that temporarily requires two systems.
 
+> Decide the boundary first. The amount of code you rewrite stops being a matter of taste.
+
 ---
 
 > **The boundary is the decision. The amount of code you rewrite is downstream of it.**
@@ -81,8 +83,3 @@ Then choose one seam and write its contract: the authoritative write, idempotenc
 > **[Scope this with a senior engineer →](https://restart.ng/start-project?tier=ARCHITECTURE%20AUDIT)**
 >
 > Three short steps. A senior engineer reads your brief — not a sales queue — and replies within 24 hours with whether there is a fit and the clearest next step.
-
-## References
-
-[1]: https://restart.ng/resources/case-studies/logistics-firm-saas-spend "A global logistics firm cut SaaS spend by 70%"
-> Decide the boundary first. The amount of code you rewrite stops being a matter of taste.

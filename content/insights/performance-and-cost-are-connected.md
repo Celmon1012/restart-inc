@@ -65,5 +65,5 @@ Then price the next millisecond. If the next improvement requires more memory, a
 
 ## References
 
-[1]: https://restart.ng/resources/case-studies "Restart Inc. case studies"
+[1]: https://restart.ng/case-studies "Restart Inc. case studies"
 [2]: https://restart.ng "Restart Inc."

@@ -89,4 +89,4 @@ Record the point at which shared-schema contention, backup requirements, noisy-n
 
 ## References
 
-[1]: ../../client/src/data/caseStudies.ts "Restart Inc. case study data"
+[1]: https://restart.ng/case-studies "Restart Inc. case studies"
