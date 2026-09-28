@@ -1,7 +1,8 @@
 // Design: Operator's Field Notes — keep the report single-route, readable, and source-led.
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Switch, Route } from "wouter";
+import { useEffect } from "react";
+import { Switch, Route, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import CookieConsent from "./components/CookieConsent";
 import TopBar from "./components/TopBar";
@@ -15,6 +16,7 @@ import InsightDetail from "./pages/InsightDetail";
 import StartProject from "./pages/StartProject";
 import InquirySubmitted from "./pages/InquirySubmitted";
 import Contact from "./pages/Contact";
+import Solutions from "./pages/Solutions";
 import SolutionDetail from "./pages/SolutionDetail";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -23,6 +25,13 @@ import Platform from "./pages/Platform";
 import NotFound from "./pages/NotFound";
 
 function Router() {
+  const [location] = useLocation();
+
+  // Header and footer links navigate between pages, so land each one at the top.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [location]);
+
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -31,6 +40,7 @@ function Router() {
       <Route path="/case-studies" component={CaseStudies} />
       <Route path="/insights" component={Insights} />
       <Route path="/insights/:slug" component={InsightDetail} />
+      <Route path="/solutions" component={Solutions} />
       <Route path="/solutions/:slug" component={SolutionDetail} />
       <Route path="/contact" component={Contact} />
       <Route path="/start-project" component={StartProject} />

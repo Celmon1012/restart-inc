@@ -258,7 +258,7 @@ export function RequestRow({
               <ArrowUpRight size={13} />
             </a>
           ) : (
-            <Link href="/console/billing" className="sr-link">Pay from Billing & SLA</Link>
+            <Link href="/billing" className="sr-link">Pay from Billing & SLA</Link>
           ))}
         {reviewable && !editing && (
           <button type="button" className="sr-link" onClick={() => setEditing(true)}>Review</button>

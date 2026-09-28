@@ -48,16 +48,12 @@ export default function SolutionDetail({ params }: { params: { slug: string } })
           <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />
         </Link>
         <nav className={menuOpen ? "open" : ""}>
-          <Link href="/#platform" onClick={() => setMenuOpen(false)}>
+          <Link href="/platform" onClick={() => setMenuOpen(false)}>
             <span>PLATFORM</span>
             <span className="nav-indicator" />
           </Link>
-          <Link href="/#solutions" onClick={() => setMenuOpen(false)}>
+          <Link href="/solutions" className="active" onClick={() => setMenuOpen(false)}>
             <span>SOLUTIONS</span>
-            <span className="nav-indicator" />
-          </Link>
-          <Link href="/#work" onClick={() => setMenuOpen(false)}>
-            <span>WAYS TO ENGAGE</span>
             <span className="nav-indicator" />
           </Link>
           <Link href="/case-studies" className={location.startsWith("/case-studies") ? "active" : ""} onClick={() => setMenuOpen(false)}>
@@ -126,13 +122,13 @@ export default function SolutionDetail({ params }: { params: { slug: string } })
             <p>Tell us what you are building and where the constraint sits. We will tell you quickly whether the timing and fit make sense.</p>
             <div className="final-cta-buttons">
               <Link href={`/start-project?tier=${encodeURIComponent(solution.tierId)}`} className="button solid">Start a project <ArrowUpRight size={15} /></Link>
-              <Link href="/" className="button outline">Explore all solutions <ChevronRight size={15} /></Link>
+              <Link href="/solutions" className="button outline">Explore all solutions <ChevronRight size={15} /></Link>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" /></Link><p>Engineering systems your growth depends on.</p><div className="footer-brand-contact"><a href="mailto:hello@restart.ng">hello@restart.ng</a><a href="tel:+2349060114747">+234 906 011 4747</a></div></div><div><strong>PLATFORM</strong><Link href="/#platform">Platform</Link><Link href="/#solutions">Solutions</Link><Link href="/#case-studies">Case Studies</Link><Link href="/#insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/careers">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/privacy">Privacy Policy</Link><Link href="/terms">Terms of Service</Link><button type="button" className="footer-cookie-btn" onClick={openCookieSettings}>Cookie settings</button></span></div></footer>
+      <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" /></Link><p>Engineering systems your growth depends on.</p><div className="footer-brand-contact"><a href="mailto:hello@restart.ng">hello@restart.ng</a><a href="tel:+2349060114747">+234 906 011 4747</a></div></div><div><strong>PLATFORM</strong><Link href="/platform">Platform</Link><Link href="/solutions">Solutions</Link><Link href="/case-studies">Case Studies</Link><Link href="/insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/careers">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/privacy">Privacy Policy</Link><Link href="/terms">Terms of Service</Link><button type="button" className="footer-cookie-btn" onClick={openCookieSettings}>Cookie settings</button></span></div></footer>
     </div>
   );
 }

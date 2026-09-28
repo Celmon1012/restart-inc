@@ -63,16 +63,12 @@ export default function LegalPageLayout({
           <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />
         </Link>
         <nav className={menuOpen ? "open" : ""}>
-          <Link href="/#platform" onClick={() => setMenuOpen(false)}>
+          <Link href="/platform" onClick={() => setMenuOpen(false)}>
             <span>PLATFORM</span>
             <span className="nav-indicator" />
           </Link>
-          <Link href="/#solutions" onClick={() => setMenuOpen(false)}>
+          <Link href="/solutions" onClick={() => setMenuOpen(false)}>
             <span>SOLUTIONS</span>
-            <span className="nav-indicator" />
-          </Link>
-          <Link href="/#work" onClick={() => setMenuOpen(false)}>
-            <span>WAYS TO ENGAGE</span>
             <span className="nav-indicator" />
           </Link>
           <Link href="/case-studies" onClick={() => setMenuOpen(false)}>
@@ -194,8 +190,8 @@ export default function LegalPageLayout({
           </div>
           <div>
             <strong>PLATFORM</strong>
-            <Link href="/#platform">Platform</Link>
-            <Link href="/#solutions">Solutions</Link>
+            <Link href="/platform">Platform</Link>
+            <Link href="/solutions">Solutions</Link>
             <Link href="/case-studies">Case Studies</Link>
             <Link href="/insights">Insights</Link>
           </div>

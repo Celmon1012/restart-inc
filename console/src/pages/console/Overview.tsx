@@ -166,7 +166,7 @@ export default function Overview() {
                   proposed scope. Your dedicated server, systems, and delivery milestones appear here once the
                   engagement starts.
                 </p>
-                <Link href="/console/support" className="overview-section-link">
+                <Link href="/support" className="overview-section-link">
                   Ask a question now <ArrowRight size={12} />
                 </Link>
               </div>
@@ -212,7 +212,7 @@ export default function Overview() {
                 resources.slice(0, 6).map((r) => {
                   const { label, tone } = statusMeta(r.status);
                   return (
-                    <Link href="/console/systems" key={r.uuid} className="cp-row">
+                    <Link href="/systems" key={r.uuid} className="cp-row">
                       <i className={`cp-dot ${tone}`} />
                       <span className="cp-name">
                         {r.name}
@@ -227,7 +227,7 @@ export default function Overview() {
                 })
               )}
               {resources.length > 6 && (
-                <Link href="/console/systems" className="cp-more">
+                <Link href="/systems" className="cp-more">
                   +{resources.length - 6} more <ArrowRight size={12} />
                 </Link>
               )}
@@ -246,7 +246,7 @@ export default function Overview() {
 
               <div className="cp-card-head cp-sub">
                 <span>Current delivery</span>
-                <Link href="/console/delivery" className="cp-head-link">All milestones <ArrowRight size={11} /></Link>
+                <Link href="/delivery" className="cp-head-link">All milestones <ArrowRight size={11} /></Link>
               </div>
               {deliverablesError ? (
                 <div className="cp-empty cp-error">
@@ -274,7 +274,7 @@ export default function Overview() {
                 {attention.map((r) => {
                   const { label } = statusMeta(r.status);
                   return (
-                    <Link href="/console/systems" key={r.uuid} className="overview-attention-row">
+                    <Link href="/systems" key={r.uuid} className="overview-attention-row">
                       <AlertTriangle size={15} className="text-amber" />
                       <span className="overview-attention-name">{r.name}</span>
                       <span className="overview-attention-status">{label}</span>
@@ -290,7 +290,7 @@ export default function Overview() {
           <div className="overview-section">
             <div className="overview-section-head">
               <h2 className="overview-section-title">Recent activity</h2>
-              <Link href="/console/timeline" className="overview-section-link">
+              <Link href="/timeline" className="overview-section-link">
                 Open full timeline <ArrowRight size={12} />
               </Link>
             </div>

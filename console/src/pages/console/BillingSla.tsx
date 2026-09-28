@@ -327,7 +327,7 @@ export default function BillingSla() {
                                     a retainer/labor plan has no infrastructure to view, so linking
                                     there unconditionally was misleading (confirmed 2026-09-18). */}
                                 {sub.planCode.startsWith("dedicated-server-") && (
-                                  <Link href="/console/systems?tab=infrastructure" className="overview-section-link">
+                                  <Link href="/systems?tab=infrastructure" className="overview-section-link">
                                     <span>View server details</span>
                                     <ArrowRight size={12} />
                                   </Link>
@@ -507,7 +507,7 @@ export default function BillingSla() {
                       </>
                     )}
                     <div className="billing-detail-expanded-actions">
-                      <Link href="/console/systems?tab=infrastructure" className="overview-section-link">
+                      <Link href="/systems?tab=infrastructure" className="overview-section-link">
                         <span>Manage capacity</span>
                         <ArrowRight size={12} />
                       </Link>

@@ -64,20 +64,20 @@ const CONSOLE_NAV: NavGroup[] = [
   {
     label: null,
     items: [
-      { href: "/console/overview", label: "Overview", icon: LayoutGrid },
-      { href: "/console/systems", label: "Systems", icon: Server },
-      { href: "/console/delivery", label: "Delivery", icon: Clock },
-      { href: "/console/activity", label: "Activity", icon: Terminal },
-      { href: "/console/timeline", label: "Timeline", icon: History }
+      { href: "/overview", label: "Overview", icon: LayoutGrid },
+      { href: "/systems", label: "Systems", icon: Server },
+      { href: "/delivery", label: "Delivery", icon: Clock },
+      { href: "/activity", label: "Activity", icon: Terminal },
+      { href: "/timeline", label: "Timeline", icon: History }
     ]
   },
   {
     label: "Account",
     items: [
-      { href: "/console/keys", label: "API Keys", icon: Key },
-      { href: "/console/settings", label: "Settings", icon: Settings },
-      { href: "/console/billing", label: "Billing & SLA", icon: CreditCard },
-      { href: "/console/support", label: "Help & Support", icon: LifeBuoy }
+      { href: "/keys", label: "API Keys", icon: Key },
+      { href: "/settings", label: "Settings", icon: Settings },
+      { href: "/billing", label: "Billing & SLA", icon: CreditCard },
+      { href: "/support", label: "Help & Support", icon: LifeBuoy }
     ]
   }
 ];
@@ -112,9 +112,9 @@ const ADMIN_NAV: NavGroup[] = [
 ];
 
 const CONSOLE_TABS = [
-  { href: "/console/overview", label: "Overview" },
-  { href: "/console/systems", label: "Systems" },
-  { href: "/console/delivery", label: "Delivery" }
+  { href: "/overview", label: "Overview" },
+  { href: "/systems", label: "Systems" },
+  { href: "/delivery", label: "Delivery" }
 ];
 
 const ADMIN_TABS = [
@@ -139,7 +139,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
   const attentionCount = activeWorkspace
     ? getResources(activeWorkspace).filter((r) => statusMeta(r.status).tone !== "healthy").length
     : 0;
-  const attentionHref = attentionCount > 0 ? "/console/systems" : "/console/timeline";
+  const attentionHref = attentionCount > 0 ? "/systems" : "/timeline";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [workspaceSearch, setWorkspaceSearch] = useState("");
@@ -377,13 +377,13 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
                 })}
               </div>
 
-              <Link role="menuitem" href="/console/new-project" className="ws-menu-item ws-menu-add" onClick={() => setWorkspaceMenuOpen(false)}>
+              <Link role="menuitem" href="/new-project" className="ws-menu-item ws-menu-add" onClick={() => setWorkspaceMenuOpen(false)}>
                 <Plus size={14} />
                 <span>Add new project</span>
               </Link>
 
               <div className="ws-menu-sep" />
-              <Link role="menuitem" href="/console/profile" className="ws-menu-item" onClick={() => setWorkspaceMenuOpen(false)}>
+              <Link role="menuitem" href="/profile" className="ws-menu-item" onClick={() => setWorkspaceMenuOpen(false)}>
                 <User size={14} />
                 <span>My profile</span>
               </Link>
@@ -426,7 +426,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
               {/* Straight into the new-project flow with the AI engagement
                   preselected -- the member is already signed in, so there's
                   no reason to bounce them to the marketing page. */}
-              <Link href="/console/new-project?engagement=ai" className="sidebar-promo-cta">
+              <Link href="/new-project?engagement=ai" className="sidebar-promo-cta">
                 Start an AI project
                 <ArrowRight size={12} />
               </Link>
@@ -454,18 +454,18 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
                   <span className="dropdown-user-name">{displayName}</span>
                   <span className="dropdown-user-email">{displayEmail}</span>
                 </div>
-                <Link role="menuitem" href="/console/profile" className="ws-menu-item" onClick={() => setAccountMenuOpen(false)}>
+                <Link role="menuitem" href="/profile" className="ws-menu-item" onClick={() => setAccountMenuOpen(false)}>
                   <User size={14} />
                   <span>My profile</span>
                 </Link>
-                <Link role="menuitem" href="/console/settings" className="ws-menu-item" onClick={() => setAccountMenuOpen(false)}>
+                <Link role="menuitem" href="/settings" className="ws-menu-item" onClick={() => setAccountMenuOpen(false)}>
                   <Settings size={14} />
                   <span>Settings</span>
                 </Link>
                 {isAdmin && (
                   <Link
                     role="menuitem"
-                    href={isAdminArea ? "/console/overview" : "/admin"}
+                    href={isAdminArea ? "/overview" : "/admin"}
                     className="ws-menu-item"
                     onClick={() => setAccountMenuOpen(false)}
                   >
@@ -486,7 +486,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
             )}
           </div>
           {isAdminArea ? (
-            <Link href="/console/overview" className="sidebar-back-link" title="Back to client console">
+            <Link href="/overview" className="sidebar-back-link" title="Back to client console">
               <ArrowLeft size={14} />
               <span>Back to console</span>
             </Link>
@@ -568,12 +568,12 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
             )}
 
             {isAdminArea ? (
-              <Link href="/console/overview" className="dash-admin-btn" title="Back to the client console">
+              <Link href="/overview" className="dash-admin-btn" title="Back to the client console">
                 <LayoutGrid size={14} />
                 <span>Client console</span>
               </Link>
             ) : (
-              <Link href="/console/new-project" className="dash-action-btn">
+              <Link href="/new-project" className="dash-action-btn">
                 <Plus size={14} />
                 <span>Start a Project</span>
               </Link>

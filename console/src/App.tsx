@@ -40,7 +40,7 @@ const DevPreview = import.meta.env.DEV ? lazy(() => import("./pages/DevPreview")
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { isAdmin, loading } = useWorkspace();
   if (loading) return null;
-  if (!isAdmin) return <Redirect to="/console/overview" />;
+  if (!isAdmin) return <Redirect to="/overview" />;
   return <>{children}</>;
 }
 
@@ -63,58 +63,66 @@ function Router() {
           links still pointing at the old dashboard route land on the page
           that replaced it, instead of a dead end. */}
       <Route path="/dashboard">
-        <Redirect to="/console/overview" />
+        <Redirect to="/overview" />
       </Route>
-      <Route path="/console/new-project">
+      {/* Console routes used to live under /console/*; the subdomain already
+          says "console", so they moved to the root. Old links keep working. */}
+      <Route path="/console/*">
+        {(params) => <Redirect to={`/${params["*"]}${window.location.search}`} replace />}
+      </Route>
+      <Route path="/console">
+        <Redirect to="/overview" replace />
+      </Route>
+      <Route path="/new-project">
         <ProtectedRoute>
           <NewProject />
         </ProtectedRoute>
       </Route>
-      <Route path="/console/systems">
+      <Route path="/systems">
         <ProtectedRoute>
           <Systems />
         </ProtectedRoute>
       </Route>
-      <Route path="/console/delivery">
+      <Route path="/delivery">
         <ProtectedRoute>
           <Delivery />
         </ProtectedRoute>
       </Route>
-      <Route path="/console/activity">
+      <Route path="/activity">
         <ProtectedRoute>
           <Activity />
         </ProtectedRoute>
       </Route>
-      <Route path="/console/timeline">
+      <Route path="/timeline">
         <ProtectedRoute>
           <Timeline />
         </ProtectedRoute>
       </Route>
       {/* Leads moved to the admin area; keep old links working. */}
-      <Route path="/console/leads">
+      <Route path="/leads">
         <Redirect to="/admin/leads" />
       </Route>
-      <Route path="/console/support">
+      <Route path="/support">
         <ProtectedRoute>
           <Support />
         </ProtectedRoute>
       </Route>
-      <Route path="/console/profile">
+      <Route path="/profile">
         <ProtectedRoute>
           <ProfileSecurity />
         </ProtectedRoute>
       </Route>
-      <Route path="/console/settings">
+      <Route path="/settings">
         <ProtectedRoute>
           <ConsoleSettings />
         </ProtectedRoute>
       </Route>
-      <Route path="/console/keys">
+      <Route path="/keys">
         <ProtectedRoute>
           <ApiKeyVault />
         </ProtectedRoute>
       </Route>
-      <Route path="/console/billing">
+      <Route path="/billing">
         <ProtectedRoute>
           <BillingSla />
         </ProtectedRoute>

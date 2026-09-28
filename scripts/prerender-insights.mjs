@@ -300,6 +300,11 @@ const STATIC_PAGES = [
     description: "How Restart turns operational friction into technical leverage: map the workflows and costs, automate the repeatable work, and build the platform underneath — tracked in the Restart Console.",
   },
   {
+    route: "/solutions",
+    title: "Solutions",
+    description: "Four engineering disciplines: SaaS platforms, commerce infrastructure, AI engineering, and architecture leadership — each delivered with senior technical ownership.",
+  },
+  {
     route: "/scorecard",
     title: "Readiness Scorecard",
     description: "Score your system in five minutes across observability, deployment safety, data recovery, security, architecture, and ownership, with the first concrete fix for your weakest areas.",

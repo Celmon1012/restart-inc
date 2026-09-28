@@ -43,7 +43,7 @@ export default function NewProject() {
 
   const back = () => {
     setError(null);
-    if (index === 0) setLocation("/console/overview");
+    if (index === 0) setLocation("/overview");
     else setStep(STEPS[index - 1]);
   };
 
@@ -70,7 +70,7 @@ export default function NewProject() {
     }
     await refresh();
     if (typeof data === "string") setActiveWorkspaceId(data);
-    setLocation("/console/overview");
+    setLocation("/overview");
   };
 
   const next = (e: React.FormEvent) => {

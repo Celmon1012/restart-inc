@@ -73,7 +73,6 @@ function Visual({ kind }: { kind: string }) {
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [activeSection, setActiveSection] = useState("top");
   const [selectedCaseStudy, setSelectedCaseStudy] = useState<CaseStudy | null>(null);
   const [, setLocation] = useLocation();
   const session = useAuthSession();
@@ -94,45 +93,6 @@ export default function Home() {
     setLocation(lane ? `/start-project?tier=${encodeURIComponent(lane)}` : "/start-project");
   };
 
-  // Smooth scroll handler with offset for sticky header
-  const handleScrollTo = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-    e.preventDefault();
-    setMenuOpen(false);
-    const target = document.getElementById(id);
-    if (target) {
-      const headerOffset = 76;
-      const elementPosition = target.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth",
-      });
-    }
-  };
-
-  // Scrollspy observer for active section indicator
-  useEffect(() => {
-    const sectionIds = ["top", "platform", "solutions", "work", "case-studies", "about", "insights", "faq", "contact"];
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY + 120;
-      for (const id of sectionIds) {
-        const el = document.getElementById(id);
-        if (el) {
-          const top = el.offsetTop;
-          const height = el.offsetHeight;
-          if (scrollPosition >= top && scrollPosition < top + height) {
-            setActiveSection(id);
-            break;
-          }
-        }
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   return <div className="restart-home">
     <CaseStudyModal
       isOpen={!!selectedCaseStudy}
@@ -145,31 +105,27 @@ export default function Home() {
     />
 
     <header className="site-header">
-      <a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")} aria-label="Restart home">
+      <Link href="/" className="site-logo" aria-label="Restart home">
         <LogoMark />
-      </a>
+      </Link>
       <nav className={menuOpen ? "open" : ""}>
-        <a href="#platform" className={activeSection === "platform" ? "active" : ""} onClick={(e) => handleScrollTo(e, "platform")}>
+        <Link href="/platform" onClick={() => setMenuOpen(false)}>
           <span>PLATFORM</span>
           <span className="nav-indicator" />
-        </a>
-        <a href="#solutions" className={activeSection === "solutions" ? "active" : ""} onClick={(e) => handleScrollTo(e, "solutions")}>
+        </Link>
+        <Link href="/solutions" onClick={() => setMenuOpen(false)}>
           <span>SOLUTIONS</span>
           <span className="nav-indicator" />
-        </a>
-        <a href="#work" className={activeSection === "work" ? "active" : ""} onClick={(e) => handleScrollTo(e, "work")}>
-          <span>WAYS TO ENGAGE</span>
-          <span className="nav-indicator" />
-        </a>
-        <a href="#case-studies" className={activeSection === "case-studies" ? "active" : ""} onClick={(e) => handleScrollTo(e, "case-studies")}>
+        </Link>
+        <Link href="/case-studies" onClick={() => setMenuOpen(false)}>
           <span>PROOF</span>
           <span className="nav-indicator" />
-        </a>
-        <a href="#insights" className={activeSection === "insights" ? "active" : ""} onClick={(e) => handleScrollTo(e, "insights")}>
+        </Link>
+        <Link href="/insights" onClick={() => setMenuOpen(false)}>
           <span>INSIGHTS</span>
           <span className="nav-indicator" />
-        </a>
-        <Link href="/about">
+        </Link>
+        <Link href="/about" onClick={() => setMenuOpen(false)}>
           <span>ABOUT</span>
           <span className="nav-indicator" />
         </Link>
@@ -198,7 +154,7 @@ export default function Home() {
             <p>Restart Inc. is a technology and engineering firm that helps ambitious builders and operators turn complex workflows and product ideas into reliable, scalable systems—with senior technical ownership from architecture through production.</p>
             <div className="hero-buttons">
               <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
-              <a className="button outline" href="#process" onClick={(e) => handleScrollTo(e, "process")}>See how we build <ChevronRight size={15} /></a>
+              <Link href="/platform" className="button outline">See how we build <ChevronRight size={15} /></Link>
             </div>
             <div className="hero-proof-row">
               <span><Check size={13} /> Senior technical ownership</span>
@@ -387,12 +343,12 @@ export default function Home() {
           <p>Restart will help you build systems your growth can depend on—reliable enough for today, structured enough for tomorrow, and clear enough for your team to keep improving.</p>
           <div className="final-cta-buttons">
             <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
-            <a className="button outline" href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Explore solutions <ChevronRight size={15} /></a>
+            <Link href="/solutions" className="button outline">Explore solutions <ChevronRight size={15} /></Link>
           </div>
         </div>
       </section>
     </main>
 
-    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><a className="site-logo" href="#top" onClick={(e) => handleScrollTo(e, "top")}><LogoMark /></a><p>Engineering systems your growth depends on.</p><div className="footer-brand-contact"><a href="mailto:hello@restart.ng">hello@restart.ng</a><a href="tel:+2349060114747">+234 906 011 4747</a></div></div><div><strong>PLATFORM</strong><a href="#platform" onClick={(e) => handleScrollTo(e, "platform")}>Platform</a><a href="#solutions" onClick={(e) => handleScrollTo(e, "solutions")}>Solutions</a><a href="#case-studies" onClick={(e) => handleScrollTo(e, "case-studies")}>Case Studies</a><a href="#insights" onClick={(e) => handleScrollTo(e, "insights")}>Insights</a></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/careers">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><Link href="/privacy">Privacy Policy</Link><Link href="/terms">Terms of Service</Link><button type="button" className="footer-cookie-btn" onClick={openCookieSettings}>Cookie settings</button></span></div></footer>
+    <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><LogoMark /></Link><p>Engineering systems your growth depends on.</p><div className="footer-brand-contact"><a href="mailto:hello@restart.ng">hello@restart.ng</a><a href="tel:+2349060114747">+234 906 011 4747</a></div></div><div><strong>PLATFORM</strong><Link href="/platform">Platform</Link><Link href="/solutions">Solutions</Link><Link href="/case-studies">Case Studies</Link><Link href="/insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/careers">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© 2026 Restart Inc. All rights reserved.</span><span><Link href="/privacy">Privacy Policy</Link><Link href="/terms">Terms of Service</Link><button type="button" className="footer-cookie-btn" onClick={openCookieSettings}>Cookie settings</button></span></div></footer>
   </div>;
 }

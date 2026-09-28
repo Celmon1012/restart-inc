@@ -47,7 +47,7 @@ export default function Onboarding() {
   // Someone who already has a workspace (or an admin) has nothing to do here.
   useEffect(() => {
     if (!needsOnboarding && (workspaces.length > 0 || isAdmin)) {
-      setLocation("/console/overview");
+      setLocation("/overview");
     }
   }, [needsOnboarding, workspaces.length, isAdmin, setLocation]);
 
@@ -89,7 +89,7 @@ export default function Onboarding() {
       return;
     }
     await refresh();
-    setLocation("/console/overview");
+    setLocation("/overview");
   };
 
   const next = () => {

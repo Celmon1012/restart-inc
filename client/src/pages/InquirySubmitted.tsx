@@ -263,10 +263,10 @@ export default function InquirySubmitted() {
           </div>
           <div>
             <strong>PLATFORM</strong>
-            <Link href="/#platform">Platform</Link>
-            <Link href="/#solutions">Solutions</Link>
-            <Link href="/#case-studies">Case Studies</Link>
-            <Link href="/#insights">Insights</Link>
+            <Link href="/platform">Platform</Link>
+            <Link href="/solutions">Solutions</Link>
+            <Link href="/case-studies">Case Studies</Link>
+            <Link href="/insights">Insights</Link>
           </div>
           <div>
             <strong>COMPANY</strong>
