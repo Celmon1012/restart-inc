@@ -9,6 +9,7 @@ import {
   Check,
   ClipboardList,
   Mail,
+  MessageCircle,
   MessageSquare,
   Phone,
   ShieldCheck,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 import { track } from "@/lib/analytics";
+import { whatsappLink } from "@/lib/site";
 
 /**
  * Dedicated confirmation page for the project intake form.
@@ -221,7 +223,7 @@ export default function InquirySubmitted() {
           <section className="ty-contact">
             <h2>Need to reach us sooner?</h2>
             <p>
-              If this is urgent, or something about your brief has changed, use either of these
+              If this is urgent, or something about your brief has changed, use any of these
               rather than waiting on the 24-hour window.
             </p>
             <div className="ty-contact-row">
@@ -232,6 +234,16 @@ export default function InquirySubmitted() {
               <a href="tel:+2349060114747" className="ty-contact-link">
                 <Phone size={15} />
                 <span>+234 906 011 4747</span>
+              </a>
+              <a
+                href={whatsappLink(referenceId ? `Hi Restart, following up on my project brief ${referenceId}.` : "Hi Restart, following up on my project brief.")}
+                className="ty-contact-link"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => track("thank_you_click", { destination: "whatsapp" })}
+              >
+                <MessageCircle size={15} />
+                <span>WhatsApp</span>
               </a>
             </div>
           </section>

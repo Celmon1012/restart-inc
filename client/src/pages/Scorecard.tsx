@@ -1,9 +1,9 @@
 import { openCookieSettings } from "@/lib/consent";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { CONSOLE_URL } from "@/lib/site";
+import { CONSOLE_URL, normalisePhone, whatsappLink } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, Loader2, Menu, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, Loader2, Menu, MessageCircle, RotateCcw, X } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 import { track } from "@/lib/analytics";
@@ -90,10 +90,17 @@ export default function Scorecard() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
+  const [phone, setPhone] = useState("");
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
   const [lead, setLead] = useState<{ status: "idle" | "sending" | "sent" | "error"; reference?: string; message?: string }>({ status: "idle" });
 
   const sendResult = async (e: React.FormEvent) => {
     e.preventDefault();
+    const normalisedPhone = normalisePhone(phone);
+    if (phone.trim() && !normalisedPhone) {
+      setLead({ status: "error", message: "That phone number doesn't look right. Include the country code, e.g. +234 806 000 0000." });
+      return;
+    }
     if (!isSupabaseConfigured) {
       setLead({ status: "error", message: "Sending isn't configured on this deployment. Please email hello@restart.ng." });
       return;
@@ -119,9 +126,17 @@ export default function Scorecard() {
       band: result.band.label,
       areas: Object.fromEntries(result.areas.map(({ area, pct }) => [area.id, pct])),
       weakest: result.weakest.map((w) => w.area.id),
+      // Carried so the acknowledgement email can repeat the first fix for
+      // each weak area without the server needing its own copy of the text.
+      weakest_detail: result.weakest.map(({ area, pct }) => ({ title: area.title, pct, fix: area.nextStep })),
     };
+    const contact = { phone: normalisedPhone, whatsapp_opt_in: whatsappOptIn && normalisedPhone !== null };
 
-    let { error } = await supabase.schema("console").from("inquiries").insert({ ...base, source: "scorecard", scorecard });
+    let { error } = await supabase.schema("console").from("inquiries").insert({ ...base, ...contact, source: "scorecard", scorecard });
+    // Before migration 20260929120000 there are no phone columns.
+    if (error && ["42703", "PGRST204"].includes(error.code ?? "")) {
+      ({ error } = await supabase.schema("console").from("inquiries").insert({ ...base, source: "scorecard", scorecard }));
+    }
     // Until migration 20260925120000_console_inquiries_scorecard is applied the
     // table rejects source "scorecard" (23514) and has no scorecard column
     // (PGRST204/42703). Don't lose the lead over that: file it as a contact
@@ -288,7 +303,16 @@ export default function Scorecard() {
                 <CheckCircle2 size={18} />
                 <div>
                   <strong>Result sent. Reference {lead.reference}.</strong>
-                  <p>A senior engineer will review it and reply to {email}.</p>
+                  <p>A senior engineer will review it and reply to {email}. We'll also email you a copy of your result.</p>
+                  <a
+                    className="button outline small sp-whatsapp"
+                    href={whatsappLink(`Hi Restart, I just took the Readiness Scorecard (${lead.reference}, ${result.total}/100).`)}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => track("scorecard_whatsapp_click", { score: result.total })}
+                  >
+                    <MessageCircle size={15} /> Talk it through on WhatsApp
+                  </a>
                 </div>
               </div>
             ) : (
@@ -304,6 +328,14 @@ export default function Scorecard() {
                 <label>
                   <span>Company <em>(optional)</em></span>
                   <input maxLength={200} autoComplete="organization" value={company} onChange={(e) => setCompany(e.target.value)} />
+                </label>
+                <label>
+                  <span>Phone <em>(optional)</em></span>
+                  <input type="tel" inputMode="tel" maxLength={24} autoComplete="tel" placeholder="+234 806 000 0000" value={phone} onChange={(e) => { setPhone(e.target.value); if (!e.target.value.trim()) setWhatsappOptIn(false); }} />
+                </label>
+                <label className={`sp-optin${phone.trim() ? "" : " disabled"}`}>
+                  <input type="checkbox" checked={whatsappOptIn} disabled={!phone.trim()} onChange={(e) => setWhatsappOptIn(e.target.checked)} />
+                  <span>You can also reply to me on WhatsApp at this number. A person replies, only about this result.</span>
                 </label>
                 <div className="scorecard-form-actions">
                   <button type="submit" className="button solid" disabled={lead.status === "sending"}>

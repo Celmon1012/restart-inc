@@ -14,21 +14,45 @@ import {
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 import { track, FUNNEL, STEP_NAMES } from "@/lib/analytics";
-import { CONSOLE_URL } from "@/lib/site";
+import { CONSOLE_URL, normalisePhone, whatsappLink } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
 
 /* ------------------------------------------------------------------ *
  * Intake model
  *
- * Three steps, and the order is the qualification mechanism:
- *   1 The situation  -- effort gate. Requires a specific written problem.
- *   2 The stakes     -- urgency and decision authority.
- *   3 Scope & contact -- money and contact details, asked last on purpose.
+ * Four steps:
+ *   1 Contact        -- name, email, optionally a WhatsApp number. Short.
+ *   2 The situation  -- effort gate. Requires a specific written problem.
+ *   3 The stakes     -- urgency and decision authority.
+ *   4 Scope          -- timing and money.
  *
- * Budget is asked last so it reads as a formality after the prospect has
- * already invested three minutes. Asking spend first invites a price
+ * Contact comes first so the brief can be saved as the prospect goes
+ * (console.save_inquiry_draft). Someone who leaves at step 3 gets an email
+ * linking back to exactly where they stopped, instead of being lost.
+ *
+ * Budget is still asked last so it reads as a formality after the prospect
+ * has already invested three minutes. Asking spend first invites a price
  * conversation before a problem conversation.
  * ------------------------------------------------------------------ */
+
+const DRAFT_STORAGE_KEY = "rst-intake-draft";
+
+function readStoredToken(): string | null {
+  try {
+    return localStorage.getItem(DRAFT_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function storeToken(token: string | null) {
+  try {
+    if (token) localStorage.setItem(DRAFT_STORAGE_KEY, token);
+    else localStorage.removeItem(DRAFT_STORAGE_KEY);
+  } catch {}
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const objectives = [
   { id: "platform", label: "Build a new product or platform" },
@@ -155,10 +179,12 @@ export const referralSources = [
 const MIN_BRIEF_CHARS = 80;
 
 const STEPS = [
-  { id: 1, kicker: "01", title: "The situation" },
-  { id: 2, kicker: "02", title: "The stakes" },
-  { id: 3, kicker: "03", title: "Scope and contact" },
+  { id: 1, kicker: "01", title: "How we reach you" },
+  { id: 2, kicker: "02", title: "The situation" },
+  { id: 3, kicker: "03", title: "The stakes" },
+  { id: 4, kicker: "04", title: "Scope and timing" },
 ] as const;
+const LAST_STEP = STEPS.length;
 
 /**
  * Scores an enquiry 0–100 so staff can triage by intent instead of by
@@ -266,16 +292,25 @@ export default function StartProject() {
   const [selectedUrgency, setSelectedUrgency] = useState("");
   const [selectedRole, setSelectedRole] = useState("");
 
-  // Step 3 — scope and contact
+  // Step 4 — scope
   const [selectedBudget, setSelectedBudget] = useState("");
   const [selectedTimeline, setSelectedTimeline] = useState("");
   const [referral, setReferral] = useState(referralSources[0]);
+  const [website, setWebsite] = useState("");
+
+  // Step 1 — contact
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
-  const [website, setWebsite] = useState("");
+  const [phone, setPhone] = useState("");
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
   // Honeypot: never shown to a person, never focusable, never autofilled.
   const [trap, setTrap] = useState("");
+
+  // The saved draft this brief is being written into, and a one-line notice
+  // about it (resumed, already sent, reminders stopped).
+  const draftTokenRef = useRef<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [location, navigate] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -338,6 +373,121 @@ export default function StartProject() {
     } catch {}
   }, []);
 
+  // Everything past step 1, as saved in the draft's payload.
+  const draftPayload = () => ({
+    objective: selectedObjective,
+    systemStage: selectedSystemStage,
+    constraint: selectedConstraint,
+    projectBrief,
+    outcomes: selectedOutcomes,
+    impactMetric,
+    urgency: selectedUrgency,
+    role: selectedRole,
+    budget: selectedBudget,
+    timeline: selectedTimeline,
+    referral,
+    website,
+  });
+
+  // Resume a saved draft: from the link in a reminder email (?resume=), or
+  // from this browser's own earlier visit. ?stop=1 on the same link turns
+  // the reminders off.
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    let params: URLSearchParams;
+    try {
+      params = new URLSearchParams(window.location.search);
+    } catch {
+      return;
+    }
+    const fromLink = params.get("resume");
+    const token = fromLink && UUID_RE.test(fromLink) ? fromLink : readStoredToken();
+    if (!token || !UUID_RE.test(token)) return;
+    let cancelled = false;
+
+    (async () => {
+      if (fromLink && params.get("stop") === "1") {
+        await supabase.schema("console").rpc("stop_inquiry_followups", { p_token: token });
+        if (!cancelled) setNotice("Done. You won't get any more reminders about this brief. It's still saved below if you want to finish it.");
+        track("intake_reminders_stopped");
+      }
+      const { data, error: rpcError } = await supabase.schema("console").rpc("get_inquiry_draft", { p_token: token });
+      const draft = Array.isArray(data) ? data[0] : null;
+      if (cancelled || rpcError || !draft) {
+        if (!fromLink) storeToken(null);
+        return;
+      }
+
+      setName(draft.name ?? "");
+      setEmail(draft.email ?? "");
+      setCompany(draft.company ?? "");
+      setPhone(draft.phone ?? "");
+      setWhatsappOptIn(Boolean(draft.whatsapp_opt_in));
+
+      if (draft.submitted_reference) {
+        // Already sent. Keep the contact details, start a fresh brief.
+        storeToken(null);
+        setNotice(`That brief was already sent (reference ${draft.submitted_reference}). Your details are filled in if you want to start another.`);
+        return;
+      }
+
+      const p = (draft.payload ?? {}) as Record<string, unknown>;
+      const str = (v: unknown) => (typeof v === "string" ? v : "");
+      if (str(p.objective)) setSelectedObjective(str(p.objective));
+      if (str(p.systemStage)) setSelectedSystemStage(str(p.systemStage));
+      if (str(p.constraint)) setSelectedConstraint(str(p.constraint));
+      if (str(p.projectBrief)) setProjectBrief(str(p.projectBrief));
+      if (Array.isArray(p.outcomes)) setSelectedOutcomes(p.outcomes.filter((o): o is string => typeof o === "string"));
+      setImpactMetric(str(p.impactMetric));
+      setSelectedUrgency(str(p.urgency));
+      setSelectedRole(str(p.role));
+      setSelectedBudget(str(p.budget));
+      setSelectedTimeline(str(p.timeline));
+      if (str(p.referral)) setReferral(str(p.referral));
+      setWebsite(str(p.website));
+
+      draftTokenRef.current = token;
+      storeToken(token);
+      setStep(Math.min(LAST_STEP, Math.max(1, Number(draft.last_step) || 1)));
+      setNotice((current) => current ?? "Picking up where you left off. Everything you entered is saved.");
+      track("intake_resumed", { via: fromLink ? "link" : "browser", step: draft.last_step });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Save the brief so far. Never blocks the form: if saving fails (or the
+  // draft functions aren't deployed yet) the visitor carries on and the
+  // final submit still works on its own.
+  const saveDraft = async (lastStep: number) => {
+    if (!isSupabaseConfigured || trap.trim()) return;
+    const { data, error: rpcError } = await supabase.schema("console").rpc("save_inquiry_draft", {
+      p_token: draftTokenRef.current,
+      p_name: name.trim(),
+      p_email: email.trim(),
+      p_company: company.trim(),
+      p_phone: normalisePhone(phone) ?? "",
+      p_whatsapp_opt_in: whatsappOptIn,
+      p_last_step: lastStep,
+      p_payload: draftPayload(),
+    });
+    if (!rpcError && typeof data === "string") {
+      draftTokenRef.current = data;
+      storeToken(data);
+    }
+  };
+
+  const startOver = () => {
+    draftTokenRef.current = null;
+    storeToken(null);
+    try {
+      window.history.replaceState(null, "", "/start-project");
+    } catch {}
+    window.location.reload();
+  };
+
   const toggleOutcome = (option: string) =>
     setSelectedOutcomes((prev) =>
       prev.includes(option) ? prev.filter((o) => o !== option) : [...prev, option]
@@ -361,13 +511,21 @@ export default function StartProject() {
 
   const emailLooksReal = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
 
+  const phoneValid = !phone.trim() || normalisePhone(phone) !== null;
+
   function validateStep(current: number): string | null {
     if (current === 1) {
+      if (!name.trim()) return "Please add your name.";
+      if (!emailLooksReal) return "Please add a valid work email so we can reply.";
+      if (!phoneValid) return "That phone number doesn't look right. Include the country code, e.g. +234 806 000 0000.";
+      return null;
+    }
+    if (current === 2) {
       if (!briefReady)
         return `Please describe what needs to change in at least ${MIN_BRIEF_CHARS} characters — the specifics are what let us give you a straight answer.`;
       return null;
     }
-    if (current === 2) {
+    if (current === 3) {
       if (selectedOutcomes.length === 0) return "Select at least one outcome you're hoping for.";
       if (!impactMetric.trim()) return "Tell us what would be measurably different if this worked.";
       // No defaults on the scored questions: a preselected answer is scored
@@ -378,8 +536,6 @@ export default function StartProject() {
     }
     if (!selectedTimeline) return "Pick the timing that fits.";
     if (!selectedBudget) return "Pick an investment range — it isn't a commitment.";
-    if (!name.trim()) return "Please add your name.";
-    if (!emailLooksReal) return "Please add a valid work email so we can reply.";
     return null;
   }
 
@@ -397,10 +553,13 @@ export default function StartProject() {
       step: step,
       step_name: STEP_NAMES[step],
       // Categorical only -- never the free-text brief itself.
-      outcome_count: step === 2 ? selectedOutcomes.length : undefined,
-      word_count: step === 1 ? briefWords : undefined,
+      outcome_count: step === 3 ? selectedOutcomes.length : undefined,
+      word_count: step === 2 ? briefWords : undefined,
+      whatsapp_opt_in: step === 1 ? whatsappOptIn : undefined,
     });
-    setStep((s) => Math.min(3, s + 1));
+    const next = Math.min(LAST_STEP, step + 1);
+    void saveDraft(next);
+    setStep(next);
   };
 
   // After a step change (not on first load), move focus to the new step's
@@ -429,11 +588,11 @@ export default function StartProject() {
     e.preventDefault();
     setError(null);
 
-    if (step < 3) {
+    if (step < LAST_STEP) {
       goNext();
       return;
     }
-    const problem = validateStep(3);
+    const problem = validateStep(LAST_STEP);
     if (problem) {
       setStepError(problem);
       return;
@@ -482,23 +641,30 @@ export default function StartProject() {
       .filter((line) => line !== null)
       .join("\n");
 
-    const { error: insertError } = await supabase
+    const row = {
+      reference_id: generatedRef,
+      source: "start_project_page",
+      name: name.trim(),
+      email: email.trim(),
+      company: company.trim() || null,
+      service_tier: selectedObjective,
+      budget_range: selectedBudget,
+      project_stage: selectedSystemStage,
+      target_timeline: selectedTimeline,
+      project_brief: composedBrief.slice(0, 5000),
+      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      referrer: typeof document !== "undefined" ? document.referrer || null : null,
+    };
+    const normalisedPhone = normalisePhone(phone);
+    let { error: insertError } = await supabase
       .schema("console")
       .from("inquiries")
-      .insert({
-        reference_id: generatedRef,
-        source: "start_project_page",
-        name,
-        email,
-        company: company || null,
-        service_tier: selectedObjective,
-        budget_range: selectedBudget,
-        project_stage: selectedSystemStage,
-        target_timeline: selectedTimeline,
-        project_brief: composedBrief.slice(0, 5000),
-        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-        referrer: typeof document !== "undefined" ? document.referrer || null : null,
-      });
+      .insert({ ...row, phone: normalisedPhone, whatsapp_opt_in: whatsappOptIn && normalisedPhone !== null });
+    // Until migration 20260929120000_console_inquiry_followup is applied the
+    // table has no phone columns (PGRST204/42703). Don't lose the lead over it.
+    if (insertError && ["42703", "PGRST204"].includes(insertError.code ?? "")) {
+      ({ error: insertError } = await supabase.schema("console").from("inquiries").insert(row));
+    }
 
     if (insertError) {
       setError(
@@ -523,6 +689,17 @@ export default function StartProject() {
       timeline: selectedTimeline,
       referral_source: referral,
     });
+
+    // Close the draft so no reminder goes out for a brief that was sent.
+    // Best effort: the notify function also skips drafts whose email has a
+    // later inquiry.
+    if (draftTokenRef.current) {
+      await supabase
+        .schema("console")
+        .rpc("mark_inquiry_draft_submitted", { p_token: draftTokenRef.current, p_reference_id: generatedRef });
+    }
+    draftTokenRef.current = null;
+    storeToken(null);
 
     setReferenceId(generatedRef);
     setStatus("success");
@@ -575,7 +752,7 @@ export default function StartProject() {
 
       <main className="scorecard-main container">
         <header className="scorecard-intro">
-          <span className="section-label teal">START A PROJECT · 3 STEPS</span>
+          <span className="section-label teal">START A PROJECT · 4 STEPS</span>
           <h1>Tell us what you're <span>building</span></h1>
           <p>
             Where it's under pressure, what needs to change, and how to reach you. A senior engineer reads every
@@ -635,6 +812,31 @@ export default function StartProject() {
 
               {step === 1 && (
                 <>
+                  <fieldset className="scorecard-question">
+                    <legend>Who should we reply to?</legend>
+                    <div className="sp-fields">
+                      <label><span>Your name *</span><input type="text" placeholder="e.g. Alex Vance" value={name} onChange={(e) => setName(e.target.value)} className="sp-field" autoComplete="name" /></label>
+                      <label><span>Work email *</span><input type="email" placeholder="alex@company.com" value={email} onChange={(e) => setEmail(e.target.value)} className="sp-field" autoComplete="email" /></label>
+                      <label><span>Company</span><input type="text" placeholder="e.g. Acme Global Logistics" value={company} onChange={(e) => setCompany(e.target.value)} className="sp-field" autoComplete="organization" /></label>
+                      <label><span>Phone <em>(optional)</em></span><input type="tel" placeholder="+234 806 000 0000" value={phone} onChange={(e) => { setPhone(e.target.value); if (!e.target.value.trim()) setWhatsappOptIn(false); }} className="sp-field" autoComplete="tel" inputMode="tel" /></label>
+                    </div>
+                    <label className={`sp-optin${phone.trim() ? "" : " disabled"}`}>
+                      <input type="checkbox" checked={whatsappOptIn} disabled={!phone.trim()} onChange={(e) => setWhatsappOptIn(e.target.checked)} />
+                      <span>You can also reply to me on WhatsApp at this number. A person replies, only about this brief.</span>
+                    </label>
+                    <p className="sp-note">Your brief saves as you go. If you leave before sending it, we'll email you a link back to where you stopped, twice at most.</p>
+                  </fieldset>
+
+                  {/* Honeypot: hidden from people, tempting to bots */}
+                  <div className="sp-honeypot" aria-hidden="true">
+                    <label htmlFor="sp-company-fax">Company fax number</label>
+                    <input id="sp-company-fax" type="text" tabIndex={-1} autoComplete="off" value={trap} onChange={(e) => setTrap(e.target.value)} />
+                  </div>
+                </>
+              )}
+
+              {step === 2 && (
+                <>
                   <OptionCards legend="What are you trying to accomplish?" name="objective" options={objectives.map((o) => o.label)} value={selectedObjective} onChange={setSelectedObjective} />
                   <OptionCards legend="Which describes the system today?" name="stage" options={systemStages} value={selectedSystemStage} onChange={setSelectedSystemStage} />
                   <OptionCards legend="What's the main constraint right now?" name="constraint" options={constraints} value={selectedConstraint} onChange={setSelectedConstraint} />
@@ -662,7 +864,7 @@ export default function StartProject() {
                 </>
               )}
 
-              {step === 2 && (
+              {step === 3 && (
                 <>
                   <fieldset className="scorecard-question">
                     <legend>What would a successful engagement change? <em className="sp-legend-note">Select all that apply</em></legend>
@@ -694,29 +896,25 @@ export default function StartProject() {
                 </>
               )}
 
-              {step === 3 && (
+              {step === 4 && (
                 <>
                   <OptionCards legend="Desired timing" name="timeline" options={timelineOptions.map((t) => t.label)} value={selectedTimeline} onChange={setSelectedTimeline} />
                   <OptionCards legend="Investment range" name="budget" options={budgetOptions.map((b) => b.label)} value={selectedBudget} onChange={setSelectedBudget} note="Naming a range now saves a round trip — it isn't a commitment." />
                   <fieldset className="scorecard-question">
-                    <legend>How do we reach you?</legend>
-                    <div className="sp-fields">
-                      <label><span>Your name *</span><input type="text" placeholder="e.g. Alex Vance" value={name} onChange={(e) => setName(e.target.value)} className="sp-field" autoComplete="name" /></label>
-                      <label><span>Work email *</span><input type="email" placeholder="alex@company.com" value={email} onChange={(e) => setEmail(e.target.value)} className="sp-field" autoComplete="email" /></label>
-                      <label><span>Company</span><input type="text" placeholder="e.g. Acme Global Logistics" value={company} onChange={(e) => setCompany(e.target.value)} className="sp-field" autoComplete="organization" /></label>
-                      <label><span>Website <em>(optional)</em></span><input type="text" placeholder="e.g. acmelogistics.com" value={website} onChange={(e) => setWebsite(e.target.value)} className="sp-field" autoComplete="url" /></label>
-                    </div>
+                    <legend>Website <em className="sp-legend-note">Optional</em></legend>
+                    <input type="text" aria-label="Website" placeholder="e.g. acmelogistics.com" value={website} onChange={(e) => setWebsite(e.target.value)} className="sp-field" autoComplete="url" />
                   </fieldset>
                   <OptionCards legend="How did you hear about us?" name="referral" options={referralSources} value={referral} onChange={setReferral} />
-
-                  {/* Honeypot: hidden from people, tempting to bots */}
-                  <div className="sp-honeypot" aria-hidden="true">
-                    <label htmlFor="sp-company-fax">Company fax number</label>
-                    <input id="sp-company-fax" type="text" tabIndex={-1} autoComplete="off" value={trap} onChange={(e) => setTrap(e.target.value)} />
-                  </div>
                 </>
               )}
             </section>
+
+            {notice && (
+              <div className="sp-notice" role="status">
+                <span>{notice}</span>
+                <button type="button" className="sp-notice-action" onClick={startOver}>Start over</button>
+              </div>
+            )}
 
             {(stepError || error) && (
               <div className="sp-error" role="alert">{stepError ?? error}</div>
@@ -731,14 +929,14 @@ export default function StartProject() {
               <div className="scorecard-nav-next">
                 <span className="sp-confidential"><ShieldCheck size={14} className="text-teal" /> Confidential. Read by senior engineers.</span>
                 <button
-                  type={step < 3 ? "button" : "submit"}
-                  onClick={step < 3 ? goNext : undefined}
+                  type={step < LAST_STEP ? "button" : "submit"}
+                  onClick={step < LAST_STEP ? goNext : undefined}
                   disabled={status === "submitting"}
                   className="button solid"
                 >
                   {status === "submitting" ? (
                     <><Loader2 size={15} className="animate-spin" /> Sending…</>
-                  ) : step < 3 ? (
+                  ) : step < LAST_STEP ? (
                     <>Next: {STEPS[step].title} <ArrowRight size={15} /></>
                   ) : (
                     <>Send project brief <ArrowUpRight size={15} /></>

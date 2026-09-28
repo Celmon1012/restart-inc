@@ -17,7 +17,7 @@ import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { ActivityTimeline, type AgentActivity } from "@/components/ActivityTimeline";
 import { useAuth } from "@/contexts/AuthContext";
 import { consoleSchema, supabase } from "@/lib/supabase";
-import { Mail, Building2, Clock, Send, Search, LayoutList, Columns3 } from "lucide-react";
+import { Mail, Phone, Building2, Clock, Send, Search, LayoutList, Columns3 } from "lucide-react";
 import { PIPELINE_STAGES, OPEN_STAGES, queryParam, type PipelineStage } from "@/lib/admin";
 import { formatDate } from "@/lib/format";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
@@ -34,6 +34,8 @@ interface Inquiry {
   name: string;
   email: string;
   company: string | null;
+  phone?: string | null;
+  whatsapp_opt_in?: boolean;
   service_tier: string | null;
   budget_range: string | null;
   project_stage: string | null;
@@ -464,6 +466,31 @@ export default function Leads() {
                         </a>
                       </span>
                     </div>
+                    {selected.phone && (
+                      <div className="app-meta-item">
+                        <span className="meta-k">
+                          <Phone size={12} /> Phone
+                        </span>
+                        <span className="meta-v">
+                          <a href={`tel:${selected.phone}`} className="text-teal">
+                            {selected.phone}
+                          </a>
+                          {selected.whatsapp_opt_in && (
+                            <>
+                              {" · "}
+                              <a
+                                href={`https://wa.me/${selected.phone.replace(/\D/g, "")}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-teal"
+                              >
+                                WhatsApp OK
+                              </a>
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    )}
                     {selected.company && (
                       <div className="app-meta-item">
                         <span className="meta-k">Company</span>

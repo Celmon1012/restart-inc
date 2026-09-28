@@ -1397,7 +1397,7 @@
   .scorecard-cta{ flex-direction: column; align-items: flex-start; }
   .scorecard-result{ padding: 22px; }
 }
-.scorecard-form{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+.scorecard-form{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
 .scorecard-form label{ display: flex; flex-direction: column; gap: 6px; }
 .scorecard-form label span{ color: #c4c9d6; font-size: 0.8125rem; font-weight: 600; }
 .scorecard-form label em{ color: #6e7485; font-style: normal; font-weight: 400; }
@@ -1452,6 +1452,15 @@ textarea.sp-field{ resize: vertical; min-height: 140px; }
 .sp-legend-note{ margin-left: 6px; color: #6e7485; font-size: 0.8125rem; font-style: normal; font-weight: 400; }
 .sp-note{ clear: both; margin: 12px 0 0; color: #6e7485; font-size: 0.8125rem; line-height: 1.55; }
 .sp-error{ margin-top: 16px; padding: 12px 14px; border: 1px solid rgba(229,176,97,.35); border-radius: 8px; background: rgba(229,176,97,.07); color: var(--amber); font-size: 0.875rem; }
+.sp-notice{ display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; padding: 12px 14px; border: 1px solid rgba(46,229,193,.28); border-radius: 8px; background: rgba(46,229,193,.06); color: #c9d2e3; font-size: 0.875rem; }
+.sp-notice-action{ flex-shrink: 0; background: none; border: 0; padding: 0; color: var(--teal); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.sp-optin{ display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; color: #c9d2e3; font-size: 0.875rem; line-height: 1.5; cursor: pointer; }
+.sp-optin input{ margin-top: 3px; accent-color: var(--teal); }
+.sp-optin.disabled{ color: #6e7485; cursor: default; }
+.sp-whatsapp{ display: inline-flex; align-items: center; gap: 8px; }
+.scorecard-form .sp-optin{ grid-column: 1 / -1; flex-direction: row; margin-top: 0; }
+.scorecard-form .sp-optin span{ color: inherit; font-size: 0.875rem; font-weight: 400; }
+.scorecard-form .sp-optin input{ padding: 0; width: auto; }
 .sp-confidential{ display: inline-flex; align-items: center; gap: 6px; color: #6e7485; font-size: 0.8125rem; }
 .sp-summary{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 24px 0 28px; }
 .sp-summary > div{ padding: 14px 16px; border: 1px solid rgba(255,255,255,.07); border-radius: 10px; background: rgba(255,255,255,.02); }

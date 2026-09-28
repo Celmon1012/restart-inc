@@ -186,8 +186,11 @@ export const FUNNEL = {
   LEAD: "generate_lead",
 } as const;
 
+// Contact moved to step 1 on 2026-09-27 so abandoned briefs can be resumed.
+// Funnel reports before and after that date aren't comparable step by step.
 export const STEP_NAMES: Record<number, string> = {
-  1: "situation",
-  2: "stakes",
-  3: "scope_and_contact",
+  1: "contact",
+  2: "situation",
+  3: "stakes",
+  4: "scope",
 };
