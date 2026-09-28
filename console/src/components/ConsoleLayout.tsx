@@ -1,3 +1,4 @@
+import { AttentionBell } from "@/components/admin/AttentionBell";
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import {
@@ -556,6 +557,8 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
               )}
             </button>
             )}
+
+            {isAdminArea && <AttentionBell />}
 
             {/* Admin entry point, rendered only for admins (isAdmin comes from
                 console-data's server-side read of app_metadata). The area

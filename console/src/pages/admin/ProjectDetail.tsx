@@ -8,6 +8,7 @@ import { Link, useParams } from "wouter";
 import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { MilestoneEditor } from "@/components/admin/MilestoneEditor";
+import { InfraCard } from "@/components/admin/InfraCard";
 import { RequestRow, type ServerRequest } from "@/components/ServerRequests";
 import { EmptyState, ErrorAlert, LoadingState } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
@@ -207,7 +208,6 @@ export default function AdminProjectDetail(props: { id?: string }) {
               <Field label="Email">{project.contact_email && <a className="text-teal" href={`mailto:${project.contact_email}`}>{project.contact_email}</a>}</Field>
               <Field label="Type">{client?.clientType ? CLIENT_TYPE_LABEL[client.clientType] ?? client.clientType : null}</Field>
               <Field label="Website">{client?.website && <a className="text-teal" href={client.website.startsWith("http") ? client.website : `https://${client.website}`} target="_blank" rel="noreferrer">{client.website}</a>}</Field>
-              <Field label="Infrastructure">{project.coolify_project_uuid ? "Linked to Coolify" : "Not provisioned"}</Field>
               <Field label="Billing">{project.lago_customer_id ? `Lago · ${project.lago_customer_id}` : "Not set up"}</Field>
             </div>
 
@@ -228,6 +228,13 @@ export default function AdminProjectDetail(props: { id?: string }) {
               ))
             )}
           </div>
+
+          <InfraCard
+            workspaceId={project.id}
+            workspaceName={project.name}
+            coolifyProjectUuid={project.coolify_project_uuid}
+            onChanged={() => void portfolio.refresh()}
+          />
         </div>
       )}
 

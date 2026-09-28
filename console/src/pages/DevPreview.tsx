@@ -17,6 +17,7 @@ import AdminProjects from "./admin/Projects";
 import AdminProjectDetail from "./admin/ProjectDetail";
 import AdminClients from "./admin/Clients";
 import AdminClientDetail from "./admin/ClientDetail";
+import AdminAttention from "./admin/Attention";
 
 // Portfolio fixtures for the admin Projects/Clients pages (dev only): answer
 // PostgREST reads on these tables and the support-data function locally.
@@ -98,6 +99,17 @@ if (import.meta.env.DEV && typeof window !== "undefined" && !(window as { __fina
       const customer = { externalId: "dev-ws", name: "Acme Operations", paymentProvider: null };
       return Promise.resolve(new Response(JSON.stringify({ billingConfigured: true, customer, subscriptions, appliedCoupons, invoices }), { headers: { "Content-Type": "application/json" } }));
     }
+    if (url.includes("console-admin-infra")) {
+      const projects = [
+        { uuid: "c1", name: "ACME OPERATIONS", description: null, workspaceId: "dev-ws", workspaceName: "Acme Operations", servers: [{ uuid: "s1", name: "acme-01", sharedWith: [] }] },
+        { uuid: "c2", name: "TAXIQ", description: null, workspaceId: null, workspaceName: null, servers: [{ uuid: "s2", name: "taxiq-01", sharedWith: [] }] },
+        { uuid: "c3", name: "LUBCON", description: null, workspaceId: null, workspaceName: null, servers: [{ uuid: "s3", name: "shared-01", sharedWith: ["PROF.SHERLEY"] }] },
+        { uuid: "c4", name: "PROF.SHERLEY", description: null, workspaceId: null, workspaceName: null, servers: [{ uuid: "s3", name: "shared-01", sharedWith: ["LUBCON"] }] },
+      ];
+      const action = typeof init?.body === "string" ? JSON.parse(init.body)?.action : null;
+      const body = action ? { ok: true } : { projects };
+      return Promise.resolve(new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } }));
+    }
     if (url.includes("console-admin-finance")) {
       return Promise.resolve(new Response(JSON.stringify(financeFixture), { headers: { "Content-Type": "application/json" } }));
     }
@@ -166,7 +178,7 @@ export default function DevPreview() {
   return (
     <AuthContext.Provider value={auth}>
       <WorkspaceContext.Provider value={ws}>
-        {page === "new-project" ? <NewProject /> : page === "systems" ? <Systems /> : page === "billing" ? <BillingSla /> : page === "admin" ? <AdminOverview /> : page === "admin-finance" ? <AdminFinance /> : page === "admin-leads" ? <AdminLeads /> : page === "admin-tasks" ? <AdminTasks /> : page === "admin-projects" ? <AdminProjects /> : page === "admin-project" ? <AdminProjectDetail id="dev-ws" /> : page === "admin-clients" ? <AdminClients /> : page === "admin-client" ? <AdminClientDetail clientKey="dev@acme.test" /> : <Overview />}
+        {page === "new-project" ? <NewProject /> : page === "systems" ? <Systems /> : page === "billing" ? <BillingSla /> : page === "admin" ? <AdminOverview /> : page === "admin-finance" ? <AdminFinance /> : page === "admin-leads" ? <AdminLeads /> : page === "admin-tasks" ? <AdminTasks /> : page === "admin-projects" ? <AdminProjects /> : page === "admin-project" ? <AdminProjectDetail id="dev-ws" /> : page === "admin-attention" ? <AdminAttention /> : page === "admin-clients" ? <AdminClients /> : page === "admin-client" ? <AdminClientDetail clientKey="dev@acme.test" /> : <Overview />}
       </WorkspaceContext.Provider>
     </AuthContext.Provider>
   );

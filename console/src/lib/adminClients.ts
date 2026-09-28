@@ -44,7 +44,7 @@ export function moneyFor(client: ClientSummary, finance: FinanceOverview | null 
 }
 
 export function statusFor(client: ClientSummary, money: ClientMoney): ClientStatus {
-  if (client.projects.some((p) => p.status === "active" || p.status === "blocked") || Object.keys(money.mrr).length > 0) {
+  if (client.projects.some((p) => p.status === "active" || p.status === "blocked" || p.status === "live") || Object.keys(money.mrr).length > 0) {
     return "active";
   }
   if (client.projects.every((p) => p.status === "onboarding")) return "scoping";

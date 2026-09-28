@@ -5,30 +5,14 @@
 import { Link } from "wouter";
 import { ArrowRight } from "lucide-react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
-import { consoleSchema } from "@/lib/supabase";
-import { invokeFunction } from "@/lib/functions";
-import { OPEN_STAGES, PIPELINE_STAGES, loadWorkspaceNames, type PipelineStage } from "@/lib/admin";
-import { OPEN as OPEN_REQUEST_STATUSES, STATUS_LABEL as REQUEST_STATUS_LABEL, type Status as RequestStatus } from "@/components/ServerRequests";
-import { formatDate, formatRelative } from "@/lib/format";
-import { useAsyncResource } from "@/hooks/useAsyncResource";
-import { loadFinanceOverview, formatTotals, TotalsValue } from "./Finance";
+import { OPEN_STAGES, PIPELINE_STAGES } from "@/lib/admin";
+import { OPEN as OPEN_REQUEST_STATUSES, STATUS_LABEL as REQUEST_STATUS_LABEL } from "@/components/ServerRequests";
+import { formatRelative } from "@/lib/format";
+import { useAdminAttention } from "@/lib/adminAttention";
+import { formatTotals, TotalsValue } from "./Finance";
 
-interface LeadRow {
-  id: string;
-  name: string;
-  company: string | null;
-  status: PipelineStage;
-  created_at: string;
-  next_follow_up_at: string | null;
-}
-
-interface ConversationSummary {
-  id: string;
-  workspaceName: string | null;
-  status: string;
-  lastMessage: string | null;
-  lastActivityAt: number | null;
-}
+// The full list lives on /admin/attention and in the top-bar bell.
+const OVERVIEW_ATTENTION_LIMIT = 5;
 
 function Tile({ label, value, hint, warn, href }: { label: string; value: React.ReactNode; hint: string; warn?: boolean; href: string }) {
   return (
@@ -41,51 +25,8 @@ function Tile({ label, value, hint, warn, href }: { label: string; value: React.
 }
 
 export default function AdminOverview() {
-  const leads = useAsyncResource<LeadRow[]>(async () => {
-    const { data, error } = await consoleSchema()
-      .from("inquiries")
-      // Same "*" read as the Leads page: next_follow_up_at comes from a
-      // pipeline migration that may not be applied everywhere, and naming it
-      // explicitly fails the whole query where it is missing.
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    return data ?? [];
-  }, []);
-
-  const delivery = useAsyncResource(async () => {
-    const [deliverables, tasks, requests, names] = await Promise.all([
-      consoleSchema().from("deliverables").select("id,title,status,due_at,workspace_id"),
-      consoleSchema().from("deliverable_tasks").select("id,is_done"),
-      consoleSchema().from("server_requests").select("id,status,kind,created_at,workspace_id").order("created_at", { ascending: false }),
-      loadWorkspaceNames()
-    ]);
-    for (const r of [deliverables, tasks, requests]) if (r.error) throw r.error;
-    const ws = (id: string) => (names.has(id) ? { id, name: names.get(id)! } : null);
-    return {
-      deliverables: (deliverables.data ?? []).map((d) => ({ ...d, workspace: ws(d.workspace_id) })) as Array<{
-        id: string;
-        title: string;
-        status: string;
-        due_at: string | null;
-        workspace: { id: string; name: string } | null;
-      }>,
-      tasks: tasks.data ?? [],
-      requests: (requests.data ?? []).map((r) => ({ ...r, workspace: ws(r.workspace_id) })) as Array<{
-        id: string;
-        status: RequestStatus;
-        kind: string;
-        created_at: string;
-        workspace: { name: string } | null;
-      }>
-    };
-  }, []);
-
-  const support = useAsyncResource(
-    async () => (await invokeFunction<{ conversations: ConversationSummary[] }>("console-support-data")).conversations ?? [],
-    []
-  );
-  const finance = useAsyncResource(() => loadFinanceOverview(), []);
+  const { sources, items: attention, loading: attentionLoading } = useAdminAttention();
+  const { leads, delivery, support, finance } = sources;
 
   const leadRows = leads.data ?? [];
   const openLeads = leadRows.filter((l) => OPEN_STAGES.includes(l.status));
@@ -95,27 +36,13 @@ export default function AdminOverview() {
   const d = delivery.data;
   const activeMilestones = d?.deliverables.filter((m) => m.status === "in-progress") ?? [];
   const blocked = d?.deliverables.filter((m) => m.status === "blocked") ?? [];
-  const overdueMilestones =
-    d?.deliverables.filter((m) => m.status !== "completed" && m.due_at && new Date(m.due_at) < new Date()) ?? [];
   const openTasks = d?.tasks.filter((t) => !t.is_done).length ?? 0;
   const openRequests = d?.requests.filter((r) => OPEN_REQUEST_STATUSES.includes(r.status)) ?? [];
-  const pendingReview = openRequests.filter((r) => r.status === "pending_review");
 
   const convs = support.data ?? [];
   const openTickets = convs.filter((c) => c.status === "open");
 
   const dash = (loading: boolean, error: string | null, v: React.ReactNode) => (loading ? "…" : error ? "!" : v);
-
-  const attention = [
-    ...blocked.map((m) => ({ key: `b-${m.id}`, text: `${m.workspace?.name ?? "Client"}: “${m.title}” is blocked`, href: `/admin/projects/${m.workspace?.id ?? ""}` })),
-    ...overdueMilestones
-      .filter((m) => m.status !== "blocked")
-      .map((m) => ({ key: `o-${m.id}`, text: `${m.workspace?.name ?? "Client"}: “${m.title}” was due ${formatDate(m.due_at)}`, href: `/admin/projects/${m.workspace?.id ?? ""}` })),
-    ...pendingReview.map((r) => ({ key: `r-${r.id}`, text: `${r.workspace?.name ?? "Client"} requested ${r.kind === "upgrade" ? "a server upgrade" : "a new server"} ${formatRelative(r.created_at)}`, href: "/admin/requests" })),
-    ...followUpsDue.map((l) => ({ key: `l-${l.id}`, text: `Follow-up due: ${l.name}${l.company ? ` (${l.company})` : ""}`, href: `/admin/leads?id=${l.id}` })),
-    ...openTickets.map((c) => ({ key: `t-${c.id}`, text: `Open ticket from ${c.workspaceName ?? "a client"}: ${c.lastMessage ?? "no message"}`, href: `/admin/support?id=${c.id}` })),
-    ...(finance.data?.openInvoices.filter((i) => i.overdue) ?? []).map((i) => ({ key: `i-${i.number}`, text: `Invoice ${i.number} (${i.client}) is overdue`, href: "/admin/finance" }))
-  ];
 
   return (
     <ConsoleLayout area="admin">
@@ -157,20 +84,27 @@ export default function AdminOverview() {
       </div>
 
       <div className="admin-section">
-        <h2 className="admin-section-title">Needs attention</h2>
+        <h2 className="admin-section-title">
+          Needs attention{attention.length > 0 && <span className="admin-muted"> · {attention.length}</span>}
+        </h2>
         {attention.length === 0 ? (
-          <div className="dash-empty-state">
-            {leads.loading || delivery.loading || support.loading || finance.loading ? "Checking…" : "Nothing needs attention right now."}
-          </div>
+          <div className="dash-empty-state">{attentionLoading ? "Checking…" : "Nothing needs attention right now."}</div>
         ) : (
-          <div className="overview-attention-list">
-            {attention.slice(0, 12).map((a) => (
-              <Link href={a.href} key={a.key} className="overview-attention-row">
-                <span className="overview-attention-name">{a.text}</span>
-                <ArrowRight size={14} />
+          <>
+            <div className="overview-attention-list">
+              {attention.slice(0, OVERVIEW_ATTENTION_LIMIT).map((a) => (
+                <Link href={a.href} key={a.key} className="overview-attention-row">
+                  <span className="overview-attention-name">{a.text}</span>
+                  <ArrowRight size={14} />
+                </Link>
+              ))}
+            </div>
+            {attention.length > OVERVIEW_ATTENTION_LIMIT && (
+              <Link href="/admin/attention" className="overview-section-link mt-2">
+                View all {attention.length} <ArrowRight size={12} />
               </Link>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 

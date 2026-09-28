@@ -28,6 +28,7 @@ import AdminTasks from "./pages/admin/Tasks";
 import AdminServerRequests from "./pages/admin/ServerRequests";
 import AdminSupport from "./pages/admin/Support";
 import AdminFinance from "./pages/admin/Finance";
+import AdminAttention from "./pages/admin/Attention";
 import { lazy, Suspense } from "react";
 
 // Dev-only fixture page (see pages/DevPreview.tsx); tree-shaken from production.
@@ -188,6 +189,13 @@ function Router() {
         <ProtectedRoute>
           <AdminRoute>
             <AdminSupport />
+          </AdminRoute>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/attention">
+        <ProtectedRoute>
+          <AdminRoute>
+            <AdminAttention />
           </AdminRoute>
         </ProtectedRoute>
       </Route>

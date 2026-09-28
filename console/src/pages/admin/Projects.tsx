@@ -13,7 +13,10 @@ import {
   ENGAGEMENT_LABEL,
   PROJECT_STATUS_LABEL,
   PROJECT_STATUS_TONE,
+  loadCoolifyProjects,
   loadPortfolio,
+  runInfraAction,
+  type CoolifyProject,
   type ProjectStatus
 } from "@/lib/admin";
 
@@ -34,6 +37,108 @@ export function ProgressCell({ completed, total }: { completed: number; total: n
       <span className="cp-progress"><i style={{ width: `${pct}%` }} /></span>
       <span>{completed}/{total}</span>
     </span>
+  );
+}
+
+// Coolify projects no console project points at -- work running on our
+// infrastructure that the console can't see. Import makes a console project
+// for one, already linked, under the client's email.
+function UnlinkedCoolifyProjects({ clientEmails, onImported }: { clientEmails: string[]; onImported: () => void }) {
+  const coolify = useAsyncResource(() => loadCoolifyProjects(), [], { errorMessage: "Couldn't reach Coolify" });
+  const [open, setOpen] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const unlinked = (coolify.data ?? []).filter((p) => !p.workspaceId);
+  if (coolify.loading || (!coolify.error && unlinked.length === 0)) return null;
+
+  function start(p: CoolifyProject) {
+    setOpen(p.uuid);
+    setName(p.name);
+    setEmail("");
+    setActionError(null);
+  }
+
+  async function submit(e: React.FormEvent, uuid: string) {
+    e.preventDefault();
+    setBusy(true);
+    setActionError(null);
+    try {
+      await runInfraAction({ action: "import", coolify_project_uuid: uuid, name: name.trim(), contact_email: email.trim() });
+      setOpen(null);
+      onImported();
+      void coolify.refresh();
+    } catch (err) {
+      setActionError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="overview-section infra-section">
+      <h2 className="overview-section-title">Coolify projects not in the console ({unlinked.length})</h2>
+      <p className="cp-empty mb-4">Import one to track it here and give the client access.</p>
+      {coolify.error ? (
+        <ErrorAlert message={coolify.error} onRetry={coolify.retry} />
+      ) : (
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Coolify project</th>
+                <th>Server</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {unlinked.map((p) => (
+                <tr key={p.uuid}>
+                  <td>
+                    <strong>{p.name}</strong>
+                    {p.description && <div className="admin-muted">{p.description}</div>}
+                  </td>
+                  <td>
+                    {p.servers.length ? p.servers.map((s) => s.name).join(", ") : <span className="admin-muted">Nothing deployed</span>}
+                    {p.servers.some((s) => s.sharedWith.length) && (
+                      <div className="admin-warn">Shared with {Array.from(new Set(p.servers.flatMap((s) => s.sharedWith))).join(", ")}</div>
+                    )}
+                  </td>
+                  <td className="num">
+                    {open === p.uuid ? (
+                      <form className="infra-import-form" onSubmit={(e) => void submit(e, p.uuid)}>
+                        <input className="console-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Project name" aria-label="Project name" autoFocus />
+                        <input
+                          className="console-input"
+                          type="email"
+                          list="infra-client-emails"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="Client email"
+                          aria-label="Client email"
+                        />
+                        <button type="button" className="console-btn-secondary" onClick={() => setOpen(null)} disabled={busy}>Cancel</button>
+                        <button type="submit" className="dash-action-btn" disabled={busy || name.trim().length < 2 || !email.trim()}>
+                          <span>Import</span>
+                        </button>
+                        {actionError && <div className="admin-warn infra-import-error">{actionError}</div>}
+                      </form>
+                    ) : (
+                      <button type="button" className="console-btn-secondary" onClick={() => start(p)}>Import</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <datalist id="infra-client-emails">
+            {Array.from(new Set(clientEmails)).map((e) => <option key={e} value={e} />)}
+          </datalist>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -77,7 +182,7 @@ export default function AdminProjects() {
           <div>
             <small>PROJECTS</small>
             <strong>{projects.length}</strong>
-            <em>{data?.clients.length ?? 0} clients</em>
+            <em>{data?.clients.length ?? 0} clients · {count("live")} live</em>
           </div>
           <div>
             <small>IN PROGRESS</small>
@@ -98,7 +203,7 @@ export default function AdminProjects() {
       )}
 
       <div className="admin-toolbar">
-        {(["all", "active", "blocked", "not-started", "onboarding", "completed"] as Filter[]).map((f) => (
+        {(["all", "active", "blocked", "not-started", "live", "onboarding", "completed"] as Filter[]).map((f) => (
           <button key={f} className={`dash-tab-btn ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>
             {f === "all" ? `All (${projects.length})` : `${PROJECT_STATUS_LABEL[f]} (${count(f)})`}
           </button>
@@ -152,6 +257,13 @@ export default function AdminProjects() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {!loading && !error && (
+        <UnlinkedCoolifyProjects
+          clientEmails={(data?.clients ?? []).map((c) => c.email).filter((e): e is string => Boolean(e))}
+          onImported={() => void refresh()}
+        />
       )}
     </ConsoleLayout>
   );

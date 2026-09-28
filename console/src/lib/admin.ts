@@ -3,6 +3,7 @@
 // across every workspace, not anything in this file.
 
 import { consoleSchema } from "./supabase";
+import { invokeFunction } from "./functions";
 
 export interface AdminWorkspace {
   id: string;
@@ -89,7 +90,10 @@ export const CLIENT_TYPE_LABEL: Record<string, string> = {
  * the client's display name is its onboarding workspace's name.
  * ------------------------------------------------------------------ */
 
-export type ProjectStatus = "active" | "blocked" | "completed" | "not-started" | "onboarding";
+// "live": no milestones being tracked, but the project already runs on our
+// infrastructure (linked Coolify project) or is billed (Lago customer) -- an
+// operated system, not one still being scoped.
+export type ProjectStatus = "active" | "blocked" | "completed" | "not-started" | "live" | "onboarding";
 
 export interface ProjectSummary extends AdminWorkspace {
   clientKey: string;
@@ -151,7 +155,9 @@ export async function loadPortfolio(): Promise<{ projects: ProjectSummary[]; cli
       .sort()[0] ?? null;
     const status: ProjectStatus =
       mine.length === 0
-        ? "onboarding"
+        ? w.coolify_project_uuid || w.lago_customer_id
+          ? "live"
+          : "onboarding"
         : blocked > 0
           ? "blocked"
           : completed === mine.length
@@ -198,11 +204,43 @@ export async function loadPortfolio(): Promise<{ projects: ProjectSummary[]; cli
   return { projects, clients };
 }
 
+/* ------------------------------------------------------------------
+ * Infrastructure: Coolify projects and which console project each one
+ * backs. Coolify is only reachable through console-admin-infra (the API
+ * token never reaches the browser). Policy: one console project = one
+ * Coolify project = its own server, so servers.sharedWith should be empty.
+ * ------------------------------------------------------------------ */
+
+export interface CoolifyProject {
+  uuid: string;
+  name: string;
+  description: string | null;
+  workspaceId: string | null;
+  workspaceName: string | null;
+  servers: Array<{ uuid: string; name: string; sharedWith: string[] }>;
+}
+
+export async function loadCoolifyProjects(): Promise<CoolifyProject[]> {
+  const res = await invokeFunction<{ projects: CoolifyProject[] }>("console-admin-infra");
+  return res.projects ?? [];
+}
+
+export type InfraAction =
+  | { action: "link"; workspace_id: string; coolify_project_uuid: string }
+  | { action: "create"; workspace_id: string }
+  | { action: "unlink"; workspace_id: string }
+  | { action: "import"; coolify_project_uuid: string; name: string; contact_email: string };
+
+export function runInfraAction<T = unknown>(body: InfraAction): Promise<T> {
+  return invokeFunction<T>("console-admin-infra", { body });
+}
+
 export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
   active: "In progress",
   blocked: "Blocked",
   completed: "Completed",
   "not-started": "Not started",
+  live: "Live",
   onboarding: "Scoping"
 };
 
@@ -211,5 +249,6 @@ export const PROJECT_STATUS_TONE: Record<ProjectStatus, "healthy" | "warning" | 
   blocked: "down",
   completed: "healthy",
   "not-started": "neutral",
+  live: "healthy",
   onboarding: "warning"
 };

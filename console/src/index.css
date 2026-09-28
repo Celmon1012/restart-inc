@@ -2846,3 +2846,19 @@
 .dash-kicker a:hover{ color: var(--teal); }
 .admin-table td{ white-space: nowrap; }
 .admin-table td.wrap{ white-space: normal; min-width: 220px; }
+
+/* Admin infrastructure: Coolify link card and import rows */
+.infra-link-row{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.infra-link-row .console-select{ flex: 1 1 220px; width: auto; }
+.infra-note{ display: flex; gap: 6px; align-items: center; margin: 10px 0 0; font-size: 0.8125rem; }
+.infra-import-form{ display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.infra-import-form .console-input{ width: auto; flex: 1 1 160px; }
+.infra-import-error{ flex-basis: 100%; text-align: right; font-size: 0.8125rem; }
+.infra-section{ margin-top: 32px; }
+
+/* Admin top-bar bell dropdown: clickable attention items. */
+.attention-dropdown{ width: 340px; max-width: calc(100vw - 32px); }
+.attention-dropdown-item{ flex-direction: column; align-items: flex-start; gap: 2px; white-space: normal; line-height: 1.35; }
+.attention-dropdown-item small{ font-size: 0.625rem; letter-spacing: .08em; text-transform: uppercase; color: #6e7485; font-weight: 700; }
+.attention-dropdown-item span{ display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.attention-dropdown-all{ justify-content: space-between; margin-top: 4px; border-top: 1px solid rgba(255,255,255,.07); border-radius: 0 0 6px 6px; color: var(--teal); }
