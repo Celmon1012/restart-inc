@@ -20,6 +20,12 @@
       "port": 3012
     },
     {
+      "name": "console-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "console", "run", "dev", "--", "--port", "3022", "--strictPort"],
+      "port": 3022
+    },
+    {
       "name": "restart-web-ga",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["vite", "--port", "3005", "--strictPort"],

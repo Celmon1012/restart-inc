@@ -8,6 +8,7 @@ import type { Workspace } from "@/lib/resources";
 import Overview from "./console/Overview";
 import NewProject from "./NewProject";
 import Systems from "./console/Systems";
+import BillingSla from "./console/BillingSla";
 import AdminOverview from "./admin/Overview";
 import AdminFinance from "./admin/Finance";
 import AdminLeads from "./admin/Leads";
@@ -82,6 +83,21 @@ if (import.meta.env.DEV && typeof window !== "undefined" && !(window as { __fina
       const conversations = [{ id: "t1", workspaceId: "dev-ws", workspaceName: "Acme Operations", status: "open", lastMessage: "Staging is slow since Tuesday", lastActivityAt: Date.now() - 3_600_000 }];
       return Promise.resolve(new Response(JSON.stringify({ conversations }), { headers: { "Content-Type": "application/json" } }));
     }
+    if (url.includes("console-billing")) {
+      const invoices = [
+        { number: "RES-E119-004-002", issuingDate: "2026-09-17", status: "finalized", paymentStatus: "pending", totalAmountCents: 17333333, currency: "NGN", paymentUrl: "https://example.test/pay", fileUrl: null },
+        { number: "RES-E119-004-001", issuingDate: "2026-08-17", status: "finalized", paymentStatus: "succeeded", totalAmountCents: 17333333, currency: "NGN", paymentUrl: null, fileUrl: null },
+      ];
+      const subscriptions = [
+        { planCode: "devops-retainer-standard-ngn", planName: "DevOps Retainer — Standard (NGN)", status: "active", startedAt: "2026-09-17", amountCents: 150000000, currency: "NGN", interval: "monthly" },
+        { planCode: "dedicated-server-vps10-ngn", planName: "Dedicated Server — VPS 10 (NGN)", status: "active", startedAt: "2026-09-07", amountCents: 4500000, currency: "NGN", interval: "monthly" },
+      ];
+      const appliedCoupons = [
+        { name: "DevOps (6 months Free)", code: "DEVOPS6", status: "active", frequency: "recurring", durationTotal: 6, durationRemaining: 5, percentageRate: "100.0", amountCents: null, amountCurrency: null },
+      ];
+      const customer = { externalId: "dev-ws", name: "Acme Operations", paymentProvider: null };
+      return Promise.resolve(new Response(JSON.stringify({ billingConfigured: true, customer, subscriptions, appliedCoupons, invoices }), { headers: { "Content-Type": "application/json" } }));
+    }
     if (url.includes("console-admin-finance")) {
       return Promise.resolve(new Response(JSON.stringify(financeFixture), { headers: { "Content-Type": "application/json" } }));
     }
@@ -150,7 +166,7 @@ export default function DevPreview() {
   return (
     <AuthContext.Provider value={auth}>
       <WorkspaceContext.Provider value={ws}>
-        {page === "new-project" ? <NewProject /> : page === "systems" ? <Systems /> : page === "admin" ? <AdminOverview /> : page === "admin-finance" ? <AdminFinance /> : page === "admin-leads" ? <AdminLeads /> : page === "admin-tasks" ? <AdminTasks /> : page === "admin-projects" ? <AdminProjects /> : page === "admin-project" ? <AdminProjectDetail id="dev-ws" /> : page === "admin-clients" ? <AdminClients /> : page === "admin-client" ? <AdminClientDetail clientKey="dev@acme.test" /> : <Overview />}
+        {page === "new-project" ? <NewProject /> : page === "systems" ? <Systems /> : page === "billing" ? <BillingSla /> : page === "admin" ? <AdminOverview /> : page === "admin-finance" ? <AdminFinance /> : page === "admin-leads" ? <AdminLeads /> : page === "admin-tasks" ? <AdminTasks /> : page === "admin-projects" ? <AdminProjects /> : page === "admin-project" ? <AdminProjectDetail id="dev-ws" /> : page === "admin-clients" ? <AdminClients /> : page === "admin-client" ? <AdminClientDetail clientKey="dev@acme.test" /> : <Overview />}
       </WorkspaceContext.Provider>
     </AuthContext.Provider>
   );

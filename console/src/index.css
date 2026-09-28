@@ -870,59 +870,39 @@
 }.status-pill-small.revoked{
   background: rgba(239, 68, 68, 0.15);
   color: #fca5a5;
-}.code-snippet-box{background: linear-gradient(145deg, #0c0c11, #07070a); border: 1px solid rgba(255,255,255,.075); border-radius: 6px; padding: 14px; overflow-x: auto;}.code-snippet-box pre{font-size: 0.7188rem; color: #7dd3fc; margin: 0; line-height: 1.5;}/* Billing SLA Hero */
-.sla-hero-banner{display: grid; grid-template-columns: 2fr 1fr; gap: 24px; background: linear-gradient(145deg, #0c0c11, #07070a); border: 1px solid rgba(255,255,255,.075); border-radius: 6px; padding: 28px;}
-@media (max-width: 900px) {.sla-hero-banner{grid-template-columns: 1fr;}
-}.sla-badge{
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: var(--teal);
-  background: rgba(46, 229, 193, 0.1);
-  padding: 4px 10px;
-  border-radius: 12px;
-  margin-bottom: 12px;
-}.sla-tier-info h2{
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #ffffff;
-  margin: 0 0 8px 0;
-}.sla-tier-info p{
-  font-size: 0.8438rem;
-  color: #8491a6;
-  margin: 0 0 16px 0;
-  line-height: 1.5;
-}.sla-billing-box{background: linear-gradient(145deg, #0c0c11, #07070a); border: 1px solid rgba(255,255,255,.075); border-radius: 6px; padding: 20px; display: flex; flex-direction: column; justify-content: center;}.sla-billing-box-clickable{
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}.sla-billing-box-clickable:hover, .sla-billing-box-clickable:focus-visible{
-  border-color: rgba(46, 229, 193, 0.4);
-  background: #050506;
-}.b-label{
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #798399;
-}.b-price{
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  margin: 6px 0;
-}.b-price .val{
-  font-size: 2rem;
-  font-weight: 900;
-  color: #ffffff;
-  letter-spacing: -0.02em;
-}.sla-metrics-list{
+}.code-snippet-box{background: linear-gradient(145deg, #0c0c11, #07070a); border: 1px solid rgba(255,255,255,.075); border-radius: 6px; padding: 14px; overflow-x: auto;}.code-snippet-box pre{font-size: 0.7188rem; color: #7dd3fc; margin: 0; line-height: 1.5;}/* Billing summary strip -- plan + three key figures in one compact row,
+   the same density as the Overview stat tiles rather than a hero banner. */
+.billing-summary{display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); background: linear-gradient(145deg, #0c0c11, #07070a); border: 1px solid rgba(255,255,255,.075); border-radius: 6px;}
+.billing-summary > div{display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 16px 20px;}
+.billing-summary > div + div{border-left: 1px solid rgba(255,255,255,.06);}
+.billing-summary-label{display: inline-flex; align-items: center; gap: 6px; font-size: 0.625rem; font-weight: 800; letter-spacing: 0.12em; color: #7a8293;}
+.billing-summary-plan .billing-summary-label{color: var(--teal);}
+.billing-summary strong{font-size: 1rem; font-weight: 800; color: #ffffff; letter-spacing: -0.01em; font-variant-numeric: tabular-nums;}
+.billing-summary-plan strong{overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+.billing-summary-stat.due strong{color: #e5b061;}
+.billing-summary-sub{font-size: 0.7188rem; color: #7a8293;}
+.billing-summary-link{display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; background: none; border: 0; padding: 0; font: inherit; font-size: 0.7188rem; color: var(--teal); cursor: pointer; text-align: left;}
+.billing-summary-link:hover{text-decoration: underline;}
+@media (max-width: 900px){
+  .billing-summary{grid-template-columns: repeat(3, minmax(0, 1fr));}
+  .billing-summary-plan{grid-column: 1 / -1;}
+  .billing-summary > div:nth-child(n+2){border-top: 1px solid rgba(255,255,255,.06);}
+  .billing-summary > div:nth-child(2){border-left: 0;}
+}
+@media (max-width: 600px){
+  .billing-summary{grid-template-columns: 1fr;}
+  .billing-summary > div + div{border-left: 0;}
+  .billing-page .invoice-row{flex-wrap: wrap;}
+  .billing-page .inv-right{flex-wrap: wrap; gap: 8px 10px;}
+}
+.billing-grid{margin-top: 20px; align-items: start;}
+.billing-grid > .console-col{min-width: 0;}
+.billing-page .console-card{padding: 20px;}
+.billing-page .system-healthy-pill{padding: 3px 9px; font-size: 0.625rem;}
+.sla-metrics-list, .invoices-list{
   display: flex;
   flex-direction: column;
-}.sla-metrics-list > *:not(:first-child), .invoices-list > *:not(:first-child){
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 8px;
 }.payment-method-box{display: flex; align-items: center; gap: 14px; background: linear-gradient(145deg, #0c0c11, #07070a); border: 1px solid rgba(255,255,255,.075); border-radius: 6px; padding: 14px;}.pm-icon{width: 40px; height: 40px; border-radius: 6px; background: linear-gradient(145deg, #0c0c11, #07070a); display: grid; place-items: center; flex-shrink: 0;}.pm-details{
   flex: 1;
   display: flex;
@@ -934,14 +914,27 @@
 }.pm-details span{
   font-size: 0.7188rem;
   color: #94a3b8;
-}.invoices-list{
+}.invoice-row{display: flex; justify-content: space-between; align-items: center; background: linear-gradient(145deg, #0c0c11, #07070a); border: 1px solid rgba(255,255,255,.075); border-radius: 6px; padding: 10px 14px; gap: 12px;}.inv-left{
   display: flex;
   flex-direction: column;
-}.invoice-row{display: flex; justify-content: space-between; align-items: center; background: linear-gradient(145deg, #0c0c11, #07070a); border: 1px solid rgba(255,255,255,.075); border-radius: 6px; padding: 12px 16px; gap: 12px;}.inv-title{
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 3px;
+  gap: 2px;
+  min-width: 0;
+}.inv-number{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8125rem;
+  color: #ffffff;
+  font-family: ui-monospace, monospace;
+}.inv-dl-btn.inv-pay-btn{
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #04110e;
+}.inv-dl-btn.inv-pay-btn:hover{
+  background: #5ff0d3;
+  color: #04110e;
+}.inv-right > *{
+  white-space: nowrap;
 }.inv-title strong{
   font-size: 0.8125rem;
   color: #ffffff;
@@ -1974,13 +1967,10 @@
 .meta-v { font-variant-numeric: tabular-nums; }
 .overview-stat-value { font-variant-numeric: tabular-nums; }
 .overview-stat-label { font-variant-numeric: tabular-nums; }
-.b-price { font-variant-numeric: tabular-nums; }
-.b-price .val { font-variant-numeric: tabular-nums; }
 .inv-amount { font-variant-numeric: tabular-nums; }
 .inv-date { font-variant-numeric: tabular-nums; }
 .invoice-trend-label { font-variant-numeric: tabular-nums; }
 .billing-detail-expanded-row span { font-variant-numeric: tabular-nums; }
-.sla-badge { font-variant-numeric: tabular-nums; }
 .system-metric-value { font-variant-numeric: tabular-nums; }
 .uptime-value { font-variant-numeric: tabular-nums; }
 .sparkline-wrap { font-variant-numeric: tabular-nums; }

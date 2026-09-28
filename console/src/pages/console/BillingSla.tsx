@@ -173,6 +173,11 @@ function matchSubscriptionForCoupon(
   return fallback;
 }
 
+function intervalUnit(interval: string): string {
+  const units: Record<string, string> = { weekly: "week", monthly: "month", quarterly: "quarter", yearly: "year" };
+  return units[interval] ?? interval;
+}
+
 const PROVIDER_LABEL: Record<string, string> = {
   stripe: "Stripe",
   gocardless: "GoCardless",
@@ -215,6 +220,21 @@ export default function BillingSla() {
     ? computeRenewalDate(primarySubscription.startedAt, primarySubscription.interval)
     : null;
 
+  // Unpaid invoices, summed in the newest one's currency -- adding NGN to USD
+  // would be a meaningless figure, so other currencies only count toward `count`.
+  const unpaid = (data?.invoices ?? []).filter(
+    (inv) => inv.paymentStatus !== "succeeded" && inv.status !== "voided" && inv.totalAmountCents > 0
+  );
+  const outstanding = unpaid.length
+    ? {
+        currency: unpaid[0].currency,
+        cents: unpaid
+          .filter((inv) => inv.currency === unpaid[0].currency)
+          .reduce((sum, inv) => sum + inv.totalAmountCents, 0),
+        count: unpaid.length,
+      }
+    : null;
+
   return (
     <ConsoleLayout>
       <StatusRegion
@@ -249,46 +269,53 @@ export default function BillingSla() {
             }
           />
         ) : (
-          <>
+          <div className="billing-page">
             {primarySubscription && (
-              <div className="sla-hero-banner">
-                <div className="sla-tier-info">
-                  <div className="sla-badge">
-                    <ShieldCheck size={14} className="text-teal" />
-                    <span>{primarySubscription.status.toUpperCase()} SUBSCRIPTION</span>
-                  </div>
-                  <h2>{primarySubscription.planName}</h2>
-                  <p>
+              <div className="billing-summary">
+                <div className="billing-summary-plan">
+                  <span className="billing-summary-label">
+                    <ShieldCheck size={12} className="text-teal" />
+                    {primarySubscription.status.toUpperCase()} SUBSCRIPTION
+                  </span>
+                  <strong>{primarySubscription.planName}</strong>
+                  <span className="billing-summary-sub">
                     {primarySubscription.startedAt
                       ? `Active since ${formatDate(primarySubscription.startedAt)}`
                       : "Plan details for this workspace."}
-                  </p>
+                  </span>
                 </div>
-
-                {primarySubscription.amountCents !== null && primarySubscription.currency && (
-                  <div
-                    className="sla-billing-box sla-billing-box-clickable"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setPriceModalOpen(true)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") setPriceModalOpen(true);
-                    }}
-                  >
-                    <span className="b-label">{renewalDate ? "RENEWS" : "NEXT CHARGE"}</span>
-                    <div className="b-price">
-                      <span className="val">{renewalDate ? formatDate(renewalDate) : "—"}</span>
-                    </div>
-                    <span className="overview-section-link mt-2">
-                      <span>View price & server details</span>
-                      <ArrowRight size={12} />
-                    </span>
-                  </div>
-                )}
+                <div className="billing-summary-stat">
+                  <span className="billing-summary-label">PRICE</span>
+                  <strong>
+                    {primarySubscription.amountCents !== null && primarySubscription.currency
+                      ? formatAmount(primarySubscription.amountCents, primarySubscription.currency)
+                      : "—"}
+                  </strong>
+                  <span className="billing-summary-sub">
+                    {primarySubscription.interval ? `per ${intervalUnit(primarySubscription.interval)}` : " "}
+                  </span>
+                </div>
+                <div className="billing-summary-stat">
+                  <span className="billing-summary-label">{renewalDate ? "RENEWS" : "NEXT CHARGE"}</span>
+                  <strong>{renewalDate ? formatDate(renewalDate) : "—"}</strong>
+                  <button type="button" className="billing-summary-link" onClick={() => setPriceModalOpen(true)}>
+                    <span>Price & server details</span>
+                    <ArrowRight size={11} />
+                  </button>
+                </div>
+                <div className={`billing-summary-stat ${outstanding ? "due" : ""}`}>
+                  <span className="billing-summary-label">OUTSTANDING</span>
+                  <strong>{outstanding ? formatAmount(outstanding.cents, outstanding.currency) : "Nothing due"}</strong>
+                  <span className="billing-summary-sub">
+                    {outstanding
+                      ? `${outstanding.count} unpaid invoice${outstanding.count === 1 ? "" : "s"}`
+                      : "All invoices paid"}
+                  </span>
+                </div>
               </div>
             )}
 
-            <div className="console-grid-layout mt-6">
+            <div className="console-grid-layout billing-grid">
               <div className="console-col">
                 {data.subscriptions && data.subscriptions.length > 0 && (
                   <div className="console-card">
@@ -370,7 +397,7 @@ export default function BillingSla() {
                   </div>
                 )}
 
-                <div className={`console-card ${data.subscriptions && data.subscriptions.length > 0 ? "mt-6" : ""}`}>
+                <div className={`console-card ${data.subscriptions && data.subscriptions.length > 0 ? "mt-4" : ""}`}>
                   <div className="card-top-header">
                     <span className="card-kicker">PAYMENT METHOD</span>
                     <CreditCard size={15} className="text-teal" />
@@ -420,26 +447,23 @@ export default function BillingSla() {
                         return (
                           <div key={inv.number} className="invoice-row">
                             <div className="inv-left">
-                              <div className="inv-title">
-                                <strong>{inv.number}</strong>
-                                <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>
-                                  {inv.paymentStatus.toUpperCase()}
-                                </span>
-                              </div>
+                              <strong className="inv-number">{inv.number}</strong>
                               <span className="inv-date">{formatDate(inv.issuingDate)}</span>
                             </div>
                             <div className="inv-right">
+                              <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>
+                                {inv.paymentStatus.toUpperCase()}
+                              </span>
                               <span className="inv-amount">{formatAmount(inv.totalAmountCents, inv.currency)}</span>
                               {inv.paymentUrl && (
                                 <a
                                   href={inv.paymentUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="dash-action-btn"
-                                  style={{ padding: "6px 12px", fontSize: "12px" }}
+                                  className="inv-dl-btn inv-pay-btn"
                                 >
                                   <Wallet size={13} />
-                                  <span>Pay Now</span>
+                                  <span>Pay now</span>
                                 </a>
                               )}
                               {inv.fileUrl && (
@@ -455,7 +479,7 @@ export default function BillingSla() {
                     </div>
                   )}
 
-                  <div className="mt-5 pt-4 border-t border-white/5 flex justify-between items-center text-[12px] text-[#78849b]">
+                  <div className="mt-4 pt-3 border-t border-white/5 flex justify-between items-center text-[12px] text-[#78849b]">
                     <span>Questions about an invoice?</span>
                     <a href="mailto:billing@restart.ng" className="text-teal hover:underline flex items-center gap-1">
                       Contact Billing Team
@@ -523,7 +547,7 @@ export default function BillingSla() {
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
     </ConsoleLayout>
   );
