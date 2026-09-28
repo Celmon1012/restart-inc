@@ -291,7 +291,11 @@ export default function InsightDetail({ params }: { params: { slug: string } }) 
               <ChevronLeft size={14} /> All Insights
             </Link>
 
-            {insight.featuredImage ? (
+            {/* Covers exported from InsightArt are uploaded to WordPress as
+                restart-cover-<slug>.png so social previews have an image; on the
+                page itself the live art renders sharper and at the 3:1 header
+                size. Any other featured image is a custom one and wins. */}
+            {insight.featuredImage && !insight.featuredImage.includes("/restart-cover-") ? (
               <img
                 src={insight.featuredImage}
                 alt={insight.title}

@@ -246,7 +246,7 @@ function buildInsightPage(template, post, allPosts) {
         <div class="insight-layout container">
           <article class="insight-article">
             <a href="/insights" class="insight-back-link">&larr; All Insights</a>
-            ${featuredImage ? `<img src="${escapeAttr(featuredImage)}" alt="${escapeAttr(title)}" class="insight-featured-image" />` : ""}
+            ${featuredImage && !featuredImage.includes("/restart-cover-") ? `<img src="${escapeAttr(featuredImage)}" alt="${escapeAttr(title)}" class="insight-featured-image" />` : ""}
             <span class="section-label teal">${category}</span>
             <h1>${title}</h1>
             <div class="insight-article-meta">

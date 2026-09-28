@@ -114,7 +114,7 @@
 /* Insight article (single post) */
 .insight-layout{
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 56px;
   padding: 64px 0 40px;
   align-items: start;
@@ -259,9 +259,12 @@
   background: #09090d;
   padding: 20px;
 }.insight-widget-title{
-  font-size: 0.875rem;
+  /* Matches the footer column headings (.footer-grid strong). !important
+     beats the global h3 size rule at the top of this file. */
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.9375rem !important;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #d8dced;
   margin: 0 0 14px;
