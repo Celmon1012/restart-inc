@@ -6,6 +6,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { consoleSchema } from "@/lib/supabase";
 import { MARKETING_URL } from "@/lib/site";
 import { BUDGETS, ENGAGEMENTS, TIMELINES } from "@/lib/intakeOptions";
+import AuthBackdrop from "@/components/AuthBackdrop";
 
 // Option ids here must match the checks in console.complete_onboarding()
 // (20260923120000_console_self_onboarding.sql) -- the function rejects
@@ -133,6 +134,7 @@ export default function Onboarding() {
 
   return (
     <div className="simple-login-shell">
+      <AuthBackdrop />
       <header className="simple-login-topbar">
         <a href={MARKETING_URL} className="site-logo" aria-label="Restart home">
           <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />

@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Eye, EyeOff, Github, Lock, Mail, AlertCircle, Ch
 import { useAuth } from "@/contexts/AuthContext";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { MARKETING_URL } from "@/lib/site";
+import AuthBackdrop from "@/components/AuthBackdrop";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -69,6 +70,7 @@ export default function Login() {
 
   return (
     <div className="simple-login-shell">
+      <AuthBackdrop />
       <header className="simple-login-topbar">
         <a href={MARKETING_URL} className="site-logo" aria-label="Restart home">
           <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />
@@ -80,6 +82,7 @@ export default function Login() {
 
       <div className="simple-login-page">
       <div className="simple-login-card" aria-labelledby="login-heading">
+        <span className="auth-kicker">Console</span>
         <h1 id="login-heading">Welcome back</h1>
         <p className="simple-login-subtitle">Enter your credentials to access your console.</p>
 

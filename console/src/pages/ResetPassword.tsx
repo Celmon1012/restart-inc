@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { MARKETING_URL } from "@/lib/site";
 import { MfaChallenge } from "@/components/MfaChallenge";
+import AuthBackdrop from "@/components/AuthBackdrop";
 
 // Destination for both invite links and "forgot password" recovery links —
 // GoTrue hands the browser a fresh session in the URL either way, and both
@@ -60,6 +61,7 @@ export default function ResetPassword() {
 
   return (
     <div className="simple-login-shell">
+      <AuthBackdrop />
       <header className="simple-login-topbar">
         <a href={MARKETING_URL} className="site-logo" aria-label="Restart home">
           <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />
