@@ -1,6 +1,5 @@
 #!/bin/sh
 # Paste into the Coolify terminal of the supabase-edge-functions container.
-# Writes the four billing functions to /home/deno/functions (see memory: edge functions are deployed as files).
 set -e
 mkdir -p /home/deno/functions/lago-webhook
 cat > /home/deno/functions/lago-webhook/index.ts <<'__RESTART_FN_EOF__'
@@ -41,9 +40,10 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const HMAC_KEY = Deno.env.get("LAGO_WEBHOOK_HMAC_KEY") ?? "";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
-const RESEND_FROM = Deno.env.get("RESEND_FROM") ?? "Restart Inc <hello@restart.ng>";
+// Billing mail has its own sender (RESEND_FROM is shared with the non-billing functions).
+const BILLING_FROM = Deno.env.get("BILLING_FROM") ?? "Restart Billing <billing@restart.ng>";
 // Where the "payment recorded" staff alert goes.
-const BILLING_NOTIFY_EMAIL = Deno.env.get("BILLING_NOTIFY_EMAIL") ?? "hello@restart.ng";
+const BILLING_NOTIFY_EMAIL = Deno.env.get("BILLING_NOTIFY_EMAIL") ?? "billing@restart.ng";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -131,7 +131,7 @@ async function sendEmail(to: string[], subject: string, text: string, idempotenc
       "Content-Type": "application/json",
       "Idempotency-Key": idempotencyKey,
     },
-    body: JSON.stringify({ from: RESEND_FROM, to, subject, text }),
+    body: JSON.stringify({ from: BILLING_FROM, to, subject, text }),
   });
   if (!res.ok) throw new Error(`Resend -> ${res.status}: ${(await res.text()).slice(0, 300)}`);
 }
@@ -144,7 +144,7 @@ function recipients(inv: LagoInvoice): string[] {
     .filter((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
 }
 
-const SIGN_OFF = "Restart Inc\nhello@restart.ng";
+const SIGN_OFF = "Restart Inc\nbilling@restart.ng";
 
 function issuedEmail(inv: LagoInvoice) {
   const cur = inv.currency ?? "NGN";
@@ -945,4 +945,3 @@ Deno.serve(async (req) => {
   }
 });
 __RESTART_FN_EOF__
-ls -l /home/deno/functions/lago-webhook /home/deno/functions/console-billing /home/deno/functions/console-admin-finance /home/deno/functions/console-admin-record-payment
