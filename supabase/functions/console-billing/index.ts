@@ -100,6 +100,10 @@ interface LagoInvoice {
   status: string;
   payment_status: string;
   total_amount_cents: number;
+  // Lago tracks recorded (manual or provider) payments separately from payment_status,
+  // which only flips to succeeded once the invoice is paid in full.
+  total_due_amount_cents?: number;
+  total_paid_amount_cents?: number;
   currency: string;
   file_url: string | null;
 }
@@ -206,6 +210,8 @@ async function fetchBilling(externalCustomerId: string) {
       status: inv.status,
       paymentStatus: inv.payment_status,
       totalAmountCents: inv.total_amount_cents,
+      totalPaidAmountCents: inv.total_paid_amount_cents ?? 0,
+      totalDueAmountCents: inv.total_due_amount_cents ?? inv.total_amount_cents,
       currency: inv.currency,
       fileUrl: inv.file_url,
       paymentUrl: paymentUrls[i].url,

@@ -69,6 +69,8 @@ interface BillingInvoice {
   status: string;
   paymentStatus: string;
   totalAmountCents: number;
+  totalDueAmountCents: number;
+  totalPaidAmountCents: number;
   currency: string;
   fileUrl: string | null;
   paymentUrl: string | null;
@@ -223,14 +225,14 @@ export default function BillingSla() {
   // Unpaid invoices, summed in the newest one's currency -- adding NGN to USD
   // would be a meaningless figure, so other currencies only count toward `count`.
   const unpaid = (data?.invoices ?? []).filter(
-    (inv) => inv.paymentStatus !== "succeeded" && inv.status !== "voided" && inv.totalAmountCents > 0
+    (inv) => inv.paymentStatus !== "succeeded" && inv.status !== "voided" && inv.totalDueAmountCents > 0
   );
   const outstanding = unpaid.length
     ? {
         currency: unpaid[0].currency,
         cents: unpaid
           .filter((inv) => inv.currency === unpaid[0].currency)
-          .reduce((sum, inv) => sum + inv.totalAmountCents, 0),
+          .reduce((sum, inv) => sum + inv.totalDueAmountCents, 0),
         count: unpaid.length,
       }
     : null;
@@ -454,7 +456,10 @@ export default function BillingSla() {
                               <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>
                                 {inv.paymentStatus.toUpperCase()}
                               </span>
-                              <span className="inv-amount">{formatAmount(inv.totalAmountCents, inv.currency)}</span>
+                              <span className="inv-amount" title={inv.totalPaidAmountCents > 0 && inv.paymentStatus !== "succeeded" ? `${formatAmount(inv.totalPaidAmountCents, inv.currency)} paid of ${formatAmount(inv.totalAmountCents, inv.currency)}` : undefined}>
+                                {formatAmount(inv.paymentStatus !== "succeeded" && inv.totalPaidAmountCents > 0 ? inv.totalDueAmountCents : inv.totalAmountCents, inv.currency)}
+                                {inv.paymentStatus !== "succeeded" && inv.totalPaidAmountCents > 0 ? " due" : ""}
+                              </span>
                               {inv.paymentUrl && (
                                 <a
                                   href={inv.paymentUrl}

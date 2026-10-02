@@ -67,6 +67,8 @@ interface LagoInvoice {
   payment_status: string;
   payment_overdue?: boolean;
   total_amount_cents: number;
+  total_due_amount_cents?: number;
+  total_paid_amount_cents?: number;
   currency: string;
   file_url: string | null;
   customer?: { external_id?: string; name?: string | null };
@@ -207,18 +209,28 @@ Deno.serve(async (req) => {
       client.invoiceCount++;
       if (!client.lastInvoiceAt || inv.issuing_date > client.lastInvoiceAt) client.lastInvoiceAt = inv.issuing_date;
 
-      if (inv.payment_status === "succeeded") {
-        add(collected, inv.currency, inv.total_amount_cents);
-        add(client.collected, inv.currency, inv.total_amount_cents);
+      // Recorded payments count as collected even before the invoice is paid in
+      // full (payment_status stays "pending" until then). An invoice marked paid
+      // without a payment record has no paid total, so it counts in full.
+      const paid = inv.payment_status === "succeeded"
+        ? inv.total_amount_cents
+        : Math.min(inv.total_paid_amount_cents ?? 0, inv.total_amount_cents);
+      const due = inv.payment_status === "succeeded"
+        ? 0
+        : Math.max(inv.total_due_amount_cents ?? inv.total_amount_cents - paid, 0);
+      if (paid > 0) {
+        add(collected, inv.currency, paid);
+        add(client.collected, inv.currency, paid);
         const month = inv.issuing_date.slice(0, 7);
-        if (monthly[month]) add(monthly[month], inv.currency, inv.total_amount_cents);
-        if (month === thisMonth) add(collectedThisMonth, inv.currency, inv.total_amount_cents);
-      } else {
-        add(outstanding, inv.currency, inv.total_amount_cents);
-        add(client.outstanding, inv.currency, inv.total_amount_cents);
+        if (monthly[month]) add(monthly[month], inv.currency, paid);
+        if (month === thisMonth) add(collectedThisMonth, inv.currency, paid);
+      }
+      if (due > 0) {
+        add(outstanding, inv.currency, due);
+        add(client.outstanding, inv.currency, due);
         if (isOverdue(inv)) {
-          add(overdue, inv.currency, inv.total_amount_cents);
-          add(client.overdue, inv.currency, inv.total_amount_cents);
+          add(overdue, inv.currency, due);
+          add(client.overdue, inv.currency, due);
         }
       }
     }
@@ -249,6 +261,7 @@ Deno.serve(async (req) => {
         paymentStatus: inv.payment_status,
         overdue: isOverdue(inv),
         totalAmountCents: inv.total_amount_cents,
+        totalDueAmountCents: inv.total_due_amount_cents ?? inv.total_amount_cents,
         currency: inv.currency,
         fileUrl: inv.file_url,
       }));

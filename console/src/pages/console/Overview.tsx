@@ -23,6 +23,7 @@ interface WaitingInvoice {
   status: string;
   paymentStatus: string;
   totalAmountCents: number;
+  totalDueAmountCents: number;
   currency: string;
   paymentUrl: string | null;
 }
@@ -326,7 +327,7 @@ export default function Overview() {
                         <span className="cp-item-icon"><Receipt size={15} className={inv.paymentStatus === "failed" ? "text-rose" : "text-amber"} /></span>
                         <span className="cp-item-body">
                           <span className="cp-item-title">
-                            {inv.paymentStatus === "failed" ? "Payment failed" : "Invoice to pay"} · {formatAmount(inv.totalAmountCents, inv.currency)}
+                            {inv.paymentStatus === "failed" ? "Payment failed" : "Invoice to pay"} · {formatAmount(inv.totalDueAmountCents, inv.currency)}
                           </span>
                           <small>{inv.number} · issued {formatDate(inv.issuingDate)}</small>
                         </span>

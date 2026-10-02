@@ -43,6 +43,7 @@ export interface FinanceOverview {
     paymentStatus: string;
     overdue: boolean;
     totalAmountCents: number;
+    totalDueAmountCents: number;
     currency: string;
     fileUrl: string | null;
   }>;
@@ -237,7 +238,10 @@ export default function AdminFinance() {
                         <td>{formatDate(inv.issuingDate)}</td>
                         <td className={inv.overdue ? "admin-warn" : undefined}>{inv.dueDate ? formatDate(inv.dueDate) : "—"}</td>
                         <td className={inv.overdue ? "admin-warn" : "admin-muted"}>{inv.overdue ? "overdue" : inv.paymentStatus}</td>
-                        <td className="num">{formatAmount(inv.totalAmountCents, inv.currency)}</td>
+                        <td className="num">
+                          {formatAmount(inv.totalDueAmountCents, inv.currency)}
+                          {inv.totalDueAmountCents < inv.totalAmountCents && <small className="admin-muted"> of {formatAmount(inv.totalAmountCents, inv.currency)}</small>}
+                        </td>
                         <td>
                           {inv.fileUrl && (
                             <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="text-teal" aria-label={`Open ${inv.number} PDF`}>
