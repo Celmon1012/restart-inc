@@ -1,11 +1,24 @@
-// Lago -> console bridge for the Operate plan's server requests.
+// Lago -> console bridge: server requests, plus the billing emails.
 //
-// When a client pays the Lago invoice attached to a server request (through
-// the invoice's Flutterwave payment link), Lago sends
+// Server requests: when a client pays the Lago invoice attached to a server
+// request (through the invoice's Flutterwave payment link), Lago sends
 // invoice.payment_status_updated. This marks the matching
 // console.server_requests row "paid" so the client sees it move and staff
 // know to schedule the resize/provisioning. Nothing is provisioned here --
 // that stays an engineer's step until automatic provisioning is built.
+//
+// Billing emails: Lago's own email scenarios are a licensed feature, and the
+// console already sends mail through Resend, so the emails live here. Lago
+// sends every webhook whether the invoice was raised from the console or
+// directly in Lago, and the recipient is the Lago customer's own email, so
+// one-off invoices created straight in Lago are covered too.
+//   - invoice.generated              -> client: invoice issued, with the PDF link
+//   - invoice.payment_status_updated -> client: payment received (partial or
+//                                       full) + staff: payment recorded
+//   - invoice.payment_overdue        -> client: invoice overdue
+// Emails are best-effort: a failed send is logged and never fails the webhook
+// (a 500 would make Lago retry and re-run the rest). Resend's Idempotency-Key
+// stops a Lago redelivery from emailing twice.
 //
 // Setup (in Lago: Developers -> Webhooks):
 //   - endpoint: https://<supabase-host>/functions/v1/lago-webhook
@@ -21,6 +34,10 @@
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const HMAC_KEY = Deno.env.get("LAGO_WEBHOOK_HMAC_KEY") ?? "";
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
+const RESEND_FROM = Deno.env.get("RESEND_FROM") ?? "Restart Inc <hello@restart.ng>";
+// Where the "payment recorded" staff alert goes.
+const BILLING_NOTIFY_EMAIL = Deno.env.get("BILLING_NOTIFY_EMAIL") ?? "hello@restart.ng";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -67,6 +84,163 @@ async function markPaid(lagoInvoiceId: string): Promise<number> {
   return rows.length;
 }
 
+// ------------------------------------------------------------------ //
+// Billing emails
+// ------------------------------------------------------------------ //
+
+interface LagoInvoice {
+  lago_id?: string;
+  number?: string;
+  status?: string;
+  payment_status?: string;
+  payment_due_date?: string | null;
+  currency?: string;
+  total_amount_cents?: number;
+  total_due_amount_cents?: number;
+  total_paid_amount_cents?: number;
+  file_url?: string | null;
+  customer?: { name?: string | null; email?: string | null };
+}
+
+function money(cents: number, currency = "NGN"): string {
+  try {
+    return new Intl.NumberFormat("en-NG", { style: "currency", currency, currencyDisplay: "narrowSymbol" }).format(cents / 100);
+  } catch {
+    return `${currency} ${(cents / 100).toFixed(2)}`;
+  }
+}
+
+function longDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+}
+
+const firstName = (name?: string | null) => (name ?? "").trim().split(/\s+/)[0] || "there";
+
+async function sendEmail(to: string[], subject: string, text: string, idempotencyKey: string) {
+  if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY is not set");
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+      "Idempotency-Key": idempotencyKey,
+    },
+    body: JSON.stringify({ from: RESEND_FROM, to, subject, text }),
+  });
+  if (!res.ok) throw new Error(`Resend -> ${res.status}: ${(await res.text()).slice(0, 300)}`);
+}
+
+// Lago allows several comma-separated addresses on a customer.
+function recipients(inv: LagoInvoice): string[] {
+  return (inv.customer?.email ?? "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
+}
+
+const SIGN_OFF = "Restart Inc\nhello@restart.ng";
+
+function issuedEmail(inv: LagoInvoice) {
+  const cur = inv.currency ?? "NGN";
+  const due = inv.payment_due_date ? ` Payment is due ${longDate(inv.payment_due_date)}.` : "";
+  return {
+    subject: `Invoice ${inv.number}: ${money(inv.total_amount_cents ?? 0, cur)}`,
+    text: [
+      `Hi ${firstName(inv.customer?.name)},`,
+      "",
+      `Invoice ${inv.number} for ${money(inv.total_amount_cents ?? 0, cur)} has been issued.${due}`,
+      inv.file_url ? `\nPDF: ${inv.file_url}` : "",
+      "",
+      "Reply to this email with the payment reference once you've paid and we'll confirm it.",
+      "",
+      SIGN_OFF,
+    ].join("\n"),
+  };
+}
+
+function receivedEmail(inv: LagoInvoice) {
+  const cur = inv.currency ?? "NGN";
+  const total = inv.total_amount_cents ?? 0;
+  const paid = inv.payment_status === "succeeded" ? total : Math.min(inv.total_paid_amount_cents ?? 0, total);
+  const remaining = Math.max(total - paid, 0);
+  const full = remaining === 0;
+  return {
+    subject: full ? `Payment received: invoice ${inv.number} is paid` : `Payment received toward invoice ${inv.number}`,
+    text: [
+      `Hi ${firstName(inv.customer?.name)},`,
+      "",
+      full
+        ? `We've received ${money(paid, cur)} and invoice ${inv.number} is paid in full. Thank you.`
+        : `We've received a payment toward invoice ${inv.number}. Paid so far: ${money(paid, cur)} of ${money(total, cur)}. Remaining: ${money(remaining, cur)}.`,
+      inv.file_url ? `\nInvoice PDF: ${inv.file_url}` : "",
+      "",
+      SIGN_OFF,
+    ].join("\n"),
+  };
+}
+
+function overdueEmail(inv: LagoInvoice) {
+  const cur = inv.currency ?? "NGN";
+  const due = inv.total_due_amount_cents ?? inv.total_amount_cents ?? 0;
+  return {
+    subject: `Overdue: invoice ${inv.number} (${money(due, cur)})`,
+    text: [
+      `Hi ${firstName(inv.customer?.name)},`,
+      "",
+      `Invoice ${inv.number} is past its due date${inv.payment_due_date ? ` of ${longDate(inv.payment_due_date)}` : ""}. Amount outstanding: ${money(due, cur)}.`,
+      inv.file_url ? `\nPDF: ${inv.file_url}` : "",
+      "",
+      "If you've already paid, reply with the payment reference and we'll reconcile it.",
+      "",
+      SIGN_OFF,
+    ].join("\n"),
+  };
+}
+
+// A paid or partially paid state worth telling someone about. Failed and
+// still-unpaid status updates are not emailed.
+const hasPayment = (inv: LagoInvoice) => inv.payment_status === "succeeded" || (inv.total_paid_amount_cents ?? 0) > 0;
+
+async function sendBillingEmails(type: string, inv: LagoInvoice): Promise<void> {
+  if (!inv.lago_id || inv.status !== "finalized") return;
+  const to = recipients(inv);
+  const state = `${inv.payment_status}:${inv.total_paid_amount_cents ?? 0}`;
+  const jobs: Array<Promise<void>> = [];
+
+  if (type === "invoice.generated" && inv.payment_status !== "succeeded") {
+    const m = issuedEmail(inv);
+    if (to.length) jobs.push(sendEmail(to, m.subject, m.text, `lago:${type}:${inv.lago_id}`));
+  } else if (type === "invoice.payment_overdue") {
+    const m = overdueEmail(inv);
+    if (to.length) jobs.push(sendEmail(to, m.subject, m.text, `lago:${type}:${inv.lago_id}`));
+  } else if (type === "invoice.payment_status_updated" && hasPayment(inv)) {
+    const m = receivedEmail(inv);
+    const key = `lago:${type}:${inv.lago_id}:${state}`;
+    if (to.length) jobs.push(sendEmail(to, m.subject, m.text, key));
+    const cur = inv.currency ?? "NGN";
+    const total = inv.total_amount_cents ?? 0;
+    const paid = inv.payment_status === "succeeded" ? total : inv.total_paid_amount_cents ?? 0;
+    jobs.push(
+      sendEmail(
+        [BILLING_NOTIFY_EMAIL],
+        `Payment recorded: ${inv.number} (${money(paid, cur)} of ${money(total, cur)})`,
+        [
+          `${inv.customer?.name ?? "Customer"}: invoice ${inv.number}, status ${inv.payment_status}.`,
+          `Paid ${money(paid, cur)} of ${money(total, cur)}.`,
+          to.length ? `Client was emailed at ${to.join(", ")}.` : "No email on the Lago customer, so the client was NOT emailed.",
+        ].join("\n"),
+        `${key}:staff`
+      )
+    );
+  }
+
+  for (const r of await Promise.allSettled(jobs)) {
+    if (r.status === "rejected") console.error(`lago-webhook email (${type}, ${inv.number}) failed:`, (r.reason as Error).message);
+  }
+}
+
+const EMAIL_EVENTS = ["invoice.generated", "invoice.payment_status_updated", "invoice.payment_overdue"];
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
@@ -79,23 +253,29 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid signature" }, 401);
   }
 
-  let event: { webhook_type?: string; invoice?: { lago_id?: string; payment_status?: string } };
+  let event: { webhook_type?: string; invoice?: LagoInvoice };
   try {
     event = JSON.parse(raw);
   } catch {
     return json({ error: "Invalid JSON" }, 400);
   }
 
-  // Acknowledge everything else so Lago doesn't retry events we don't use.
-  if (event.webhook_type !== "invoice.payment_status_updated") return json({ ok: true, ignored: event.webhook_type });
+  const type = event.webhook_type ?? "";
   const invoice = event.invoice;
-  if (!invoice?.lago_id || invoice.payment_status !== "succeeded") return json({ ok: true, ignored: "not a successful payment" });
 
-  try {
-    const updated = await markPaid(invoice.lago_id);
-    return json({ ok: true, updated });
-  } catch (err) {
-    // 500 so Lago retries: a transient database error shouldn't lose a payment.
-    return json({ error: (err as Error).message }, 500);
+  // Acknowledge everything else so Lago doesn't retry events we don't use.
+  if (!EMAIL_EVENTS.includes(type) || !invoice) return json({ ok: true, ignored: type });
+
+  let updated = 0;
+  if (type === "invoice.payment_status_updated" && invoice.lago_id && invoice.payment_status === "succeeded") {
+    try {
+      updated = await markPaid(invoice.lago_id);
+    } catch (err) {
+      // 500 so Lago retries: a transient database error shouldn't lose a payment.
+      return json({ error: (err as Error).message }, 500);
+    }
   }
+
+  await sendBillingEmails(type, invoice);
+  return json({ ok: true, updated });
 });
