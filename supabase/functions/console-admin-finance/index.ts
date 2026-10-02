@@ -240,6 +240,7 @@ Deno.serve(async (req) => {
       .filter((inv) => inv.status === "finalized" && inv.payment_status !== "succeeded")
       .sort((a, b) => a.issuing_date.localeCompare(b.issuing_date))
       .map((inv) => ({
+        id: inv.lago_id,
         number: inv.number,
         client: clientFor(inv.customer?.external_id ?? "unknown", inv.customer?.name).name,
         workspaceId: byCustomer.get(inv.customer?.external_id ?? "")?.id ?? null,

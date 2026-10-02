@@ -2,6 +2,7 @@
 // thing holding LAGO_API_KEY for a cross-client read). Figures are per
 // currency and never summed across currencies.
 
+import { Fragment, useState } from "react";
 import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { invokeFunction } from "@/lib/functions";
@@ -33,6 +34,7 @@ export interface FinanceOverview {
     lastInvoiceAt: string | null;
   }>;
   openInvoices: Array<{
+    id: string;
     number: string;
     client: string;
     workspaceId: string | null;
@@ -117,6 +119,34 @@ export default function AdminFinance() {
     { errorMessage: "Failed to load finance data" }
   );
 
+  const today = new Date().toISOString().slice(0, 10);
+  const [payingId, setPayingId] = useState<string | null>(null);
+  const [paidOn, setPaidOn] = useState(today);
+  const [reference, setReference] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+
+  const openPayForm = (id: string) => {
+    setPayingId(id);
+    setPaidOn(today);
+    setReference("");
+    setPayError(null);
+  };
+
+  const submitPayment = async (invoiceId: string) => {
+    setSaving(true);
+    setPayError(null);
+    try {
+      await invokeFunction("console-admin-record-payment", { body: { invoiceId, paidOn, reference, method: "bank_transfer" } });
+      setPayingId(null);
+      await refresh();
+    } catch (err) {
+      setPayError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const currencies = data
     ? Array.from(new Set(data.monthly.flatMap((m) => Object.keys(m.collected)).concat(Object.keys(data.totals.collected))))
     : [];
@@ -200,7 +230,8 @@ export default function AdminFinance() {
                   </thead>
                   <tbody>
                     {data.openInvoices.map((inv) => (
-                      <tr key={inv.number}>
+                      <Fragment key={inv.number}>
+                      <tr>
                         <td><strong>{inv.number}</strong></td>
                         <td>{inv.client}</td>
                         <td>{formatDate(inv.issuingDate)}</td>
@@ -213,8 +244,30 @@ export default function AdminFinance() {
                               <ExternalLink size={13} />
                             </a>
                           )}
+                          <button className="dash-tab-btn" style={{ marginLeft: 8 }} onClick={() => openPayForm(inv.id)}>
+                            Record payment
+                          </button>
                         </td>
                       </tr>
+                      {payingId === inv.id && (
+                        <tr>
+                          <td colSpan={7}>
+                            <form
+                              onSubmit={(e) => { e.preventDefault(); void submitPayment(inv.id); }}
+                              style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}
+                            >
+                              <label>Paid on <input type="date" required value={paidOn} max={today} onChange={(e) => setPaidOn(e.target.value)} /></label>
+                              <label>Reference <input type="text" placeholder="Bank ref / narration" value={reference} onChange={(e) => setReference(e.target.value)} /></label>
+                              <button type="submit" className="dash-tab-btn active" disabled={saving}>
+                                {saving ? "Saving…" : `Mark ${formatAmount(inv.totalAmountCents, inv.currency)} paid`}
+                              </button>
+                              <button type="button" className="dash-tab-btn" onClick={() => setPayingId(null)} disabled={saving}>Cancel</button>
+                              {payError && <span className="admin-warn" role="alert">{payError}</span>}
+                            </form>
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>

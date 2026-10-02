@@ -1,0 +1,140 @@
+services:
+  db:
+    image: 'getlago/postgres-partman:15.0-alpine'
+    environment:
+      - POSTGRES_DB=lago
+      - POSTGRES_USER=lago
+      - 'POSTGRES_PASSWORD=${SERVICE_PASSWORD_POSTGRES}'
+      - PGDATA=/data/postgres
+    volumes:
+      - 'lago-postgres-data:/data/postgres'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'pg_isready -U lago -d lago -h localhost'
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: 'redis:7-alpine'
+    volumes:
+      - 'lago-redis-data:/data'
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  api:
+    image: 'getlago/api:v1.48.1'
+    command:
+      - sh
+      - '-c'
+      - './scripts/migrate.sh && ./scripts/start.api.sh'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - SERVICE_FQDN_API_3000
+      - 'DATABASE_URL=postgresql://lago:${SERVICE_PASSWORD_POSTGRES}@db:5432/lago'
+      - 'REDIS_URL=redis://redis:6379'
+      - 'SECRET_KEY_BASE=${SECRET_KEY_BASE}'
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - 'LAGO_RSA_PRIVATE_KEY=${LAGO_RSA_PRIVATE_KEY}'
+      - 'LAGO_ENCRYPTION_PRIMARY_KEY=${LAGO_ENCRYPTION_PRIMARY_KEY}'
+      - 'LAGO_ENCRYPTION_DETERMINISTIC_KEY=${LAGO_ENCRYPTION_DETERMINISTIC_KEY}'
+      - 'LAGO_ENCRYPTION_KEY_DERIVATION_SALT=${LAGO_ENCRYPTION_KEY_DERIVATION_SALT}'
+      - 'LAGO_API_URL=${LAGO_API_URL}'
+      - 'LAGO_FRONT_URL=${LAGO_FRONT_URL}'
+      - 'LAGO_PDF_URL=http://pdf:3000'
+      - 'LAGO_REDIS_CACHE_URL=redis://redis:6379'
+      - LAGO_SIDEKIQ_WEB=true
+      - LAGO_DISABLE_SIGNUP=false
+      - LAGO_CREATE_ORG=true
+      - 'LAGO_ORG_NAME=${LAGO_ORG_NAME}'
+      - 'LAGO_ORG_USER_EMAIL=${LAGO_ORG_USER_EMAIL}'
+      - 'LAGO_ORG_USER_PASSWORD=${LAGO_ORG_USER_PASSWORD}'
+    volumes:
+      - 'lago-storage-data:/app/storage'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl -f http://localhost:3000/health || exit 1'
+      interval: 10s
+      timeout: 60s
+      retries: 15
+      start_period: 120s
+  front:
+    image: 'getlago/front:v1.48.1'
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - SERVICE_FQDN_FRONT_80
+      - 'API_URL=${LAGO_API_URL}'
+      - APP_ENV=production
+      - 'LAGO_API_URL=${LAGO_API_URL}'
+      - 'LAGO_FRONT_URL=${LAGO_FRONT_URL}'
+      - LAGO_DISABLE_PDF_GENERATION=false
+  api-worker:
+    image: 'getlago/api:v1.48.1'
+    command:
+      - ./scripts/start.worker.sh
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - 'DATABASE_URL=postgresql://lago:${SERVICE_PASSWORD_POSTGRES}@db:5432/lago'
+      - 'REDIS_URL=redis://redis:6379'
+      - 'SECRET_KEY_BASE=${SECRET_KEY_BASE}'
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - 'LAGO_RSA_PRIVATE_KEY=${LAGO_RSA_PRIVATE_KEY}'
+      - 'LAGO_ENCRYPTION_PRIMARY_KEY=${LAGO_ENCRYPTION_PRIMARY_KEY}'
+      - 'LAGO_ENCRYPTION_DETERMINISTIC_KEY=${LAGO_ENCRYPTION_DETERMINISTIC_KEY}'
+      - 'LAGO_ENCRYPTION_KEY_DERIVATION_SALT=${LAGO_ENCRYPTION_KEY_DERIVATION_SALT}'
+      - 'LAGO_API_URL=${LAGO_API_URL}'
+      - 'LAGO_PDF_URL=http://pdf:3000'
+      - 'LAGO_REDIS_CACHE_URL=redis://redis:6379'
+    volumes:
+      - 'lago-storage-data:/app/storage'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl -f http://localhost:8080 || exit 1'
+      interval: 10s
+      timeout: 60s
+      retries: 15
+      start_period: 60s
+  api-clock:
+    image: 'getlago/api:v1.48.1'
+    command:
+      - ./scripts/start.clock.sh
+    exclude_from_hc: true
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - 'DATABASE_URL=postgresql://lago:${SERVICE_PASSWORD_POSTGRES}@db:5432/lago'
+      - 'REDIS_URL=redis://redis:6379'
+      - 'SECRET_KEY_BASE=${SECRET_KEY_BASE}'
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - 'LAGO_RSA_PRIVATE_KEY=${LAGO_RSA_PRIVATE_KEY}'
+      - 'LAGO_ENCRYPTION_PRIMARY_KEY=${LAGO_ENCRYPTION_PRIMARY_KEY}'
+      - 'LAGO_ENCRYPTION_DETERMINISTIC_KEY=${LAGO_ENCRYPTION_DETERMINISTIC_KEY}'
+      - 'LAGO_ENCRYPTION_KEY_DERIVATION_SALT=${LAGO_ENCRYPTION_KEY_DERIVATION_SALT}'
+      - 'LAGO_API_URL=${LAGO_API_URL}'
+      - 'LAGO_REDIS_CACHE_URL=redis://redis:6379'
+  pdf:
+    image: 'getlago/lago-gotenberg:7.8.2'
+    exclude_from_hc: true
+volumes:
+  lago-postgres-data: null
+  lago-redis-data: null
+  lago-storage-data: null

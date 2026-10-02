@@ -1,0 +1,233 @@
+services:
+  db:
+    image: 'getlago/postgres-partman:15.0-alpine'
+    environment:
+      - POSTGRES_DB=lago
+      - POSTGRES_USER=lago
+      - 'POSTGRES_PASSWORD=${SERVICE_PASSWORD_POSTGRES}'
+      - PGDATA=/data/postgres
+    volumes:
+      - 'lago-postgres-data:/data/postgres'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'pg_isready -U lago -d lago -h localhost'
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: 'redis:7-alpine'
+    volumes:
+      - 'lago-redis-data:/data'
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  api:
+    image: 'restart/lago-api:v1.53.0'
+    build:
+      dockerfile_inline: |
+        FROM getlago/api:v1.53.0
+        RUN f=app/services/payments/manual_create_service.rb          && grep -q 'return result.forbidden_failure! if !License.premium?' $$f          && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f          && ! grep -q 'License.premium?' $$f
+    command:
+      - sh
+      - '-c'
+      - './scripts/migrate.sh && ./scripts/start.api.sh'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - SERVICE_FQDN_API_3000
+      - 'DATABASE_URL=postgresql://lago:${SERVICE_PASSWORD_POSTGRES}@db:5432/lago'
+      - 'REDIS_URL=redis://redis:6379'
+      - 'SECRET_KEY_BASE=${SECRET_KEY_BASE}'
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - 'LAGO_RSA_PRIVATE_KEY=${LAGO_RSA_PRIVATE_KEY}'
+      - 'LAGO_ENCRYPTION_PRIMARY_KEY=${LAGO_ENCRYPTION_PRIMARY_KEY}'
+      - 'LAGO_ENCRYPTION_DETERMINISTIC_KEY=${LAGO_ENCRYPTION_DETERMINISTIC_KEY}'
+      - 'LAGO_ENCRYPTION_KEY_DERIVATION_SALT=${LAGO_ENCRYPTION_KEY_DERIVATION_SALT}'
+      - 'LAGO_API_URL=${LAGO_API_URL}'
+      - 'LAGO_FRONT_URL=${LAGO_FRONT_URL}'
+      - 'LAGO_PDF_URL=http://pdf:3000'
+      - 'LAGO_REDIS_CACHE_URL=redis://redis:6379'
+      - LAGO_SIDEKIQ_WEB=true
+      - LAGO_DISABLE_SIGNUP=false
+      - LAGO_CREATE_ORG=true
+      - 'LAGO_ORG_NAME=${LAGO_ORG_NAME}'
+      - 'LAGO_ORG_USER_EMAIL=${LAGO_ORG_USER_EMAIL}'
+      - 'LAGO_ORG_USER_PASSWORD=${LAGO_ORG_USER_PASSWORD}'
+    volumes:
+      - 'lago-storage-data:/app/storage'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl -f http://localhost:3000/health || exit 1'
+      interval: 10s
+      timeout: 60s
+      retries: 15
+      start_period: 120s
+  front:
+    image: 'restart/lago-front:v1.53.0'
+    build:
+      context: 'https://github.com/getlago/lago-front.git#v1.53.0'
+      dockerfile_inline: |
+        FROM node:24.20.0-alpine AS deps
+        WORKDIR /app
+        RUN apk add --no-cache python3 build-base && corepack enable
+        COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+        COPY packages/configs/package.json ./packages/configs/
+        COPY packages/design-system/package.json ./packages/design-system/
+        RUN pnpm install --frozen-lockfile --ignore-scripts
+
+        FROM node:24.20.0-alpine AS build
+        WORKDIR /app
+        ENV NODE_OPTIONS="--max-old-space-size=4096"
+        RUN apk add --no-cache python3 build-base && corepack enable
+        COPY --from=deps /app /app
+        COPY . .
+        COPY <<'PATCH_EOF' /tmp/patch-front.mjs
+        // Unlocks "Record a payment" (manual payments) in the self-hosted Lago front end.
+        // Upstream gates it behind the premium licence flag in several places; only the
+        // record-payment code paths are touched -- credit notes, audit logs and the rest
+        // of the premium-gated UI keep their upstream behaviour.
+        // Run from the root of getlago/lago-front at tag v1.53.0. Fails loudly if upstream
+        // changed, so a version bump can't silently ship an unpatched or half-patched build.
+        import { readFileSync, writeFileSync } from 'node:fs'
+
+        const KEY = 'text_1737471851634wpeojigr27w' // "Record a payment"
+
+        const edit = (file, fn) => {
+          const before = readFileSync(file, 'utf8')
+          const after = fn(before)
+          if (after === before) throw new Error(`patch-front: nothing changed in $${file}`)
+          writeFileSync(file, after)
+          console.log(`patched $${file}`)
+        }
+
+        // From the record-payment entry up to the premium dialog fallback, treat the licence as present.
+        const unlockBlock = (src) => {
+          const start = src.indexOf(KEY)
+          if (start === -1) throw new Error('record-payment key not found')
+          const m = /(openPremiumWarningDialog\(\)|premiumWarningDialog\.open\(\))/.exec(src.slice(start))
+          if (!m) throw new Error('premium dialog fallback not found')
+          const end = start + m.index + m[0].length
+          return (
+            src.slice(0, start) +
+            src.slice(start, end).replaceAll('isPremium', '(isPremium || true)') +
+            src.slice(end)
+          )
+        }
+
+        edit('src/components/invoices/InvoicePaymentList.tsx', (s) =>
+          s.replace('const { isPremium } = useCurrentUser()', 'useCurrentUser()\n  const isPremium = true'),
+        )
+        edit('src/components/customers/CustomerPaymentsTab.tsx', (s) =>
+          s.replace(
+            "hasPermissions(['paymentsCreate']) && isPremium",
+            "hasPermissions(['paymentsCreate']) && (isPremium || true)",
+          ),
+        )
+        for (const f of [
+          'src/components/customers/CustomerInvoicesList.tsx',
+          'src/components/invoices/InvoicesList.tsx',
+          'src/pages/CustomerInvoiceDetails.tsx',
+          'src/pages/PaymentsPage.tsx',
+        ]) {
+          edit(f, unlockBlock)
+        }
+        PATCH_EOF
+        RUN node /tmp/patch-front.mjs
+        RUN pnpm build
+
+        FROM nginx:1.31-alpine AS runtime
+        WORKDIR /usr/share/nginx/html
+        RUN apk upgrade --no-cache && apk add --no-cache bash
+        COPY --from=build /app/dist .
+        COPY ./nginx/nginx.conf /etc/nginx/conf.d/default.conf
+        COPY ./nginx/gzip.conf /etc/nginx/conf.d/gzip.conf
+        COPY ./nginx/csp.conf /etc/nginx/conf.d/csp.conf
+        COPY ./.env.sh ./.env.sh
+        EXPOSE 80
+        ENTRYPOINT ["/bin/bash", "-c", "./.env.sh && exec nginx -g \"daemon off;\""]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - SERVICE_FQDN_FRONT_80
+      - 'API_URL=${LAGO_API_URL}'
+      - APP_ENV=production
+      - 'LAGO_API_URL=${LAGO_API_URL}'
+      - 'LAGO_FRONT_URL=${LAGO_FRONT_URL}'
+      - LAGO_DISABLE_PDF_GENERATION=false
+  api-worker:
+    image: 'restart/lago-api:v1.53.0'
+    build:
+      dockerfile_inline: |
+        FROM getlago/api:v1.53.0
+        RUN f=app/services/payments/manual_create_service.rb          && grep -q 'return result.forbidden_failure! if !License.premium?' $$f          && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f          && ! grep -q 'License.premium?' $$f
+    command:
+      - ./scripts/start.worker.sh
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - 'DATABASE_URL=postgresql://lago:${SERVICE_PASSWORD_POSTGRES}@db:5432/lago'
+      - 'REDIS_URL=redis://redis:6379'
+      - 'SECRET_KEY_BASE=${SECRET_KEY_BASE}'
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - 'LAGO_RSA_PRIVATE_KEY=${LAGO_RSA_PRIVATE_KEY}'
+      - 'LAGO_ENCRYPTION_PRIMARY_KEY=${LAGO_ENCRYPTION_PRIMARY_KEY}'
+      - 'LAGO_ENCRYPTION_DETERMINISTIC_KEY=${LAGO_ENCRYPTION_DETERMINISTIC_KEY}'
+      - 'LAGO_ENCRYPTION_KEY_DERIVATION_SALT=${LAGO_ENCRYPTION_KEY_DERIVATION_SALT}'
+      - 'LAGO_API_URL=${LAGO_API_URL}'
+      - 'LAGO_PDF_URL=http://pdf:3000'
+      - 'LAGO_REDIS_CACHE_URL=redis://redis:6379'
+    volumes:
+      - 'lago-storage-data:/app/storage'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl -f http://localhost:8080 || exit 1'
+      interval: 10s
+      timeout: 60s
+      retries: 15
+      start_period: 60s
+  api-clock:
+    image: 'restart/lago-api:v1.53.0'
+    build:
+      dockerfile_inline: |
+        FROM getlago/api:v1.53.0
+        RUN f=app/services/payments/manual_create_service.rb          && grep -q 'return result.forbidden_failure! if !License.premium?' $$f          && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f          && ! grep -q 'License.premium?' $$f
+    command:
+      - ./scripts/start.clock.sh
+    exclude_from_hc: true
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - 'DATABASE_URL=postgresql://lago:${SERVICE_PASSWORD_POSTGRES}@db:5432/lago'
+      - 'REDIS_URL=redis://redis:6379'
+      - 'SECRET_KEY_BASE=${SECRET_KEY_BASE}'
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - 'LAGO_RSA_PRIVATE_KEY=${LAGO_RSA_PRIVATE_KEY}'
+      - 'LAGO_ENCRYPTION_PRIMARY_KEY=${LAGO_ENCRYPTION_PRIMARY_KEY}'
+      - 'LAGO_ENCRYPTION_DETERMINISTIC_KEY=${LAGO_ENCRYPTION_DETERMINISTIC_KEY}'
+      - 'LAGO_ENCRYPTION_KEY_DERIVATION_SALT=${LAGO_ENCRYPTION_KEY_DERIVATION_SALT}'
+      - 'LAGO_API_URL=${LAGO_API_URL}'
+      - 'LAGO_REDIS_CACHE_URL=redis://redis:6379'
+  pdf:
+    image: 'getlago/lago-gotenberg:7.8.2'
+    exclude_from_hc: true
+volumes:
+  lago-postgres-data: null
+  lago-redis-data: null
+  lago-storage-data: null
