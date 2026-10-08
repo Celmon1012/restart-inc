@@ -12,7 +12,14 @@ export interface AgentActivity {
   id: string;
   created_at: string;
   actor: "admin" | "agent";
-  activity_type: "note" | "stage_change" | "agent_auto_action" | "agent_proposal" | "email_sent";
+  activity_type:
+    | "note"
+    | "stage_change"
+    | "agent_auto_action"
+    | "agent_proposal"
+    | "email_sent"
+    | "whatsapp_sent"
+    | "whatsapp_received";
   body: string | null;
   payload: Record<string, unknown> | null;
   status: "proposed" | "approved" | "rejected" | "complete";
@@ -42,7 +49,11 @@ function ActivityItem({
           ? "proposed an update"
           : activity.activity_type === "email_sent"
             ? "sent an email"
-            : "added a note";
+            : activity.activity_type === "whatsapp_sent"
+              ? "sent a WhatsApp message"
+              : activity.activity_type === "whatsapp_received"
+                ? "received a WhatsApp message"
+                : "added a note";
 
   return (
     <div className="activity-item">

@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
+import { HealthBadge } from "@/components/HealthBadge";
 import { consoleSchema } from "@/lib/supabase";
 import { loadWorkspaceNames } from "@/lib/admin";
 import { Check, ArrowRight, Search } from "lucide-react";
@@ -88,7 +89,7 @@ export default function AdminTasks() {
   );
 
   // client -> milestone -> tasks, preserving each milestone's own order.
-  const groups = new Map<string, { name: string; workspaceId: string | null; milestones: Map<string, { title: string; order: number; status: string; tasks: TaskRow[] }> }>();
+  const groups = new Map<string, { name: string; workspaceId: string | null; milestones: Map<string, { title: string; order: number; status: string; dueAt: string | null; tasks: TaskRow[] }> }>();
   for (const t of visible) {
     const ws = t.deliverable?.workspace;
     const key = ws?.id ?? "none";
@@ -100,6 +101,7 @@ export default function AdminTasks() {
         title: t.deliverable?.title ?? "Milestone",
         order: t.deliverable?.sort_order ?? 0,
         status: t.deliverable?.status ?? "",
+        dueAt: t.deliverable?.due_at ?? null,
         tasks: []
       });
     g.milestones.get(mKey)!.tasks.push(t);
@@ -196,6 +198,7 @@ export default function AdminTasks() {
                     <span className={`admin-task-context ${m.status === "blocked" ? "admin-warn" : ""}`}>
                       {m.title}
                       {m.status === "blocked" ? " · blocked" : ""}
+                      {!t.is_done && <HealthBadge status={m.status} dueAt={m.dueAt} />}
                     </span>
                   </div>
                 ))

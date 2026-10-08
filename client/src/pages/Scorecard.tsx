@@ -335,7 +335,7 @@ export default function Scorecard() {
                 </label>
                 <label className={`sp-optin${phone.trim() ? "" : " disabled"}`}>
                   <input type="checkbox" checked={whatsappOptIn} disabled={!phone.trim()} onChange={(e) => setWhatsappOptIn(e.target.checked)} />
-                  <span>You can also reply to me on WhatsApp at this number. A person replies, only about this result.</span>
+                  <span>Send my result on WhatsApp too, and let me reply there. Only about this result. Reply STOP anytime.</span>
                 </label>
                 <div className="scorecard-form-actions">
                   <button type="submit" className="button solid" disabled={lead.status === "sending"}>

@@ -16,6 +16,30 @@ export interface Deliverable {
   created_at: string;
 }
 
+export type DeliveryHealth = "overdue" | "due-soon" | "on-track" | "completed";
+
+export const DUE_SOON_DAYS = 7;
+
+export const HEALTH_LABEL: Record<DeliveryHealth, string> = {
+  overdue: "OVERDUE",
+  "due-soon": "DUE SOON",
+  "on-track": "ON TRACK",
+  completed: "COMPLETED"
+};
+
+// Completed always wins; otherwise it's driven by the due date. No due date
+// means there is nothing to be late against, so no badge.
+export function deliveryHealth(status: Deliverable["status"] | string, dueAt: string | null | undefined, now = new Date()): DeliveryHealth | null {
+  if (status === "completed") return "completed";
+  if (!dueAt) return null;
+  const due = new Date(dueAt).getTime();
+  if (Number.isNaN(due)) return null;
+  const t = now.getTime();
+  if (due < t) return "overdue";
+  if (due - t <= DUE_SOON_DAYS * 86_400_000) return "due-soon";
+  return "on-track";
+}
+
 export function getCurrentDeliverable(deliverables: Deliverable[]): Deliverable | undefined {
   return deliverables.find((d) => d.status === "in-progress");
 }

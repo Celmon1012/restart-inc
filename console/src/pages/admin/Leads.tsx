@@ -36,6 +36,7 @@ interface Inquiry {
   company: string | null;
   phone?: string | null;
   whatsapp_opt_in?: boolean;
+  whatsapp_opted_out_at?: string | null;
   service_tier: string | null;
   budget_range: string | null;
   project_stage: string | null;
@@ -475,6 +476,7 @@ export default function Leads() {
                           <a href={`tel:${selected.phone}`} className="text-teal">
                             {selected.phone}
                           </a>
+                          {selected.whatsapp_opted_out_at && <span>{" · "}WhatsApp stopped</span>}
                           {selected.whatsapp_opt_in && (
                             <>
                               {" · "}

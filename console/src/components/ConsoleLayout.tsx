@@ -35,7 +35,8 @@ import {
   ListChecks,
   Inbox,
   Wallet,
-  HardDrive
+  HardDrive,
+  Send
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -93,7 +94,10 @@ const ADMIN_NAV: NavGroup[] = [
   },
   {
     label: "Sales",
-    items: [{ href: "/admin/leads", label: "Leads & Pipeline", icon: Users }]
+    items: [
+      { href: "/admin/leads", label: "Leads & Pipeline", icon: Users },
+      { href: "/admin/outreach", label: "Outreach", icon: Send }
+    ]
   },
   {
     label: "Delivery",

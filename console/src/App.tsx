@@ -21,6 +21,7 @@ import NewProject from "./pages/NewProject";
 import AdminOverview from "./pages/admin/Overview";
 import AdminClients from "./pages/admin/Clients";
 import AdminLeads from "./pages/admin/Leads";
+import AdminProspects from "./pages/admin/Prospects";
 import AdminProjects from "./pages/admin/Projects";
 import AdminProjectDetail from "./pages/admin/ProjectDetail";
 import AdminClientDetail from "./pages/admin/ClientDetail";
@@ -154,6 +155,13 @@ function Router() {
         <ProtectedRoute>
           <AdminRoute>
             <AdminLeads />
+          </AdminRoute>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/outreach">
+        <ProtectedRoute>
+          <AdminRoute>
+            <AdminProspects />
           </AdminRoute>
         </ProtectedRoute>
       </Route>

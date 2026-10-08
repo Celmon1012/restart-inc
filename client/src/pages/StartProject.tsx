@@ -822,7 +822,7 @@ export default function StartProject() {
                     </div>
                     <label className={`sp-optin${phone.trim() ? "" : " disabled"}`}>
                       <input type="checkbox" checked={whatsappOptIn} disabled={!phone.trim()} onChange={(e) => setWhatsappOptIn(e.target.checked)} />
-                      <span>You can also reply to me on WhatsApp at this number. A person replies, only about this brief.</span>
+                      <span>Confirm on WhatsApp too, and let me reply there. Only about this brief. Reply STOP anytime.</span>
                     </label>
                     <p className="sp-note">Your brief saves as you go. If you leave before sending it, we'll email you a link back to where you stopped, twice at most.</p>
                   </fieldset>

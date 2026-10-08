@@ -2873,6 +2873,11 @@
 .admin-table tr.clickable:hover td{ background: rgba(255,255,255,.025); }
 .admin-muted{ color: #6e7485; }
 .admin-warn{ color: var(--amber); }
+.health-badge{ display: inline-block; margin-left: 8px; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.06em; padding: 2px 8px; border-radius: 10px; vertical-align: middle; white-space: nowrap; }
+.health-badge.overdue{ background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+.health-badge.due-soon{ background: rgba(245, 158, 11, 0.15); color: var(--amber); }
+.health-badge.on-track{ background: rgba(96, 165, 250, 0.15); color: #93c5fd; }
+.health-badge.completed{ background: rgba(46, 229, 193, 0.15); color: var(--teal); }
 .admin-down{ color: #f87171; }
 .admin-ok{ color: var(--teal); }
 

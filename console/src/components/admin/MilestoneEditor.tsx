@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { ActivityTimeline, type AgentActivity } from "@/components/ActivityTimeline";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { HealthBadge } from "@/components/HealthBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { consoleSchema, supabase } from "@/lib/supabase";
 import type { Deliverable } from "@/lib/deliverables";
@@ -88,6 +89,7 @@ function MilestoneCard({
       <div className={`sprint-status-tag ${milestone.status === "in-progress" ? "active" : ""}`}>
         {STATUS_LABEL[milestone.status]} · MILESTONE {String(order).padStart(2, "0")}
         {milestone.due_at && ` · DUE ${formatDate(milestone.due_at).toUpperCase()}`}
+        <HealthBadge status={milestone.status} dueAt={milestone.due_at} />
       </div>
       <h4>{milestone.title}</h4>
       {milestone.description && <p>{milestone.description}</p>}
