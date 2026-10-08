@@ -26,8 +26,13 @@
 // the right trade for email to a prospect. Failures are logged on the lead's
 // timeline.
 //
-// WhatsApp here is only ever a wa.me link the lead taps themselves. Nothing
-// in this function messages anyone on WhatsApp.
+// WhatsApp: every email carries a wa.me link the lead can tap. Leads who
+// ticked the WhatsApp opt-in also get the acknowledgement as a WhatsApp
+// message, sent through Restart's self-hosted Evolution API instance. That
+// is the only WhatsApp message this function sends -- reminders stay
+// email-only, and a STOP reply (console-whatsapp-webhook) turns it off.
+// If the EVOLUTION_* variables aren't set, WhatsApp is skipped and email
+// carries on unchanged.
 //
 // Zero external imports, same cold-start reasoning as every other function
 // here.
@@ -39,6 +44,10 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const RESEND_FROM = Deno.env.get("RESEND_FROM") ?? "Restart Inc <hello@restart.ng>";
 const SITE_URL = (Deno.env.get("SITE_URL") ?? "https://restart.ng").replace(/\/$/, "");
 const WHATSAPP_NUMBER = Deno.env.get("WHATSAPP_NUMBER") ?? "2349060114747";
+const EVOLUTION_API_URL = (Deno.env.get("EVOLUTION_API_URL") ?? "").replace(/\/$/, "");
+const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
+const EVOLUTION_INSTANCE = Deno.env.get("EVOLUTION_INSTANCE") ?? "";
+const WHATSAPP_ENABLED = Boolean(EVOLUTION_API_URL && EVOLUTION_API_KEY && EVOLUTION_INSTANCE);
 
 const ACK_SOURCES = ["start_project_page", "scorecard"];
 const MAX_PER_RUN = 20;
@@ -79,11 +88,28 @@ async function sendEmail(to: string, subject: string, text: string) {
   if (!res.ok) throw new Error(`Resend -> ${res.status}: ${await res.text()}`);
 }
 
-async function logActivity(inquiryId: string, body: string, payload: Record<string, unknown>) {
+// Evolution API v2: POST /message/sendText/{instance}. `delay` shows the
+// lead a "typing..." state for that long first, which also keeps the send
+// from looking like a burst.
+async function sendWhatsApp(phone: string, text: string) {
+  const res = await fetch(`${EVOLUTION_API_URL}/message/sendText/${encodeURIComponent(EVOLUTION_INSTANCE)}`, {
+    method: "POST",
+    headers: { apikey: EVOLUTION_API_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ number: phone.replace(/\D/g, ""), text, delay: 1500 }),
+  });
+  if (!res.ok) throw new Error(`Evolution API -> ${res.status}: ${(await res.text()).slice(0, 300)}`);
+}
+
+async function logActivity(
+  inquiryId: string,
+  body: string,
+  payload: Record<string, unknown>,
+  activityType: "email_sent" | "whatsapp_sent" | "note" = "email_sent"
+) {
   await pg("inquiry_activities", {
     method: "POST",
     profile: "write",
-    body: JSON.stringify({ inquiry_id: inquiryId, actor: "agent", activity_type: "email_sent", body, payload }),
+    body: JSON.stringify({ inquiry_id: inquiryId, actor: "agent", activity_type: activityType, body, payload }),
   });
 }
 
@@ -112,6 +138,7 @@ interface InquiryRow {
   company: string | null;
   phone: string | null;
   whatsapp_opt_in: boolean;
+  whatsapp_opted_out_at: string | null;
   scorecard: {
     score?: number;
     band?: string;
@@ -168,6 +195,26 @@ function scorecardAck(inq: InquiryRow, token: string | null) {
   return { subject, text };
 }
 
+// The WhatsApp version is short on purpose: the email carries the detail
+// and the links, this says it arrived and that a person is on the other end.
+function whatsappAck(inq: InquiryRow) {
+  const lines = [`Hi ${firstName(inq.name)}, this is Restart.`, ""];
+  const sc = inq.scorecard ?? {};
+  if (inq.source === "scorecard" && typeof sc.score === "number") {
+    const weakest = sc.weakest_detail?.[0];
+    lines.push(
+      `Your Readiness Score is ${sc.score}/100${weakest ? `, and the weakest area is ${weakest.title} (${weakest.pct}%)` : ""}.`,
+      `We've emailed ${inq.email} the first fix for each weak area, plus a link to turn it into a project brief.`
+    );
+  } else {
+    lines.push(
+      `We have your project brief (${inq.reference_id}). A senior engineer reads it within one business day and replies by email.`
+    );
+  }
+  lines.push("", "If it's easier to talk it through, reply here. A person answers.", "", "Reply STOP to stop WhatsApp messages from us.");
+  return lines.join("\n");
+}
+
 // A scorecard lead gets a draft brief made for them, so the link in their
 // email opens Start a Project with their contact details and result already
 // in place. No reminders on it: max_nudges = 0.
@@ -205,7 +252,7 @@ async function createScorecardDraft(inq: InquiryRow): Promise<string | null> {
 async function runAcknowledgements() {
   const candidates: InquiryRow[] = await pg(
     `inquiries?ack_sent_at=is.null&source=in.(${ACK_SOURCES.join(",")})` +
-      `&select=id,reference_id,source,name,email,company,phone,whatsapp_opt_in,scorecard` +
+      `&select=id,reference_id,source,name,email,company,phone,whatsapp_opt_in,whatsapp_opted_out_at,scorecard` +
       `&order=created_at.asc&limit=${MAX_PER_RUN}`
   );
   let sent = 0;
@@ -235,6 +282,22 @@ async function runAcknowledgements() {
           body: `Acknowledgement email failed and was not retried: ${(err as Error).message.slice(0, 500)}`,
         }),
       }).catch(() => {});
+    }
+
+    // Same claim covers WhatsApp: one attempt, never retried.
+    if (WHATSAPP_ENABLED && inq.whatsapp_opt_in && inq.phone && !inq.whatsapp_opted_out_at) {
+      const message = whatsappAck(inq);
+      try {
+        await sendWhatsApp(inq.phone, message);
+        await logActivity(inq.id, "Acknowledgement sent on WhatsApp automatically.", { to: inq.phone, text: message }, "whatsapp_sent");
+      } catch (err) {
+        await logActivity(
+          inq.id,
+          `WhatsApp acknowledgement failed and was not retried: ${(err as Error).message.slice(0, 500)}`,
+          { to: inq.phone },
+          "note"
+        ).catch(() => {});
+      }
     }
   }
   return sent;

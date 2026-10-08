@@ -76,7 +76,13 @@ with probe(migration, kind, obj, detail) as (
     ('20260929120000_console_inquiry_followup',      'column', 'console.inquiries', 'whatsapp_opt_in'),
     ('20260929120000_console_inquiry_followup',      'column', 'console.inquiries', 'ack_sent_at'),
     ('20260929120000_console_inquiry_followup',      'func',   'console.save_inquiry_draft', null),
-    ('20260929120000_console_inquiry_followup',      'func',   'console.stop_inquiry_followups', null)
+    ('20260929120000_console_inquiry_followup',      'func',   'console.stop_inquiry_followups', null),
+    ('20261008120000_console_outreach',              'table',  'console.prospects', null),
+    ('20261008120000_console_outreach',              'table',  'console.prospect_touches', null),
+    ('20261008120000_console_outreach',              'grant',  'console.prospects', 'service_role:INSERT'),
+    ('20261008120000_console_outreach',              'grant',  'console.prospect_touches', 'service_role:INSERT'),
+    ('20261008120000_console_outreach',              'policy', 'console.prospects', 'admins can read prospects'),
+    ('20261008120000_console_outreach',              'policy', 'console.prospect_touches', 'admins can read prospect touches')
 ),
 checked as (
   select
