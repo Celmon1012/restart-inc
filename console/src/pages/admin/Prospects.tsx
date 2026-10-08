@@ -11,7 +11,7 @@
 import { useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { consoleSchema } from "@/lib/supabase";
-import { Building2, Clock, Copy, ExternalLink, Mail, Phone, Search } from "lucide-react";
+import { Building2, Clock, Copy, ExternalLink, Mail, Phone, Search, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/format";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
@@ -341,6 +341,23 @@ export default function Prospects() {
     );
   };
 
+  const deleteProspect = async () => {
+    if (!selected) return;
+    if (!window.confirm(`Delete ${selected.company} and all its messages? This can't be undone.`)) return;
+    setSaving(true);
+    try {
+      const { error: deleteError } = await consoleSchema().from("prospects").delete().eq("id", selected.id);
+      if (deleteError) throw deleteError;
+      setSelectedId(null);
+      await refresh();
+      toast.success(`${selected.company} deleted`);
+    } catch (err) {
+      toast.error(errMessage(err, "Delete failed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const openProspect = (id: string) => {
     setSelectedId(id);
     setTab("prospects");
@@ -575,6 +592,9 @@ export default function Prospects() {
                           {!selected.do_not_contact && (
                             <button className="dash-tab-btn" disabled={saving} onClick={stopContact}>do not contact</button>
                           )}
+                          <button className="dash-tab-btn" disabled={saving} onClick={() => void deleteProspect()}>
+                            <Trash2 size={12} /><span>delete</span>
+                          </button>
                         </div>
                       </div>
 

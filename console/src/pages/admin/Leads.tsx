@@ -17,7 +17,7 @@ import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { ActivityTimeline, type AgentActivity } from "@/components/ActivityTimeline";
 import { useAuth } from "@/contexts/AuthContext";
 import { consoleSchema, supabase } from "@/lib/supabase";
-import { Mail, Phone, Building2, Clock, Send, Search, LayoutList, Columns3 } from "lucide-react";
+import { Mail, Phone, Building2, Clock, Send, Search, LayoutList, Columns3, Trash2 } from "lucide-react";
 import { PIPELINE_STAGES, OPEN_STAGES, queryParam, type PipelineStage } from "@/lib/admin";
 import { formatDate } from "@/lib/format";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
@@ -193,6 +193,23 @@ export default function Leads() {
       toast.error(err instanceof Error ? err.message : "Failed to update stage");
     } finally {
       setStageOverrides(({ [target.id]: _, ...rest }) => rest);
+      setStageSaving(false);
+    }
+  };
+
+  const handleDeleteLead = async () => {
+    if (!selected) return;
+    if (!window.confirm(`Delete ${selected.name} (${selected.company ?? selected.email}) and its activity? This can't be undone.`)) return;
+    setStageSaving(true);
+    try {
+      const { error: deleteError } = await consoleSchema().from("inquiries").delete().eq("id", selected.id);
+      if (deleteError) throw deleteError;
+      setSelectedId(null);
+      await loadInquiries();
+      toast.success(`${selected.name} deleted`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete lead");
+    } finally {
       setStageSaving(false);
     }
   };
@@ -536,6 +553,9 @@ export default function Leads() {
                             {s}
                           </button>
                         ))}
+                      <button className="dash-tab-btn" disabled={stageSaving} onClick={() => void handleDeleteLead()}>
+                        <Trash2 size={12} /><span>delete</span>
+                      </button>
                     </div>
                   </div>
 
