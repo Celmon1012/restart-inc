@@ -29,6 +29,7 @@ services:
       retries: 5
   api:
     image: 'restart/lago-api:v1.53.0-p2'
+    pull_policy: build
     build:
       dockerfile_inline: |
         FROM getlago/api:v1.53.0
@@ -77,6 +78,7 @@ services:
       start_period: 120s
   front:
     image: 'restart/lago-front:v1.53.0-p2'
+    pull_policy: build
     build:
       context: 'https://github.com/getlago/lago-front.git#v1.53.0'
       dockerfile_inline: |
@@ -185,6 +187,7 @@ services:
       - LAGO_DISABLE_PDF_GENERATION=false
   api-worker:
     image: 'restart/lago-api:v1.53.0-p2'
+    pull_policy: build
     build:
       dockerfile_inline: |
         FROM getlago/api:v1.53.0
@@ -221,6 +224,7 @@ services:
       start_period: 60s
   api-clock:
     image: 'restart/lago-api:v1.53.0-p2'
+    pull_policy: build
     build:
       dockerfile_inline: |
         FROM getlago/api:v1.53.0
