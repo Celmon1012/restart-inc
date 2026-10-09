@@ -28,11 +28,13 @@ services:
       timeout: 5s
       retries: 5
   api:
-    image: 'restart/lago-api:v1.53.0'
+    image: 'restart/lago-api:v1.53.0-p2'
     build:
       dockerfile_inline: |
         FROM getlago/api:v1.53.0
-        RUN f=app/services/payments/manual_create_service.rb          && grep -q 'return result.forbidden_failure! if !License.premium?' $$f          && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f          && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/payments/manual_create_service.rb && grep -q 'return result.forbidden_failure! if !License.premium?' $$f && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/api_keys/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/models/organization.rb && grep -q 'License.premium? && premium_integrations.include?(premium_integration)' $$f && sed -i 's/License.premium? && premium_integrations.include?(premium_integration)/premium_integration == "api_permissions" || (License.premium? \&\& premium_integrations.include?(premium_integration))/' $$f && grep -q 'premium_integration == "api_permissions"' $$f
     command:
       - sh
       - '-c'
@@ -74,7 +76,7 @@ services:
       retries: 15
       start_period: 120s
   front:
-    image: 'restart/lago-front:v1.53.0'
+    image: 'restart/lago-front:v1.53.0-p2'
     build:
       context: 'https://github.com/getlago/lago-front.git#v1.53.0'
       dockerfile_inline: |
@@ -142,6 +144,21 @@ services:
         ]) {
           edit(f, unlockBlock)
         }
+
+        // API keys: creating more than the first key, and scoping a key's permissions,
+        // are licence-gated upstream. The API side is patched in api.Dockerfile.
+        edit('src/components/developers/apiKeys/ApiKeys.tsx', (s) =>
+          s.replace(
+            'const showPremiumAddApiKeyState = !isPremium &&',
+            'const showPremiumAddApiKeyState = !(isPremium || true) &&',
+          ),
+        )
+        edit('src/pages/developers/ApiKeysForm.tsx', (s) =>
+          s.replace(
+            /const hasAccessToApiPermissionsPremiumAddOn = !!premiumIntegrations\?\.includes\(\s*PremiumIntegrationTypeEnum\.ApiPermissions,?\s*\)/,
+            'const hasAccessToApiPermissionsPremiumAddOn = !!premiumIntegrations?.includes(PremiumIntegrationTypeEnum.ApiPermissions) || true',
+          ),
+        )
         PATCH_EOF
         RUN node /tmp/patch-front.mjs
         RUN pnpm build
@@ -167,11 +184,13 @@ services:
       - 'LAGO_FRONT_URL=${LAGO_FRONT_URL}'
       - LAGO_DISABLE_PDF_GENERATION=false
   api-worker:
-    image: 'restart/lago-api:v1.53.0'
+    image: 'restart/lago-api:v1.53.0-p2'
     build:
       dockerfile_inline: |
         FROM getlago/api:v1.53.0
-        RUN f=app/services/payments/manual_create_service.rb          && grep -q 'return result.forbidden_failure! if !License.premium?' $$f          && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f          && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/payments/manual_create_service.rb && grep -q 'return result.forbidden_failure! if !License.premium?' $$f && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/api_keys/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/models/organization.rb && grep -q 'License.premium? && premium_integrations.include?(premium_integration)' $$f && sed -i 's/License.premium? && premium_integrations.include?(premium_integration)/premium_integration == "api_permissions" || (License.premium? \&\& premium_integrations.include?(premium_integration))/' $$f && grep -q 'premium_integration == "api_permissions"' $$f
     command:
       - ./scripts/start.worker.sh
     depends_on:
@@ -201,11 +220,13 @@ services:
       retries: 15
       start_period: 60s
   api-clock:
-    image: 'restart/lago-api:v1.53.0'
+    image: 'restart/lago-api:v1.53.0-p2'
     build:
       dockerfile_inline: |
         FROM getlago/api:v1.53.0
-        RUN f=app/services/payments/manual_create_service.rb          && grep -q 'return result.forbidden_failure! if !License.premium?' $$f          && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f          && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/payments/manual_create_service.rb && grep -q 'return result.forbidden_failure! if !License.premium?' $$f && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/api_keys/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/models/organization.rb && grep -q 'License.premium? && premium_integrations.include?(premium_integration)' $$f && sed -i 's/License.premium? && premium_integrations.include?(premium_integration)/premium_integration == "api_permissions" || (License.premium? \&\& premium_integrations.include?(premium_integration))/' $$f && grep -q 'premium_integration == "api_permissions"' $$f
     command:
       - ./scripts/start.clock.sh
     exclude_from_hc: true

@@ -47,3 +47,18 @@ for (const f of [
 ]) {
   edit(f, unlockBlock)
 }
+
+// API keys: creating more than the first key, and scoping a key's permissions,
+// are licence-gated upstream. The API side is patched in api.Dockerfile.
+edit('src/components/developers/apiKeys/ApiKeys.tsx', (s) =>
+  s.replace(
+    'const showPremiumAddApiKeyState = !isPremium &&',
+    'const showPremiumAddApiKeyState = !(isPremium || true) &&',
+  ),
+)
+edit('src/pages/developers/ApiKeysForm.tsx', (s) =>
+  s.replace(
+    /const hasAccessToApiPermissionsPremiumAddOn = !!premiumIntegrations\?\.includes\(\s*PremiumIntegrationTypeEnum\.ApiPermissions,?\s*\)/,
+    'const hasAccessToApiPermissionsPremiumAddOn = !!premiumIntegrations?.includes(PremiumIntegrationTypeEnum.ApiPermissions) || true',
+  ),
+)
