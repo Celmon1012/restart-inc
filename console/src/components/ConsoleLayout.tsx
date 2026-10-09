@@ -1,4 +1,5 @@
 import { AttentionBell } from "@/components/admin/AttentionBell";
+import { DashboardSwitcher } from "@/components/DashboardSwitcher";
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import {
@@ -563,27 +564,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
                 console-data's server-side read of app_metadata). The area
                 itself is still enforced by AdminRoute + RLS, not this button.
                 Icon-only in both areas, sitting just before the account menu. */}
-            {isAdmin && !isAdminArea && (
-              <Link
-                href="/admin"
-                className="dash-admin-btn dash-admin-btn-icon"
-                title="Admin area"
-                aria-label="Admin area"
-              >
-                <ShieldCheck size={15} />
-              </Link>
-            )}
-
-            {isAdminArea && (
-              <Link
-                href="/overview"
-                className="dash-admin-btn dash-admin-btn-icon"
-                title="Client console"
-                aria-label="Client console"
-              >
-                <LayoutGrid size={15} />
-              </Link>
-            )}
+            {isAdmin && <DashboardSwitcher current={isAdminArea ? "admin" : "client"} />}
 
             <div className="dash-user-menu-wrapper" ref={userMenuRef}>
               <button
