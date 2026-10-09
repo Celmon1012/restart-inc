@@ -234,6 +234,10 @@ export default function BillingSla() {
           .filter((inv) => inv.currency === unpaid[0].currency)
           .reduce((sum, inv) => sum + inv.totalDueAmountCents, 0),
         count: unpaid.length,
+        // Recorded payments on invoices that are not yet paid in full.
+        paidCents: unpaid
+          .filter((inv) => inv.currency === unpaid[0].currency)
+          .reduce((sum, inv) => sum + inv.totalPaidAmountCents, 0),
       }
     : null;
 
@@ -310,7 +314,11 @@ export default function BillingSla() {
                   <strong>{outstanding ? formatAmount(outstanding.cents, outstanding.currency) : "Nothing due"}</strong>
                   <span className="billing-summary-sub">
                     {outstanding
-                      ? `${outstanding.count} unpaid invoice${outstanding.count === 1 ? "" : "s"}`
+                      ? `${outstanding.count} unpaid invoice${outstanding.count === 1 ? "" : "s"}${
+                          outstanding.paidCents > 0
+                            ? ` · ${formatAmount(outstanding.paidCents, outstanding.currency)} paid so far`
+                            : ""
+                        }`
                       : "All invoices paid"}
                   </span>
                 </div>
@@ -446,6 +454,7 @@ export default function BillingSla() {
                     <div className="invoices-list">
                       {data.invoices.map((inv) => {
                         const tone = statusTone(inv.paymentStatus === "pending" ? inv.paymentStatus : inv.status);
+                        const partlyPaid = inv.paymentStatus !== "succeeded" && inv.status !== "voided" && inv.totalPaidAmountCents > 0;
                         return (
                           <div key={inv.number} className="invoice-row">
                             <div className="inv-left">
@@ -454,11 +463,16 @@ export default function BillingSla() {
                             </div>
                             <div className="inv-right">
                               <span className={`system-healthy-pill ${tone === "healthy" ? "" : tone}`}>
-                                {inv.paymentStatus.toUpperCase()}
+                                {partlyPaid ? "PARTIALLY PAID" : inv.paymentStatus.toUpperCase()}
                               </span>
                               <span className="inv-amount" title={inv.totalPaidAmountCents > 0 && inv.paymentStatus !== "succeeded" ? `${formatAmount(inv.totalPaidAmountCents, inv.currency)} paid of ${formatAmount(inv.totalAmountCents, inv.currency)}` : undefined}>
                                 {formatAmount(inv.paymentStatus !== "succeeded" && inv.totalPaidAmountCents > 0 ? inv.totalDueAmountCents : inv.totalAmountCents, inv.currency)}
-                                {inv.paymentStatus !== "succeeded" && inv.totalPaidAmountCents > 0 ? " due" : ""}
+                                {partlyPaid ? " due" : ""}
+                                {partlyPaid && (
+                                  <small className="inv-paid-note">
+                                    {formatAmount(inv.totalPaidAmountCents, inv.currency)} paid of {formatAmount(inv.totalAmountCents, inv.currency)}
+                                  </small>
+                                )}
                               </span>
                               {inv.paymentUrl && (
                                 <a
