@@ -490,12 +490,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
               </div>
             )}
           </div>
-          {isAdminArea ? (
-            <Link href="/overview" className="sidebar-back-link" title="Back to client console">
-              <ArrowLeft size={14} />
-              <span>Back to console</span>
-            </Link>
-          ) : (
+          {!isAdminArea && (
             <a href={MARKETING_URL} className="sidebar-back-link" title="Back to public site">
               <ArrowLeft size={14} />
               <span>Back to public site</span>
@@ -575,9 +570,13 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
             )}
 
             {isAdminArea ? (
-              <Link href="/overview" className="dash-admin-btn" title="Back to the client console">
-                <LayoutGrid size={14} />
-                <span>Client console</span>
+              <Link
+                href="/overview"
+                className="dash-admin-btn dash-admin-btn-icon"
+                title="Client console"
+                aria-label="Client console"
+              >
+                <LayoutGrid size={15} />
               </Link>
             ) : (
               <Link href="/new-project" className="dash-action-btn">

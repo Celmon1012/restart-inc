@@ -2852,6 +2852,7 @@
    one visual cue that you're in Restart's back office, not a client workspace. */
 .dash-admin-btn{ display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px; border-radius: 6px; border: 1px solid rgba(167,139,250,.35); background: rgba(167,139,250,.08); color: #d6ccff; font-size: 0.8125rem; font-weight: 700; text-decoration: none; white-space: nowrap; transition: background .15s, border-color .15s; }
 .dash-admin-btn:hover{ background: rgba(167,139,250,.16); border-color: rgba(167,139,250,.55); color: #fff; }
+.dash-admin-btn-icon{ justify-content: center; width: 40px; height: 40px; padding: 0; }
 .admin-area .console-sidebar-brand .dash-tag{ color: var(--violet); }
 @media (max-width: 640px){ .dash-admin-btn span{ display: none; } .dash-admin-btn{ padding: 10px; } }
 
