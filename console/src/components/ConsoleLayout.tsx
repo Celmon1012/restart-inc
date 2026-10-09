@@ -2,7 +2,6 @@ import { AttentionBell } from "@/components/admin/AttentionBell";
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import {
-  ArrowLeft,
   ArrowRight,
   MoreHorizontal,
   User,
@@ -490,12 +489,6 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
               </div>
             )}
           </div>
-          {!isAdminArea && (
-            <a href={MARKETING_URL} className="sidebar-back-link" title="Back to public site">
-              <ArrowLeft size={14} />
-              <span>Back to public site</span>
-            </a>
-          )}
         </div>
       </aside>
       {/* Collapse control sits on the sidebar's right edge. It lives outside
@@ -559,17 +552,29 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
 
             {isAdminArea && <AttentionBell />}
 
-            {/* Admin entry point, rendered only for admins (isAdmin comes from
-                console-data's server-side read of app_metadata). The area
-                itself is still enforced by AdminRoute + RLS, not this button. */}
-            {isAdmin && !isAdminArea && (
-              <Link href="/admin" className="dash-admin-btn" title="Open the Restart admin area">
-                <ShieldCheck size={14} />
-                <span>Admin area</span>
+            {!isAdminArea && (
+              <Link href="/new-project" className="dash-action-btn">
+                <Plus size={14} />
+                <span>Start a Project</span>
               </Link>
             )}
 
-            {isAdminArea ? (
+            {/* Admin entry point, rendered only for admins (isAdmin comes from
+                console-data's server-side read of app_metadata). The area
+                itself is still enforced by AdminRoute + RLS, not this button.
+                Icon-only in both areas, sitting just before the account menu. */}
+            {isAdmin && !isAdminArea && (
+              <Link
+                href="/admin"
+                className="dash-admin-btn dash-admin-btn-icon"
+                title="Admin area"
+                aria-label="Admin area"
+              >
+                <ShieldCheck size={15} />
+              </Link>
+            )}
+
+            {isAdminArea && (
               <Link
                 href="/overview"
                 className="dash-admin-btn dash-admin-btn-icon"
@@ -577,11 +582,6 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
                 aria-label="Client console"
               >
                 <LayoutGrid size={15} />
-              </Link>
-            ) : (
-              <Link href="/new-project" className="dash-action-btn">
-                <Plus size={14} />
-                <span>Start a Project</span>
               </Link>
             )}
 
