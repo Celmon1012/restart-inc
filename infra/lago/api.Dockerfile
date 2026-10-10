@@ -63,3 +63,11 @@ RUN f=app/services/billing_entities/create_service.rb \
  && grep -q '^        if License.premium?$' $f \
  && sed -i 's/^        if License.premium?$/        if true/' $f \
  && ! grep -q 'License.premium?' $f
+
+# Bug in upstream v1.53.0, not a licence gate: the payment-link flow (PaymentIntents::FetchService)
+# reads provider_session_id from the provider's result, but only Stripe's result defines it, so
+# "Open payment link" raises NoMethodError for Flutterwave (and Adyen). Read it only if present.
+RUN f=app/services/payment_intents/fetch_service.rb \
+ && grep -q 'provider_session_id: payment_url_result.provider_session_id' $f \
+ && sed -i 's/provider_session_id: payment_url_result.provider_session_id/provider_session_id: (payment_url_result.provider_session_id if payment_url_result.respond_to?(:provider_session_id))/' $f \
+ && grep -q 'respond_to?(:provider_session_id)' $f

@@ -28,7 +28,7 @@ services:
       timeout: 5s
       retries: 5
   api:
-    image: 'restart/lago-api:v1.53.0-p4'
+    image: 'restart/lago-api:v1.53.0-p5'
     pull_policy: build
     build:
       dockerfile_inline: |
@@ -43,6 +43,7 @@ services:
         RUN f=app/services/credit_notes/estimate_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/models/organization.rb && grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count' $$f && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:enterprise]/' $$f && ! grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities' $$f
         RUN f=app/services/billing_entities/create_service.rb && grep -q '^        if License.premium?$$' $$f && sed -i 's/^        if License.premium?$$/        if true/' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/payment_intents/fetch_service.rb && grep -q 'provider_session_id: payment_url_result.provider_session_id' $$f && sed -i 's/provider_session_id: payment_url_result.provider_session_id/provider_session_id: (payment_url_result.provider_session_id if payment_url_result.respond_to?(:provider_session_id))/' $$f && grep -q 'respond_to?(:provider_session_id)' $$f
     command:
       - sh
       - '-c'
@@ -84,7 +85,7 @@ services:
       retries: 15
       start_period: 120s
   front:
-    image: 'restart/lago-front:v1.53.0-p4'
+    image: 'restart/lago-front:v1.53.0-p5'
     pull_policy: build
     build:
       context: 'https://github.com/getlago/lago-front.git#v1.53.0'
@@ -232,7 +233,7 @@ services:
       - 'LAGO_FRONT_URL=${LAGO_FRONT_URL}'
       - LAGO_DISABLE_PDF_GENERATION=false
   api-worker:
-    image: 'restart/lago-api:v1.53.0-p4'
+    image: 'restart/lago-api:v1.53.0-p5'
     pull_policy: build
     build:
       dockerfile_inline: |
@@ -247,6 +248,7 @@ services:
         RUN f=app/services/credit_notes/estimate_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/models/organization.rb && grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count' $$f && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:enterprise]/' $$f && ! grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities' $$f
         RUN f=app/services/billing_entities/create_service.rb && grep -q '^        if License.premium?$$' $$f && sed -i 's/^        if License.premium?$$/        if true/' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/payment_intents/fetch_service.rb && grep -q 'provider_session_id: payment_url_result.provider_session_id' $$f && sed -i 's/provider_session_id: payment_url_result.provider_session_id/provider_session_id: (payment_url_result.provider_session_id if payment_url_result.respond_to?(:provider_session_id))/' $$f && grep -q 'respond_to?(:provider_session_id)' $$f
     command:
       - ./scripts/start.worker.sh
     depends_on:
@@ -276,7 +278,7 @@ services:
       retries: 15
       start_period: 60s
   api-clock:
-    image: 'restart/lago-api:v1.53.0-p4'
+    image: 'restart/lago-api:v1.53.0-p5'
     pull_policy: build
     build:
       dockerfile_inline: |
@@ -291,6 +293,7 @@ services:
         RUN f=app/services/credit_notes/estimate_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/models/organization.rb && grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count' $$f && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:enterprise]/' $$f && ! grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities' $$f
         RUN f=app/services/billing_entities/create_service.rb && grep -q '^        if License.premium?$$' $$f && sed -i 's/^        if License.premium?$$/        if true/' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/payment_intents/fetch_service.rb && grep -q 'provider_session_id: payment_url_result.provider_session_id' $$f && sed -i 's/provider_session_id: payment_url_result.provider_session_id/provider_session_id: (payment_url_result.provider_session_id if payment_url_result.respond_to?(:provider_session_id))/' $$f && grep -q 'respond_to?(:provider_session_id)' $$f
     command:
       - ./scripts/start.clock.sh
     exclude_from_hc: true
