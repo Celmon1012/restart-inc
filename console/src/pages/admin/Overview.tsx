@@ -76,7 +76,7 @@ export default function AdminOverview() {
         />
         <Tile
           label="MRR"
-          href="/admin/finance"
+          href="/finance"
           value={dash(finance.loading, finance.error, <TotalsValue totals={finance.data?.totals.mrr} />)}
           hint={finance.error ? "Couldn't reach billing" : `${formatTotals(finance.data?.totals.outstanding)} outstanding`}
           warn={Boolean(finance.data && Object.keys(finance.data.totals.overdue).length)}
@@ -160,7 +160,7 @@ export default function AdminOverview() {
 
           <div className="cp-card-head cp-sub">
             <span>Collections</span>
-            <Link href="/admin/finance" className="cp-head-link">Finance <ArrowRight size={11} /></Link>
+            <Link href="/finance" className="cp-head-link">Finance <ArrowRight size={11} /></Link>
           </div>
           {finance.error ? (
             <p className="cp-empty">Couldn't reach billing.</p>

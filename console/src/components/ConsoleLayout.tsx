@@ -50,10 +50,11 @@ interface ConsoleLayoutProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   // "console" is the client-facing workspace view; "admin" is Restart's own
-  // cross-workspace back office (pipeline, project management, support desk,
-  // finance). Same shell, different nav -- routes under /admin are gated by
-  // AdminRoute in App.tsx and, for real, by console.is_admin() in RLS.
-  area?: "console" | "admin";
+  // cross-workspace back office, shown to staff as "Ops" (sales pipeline,
+  // delivery, support); "finance" is the money side. Same shell, different
+  // nav -- /admin and /finance are gated by AdminRoute in App.tsx and, for
+  // real, by console.is_admin() in RLS. URLs keep /admin so links don't break.
+  area?: "console" | "admin" | "finance";
 }
 
 type NavGroup = {
@@ -98,19 +99,20 @@ const ADMIN_NAV: NavGroup[] = [
     ]
   },
   {
-    label: "Delivery",
+    label: "Delivery & Support",
     items: [
       { href: "/admin/projects", label: "Projects", icon: KanbanSquare },
       { href: "/admin/tasks", label: "Tasks", icon: ListChecks },
-      { href: "/admin/requests", label: "Server Requests", icon: HardDrive }
+      { href: "/admin/requests", label: "Server Requests", icon: HardDrive },
+      { href: "/admin/support", label: "Support Desk", icon: Inbox }
     ]
-  },
+  }
+];
+
+const FINANCE_NAV: NavGroup[] = [
   {
-    label: "Operations",
-    items: [
-      { href: "/admin/support", label: "Support Desk", icon: Inbox },
-      { href: "/admin/finance", label: "Finance", icon: Wallet }
-    ]
+    label: null,
+    items: [{ href: "/finance", label: "Overview", icon: Wallet }]
   }
 ];
 
@@ -124,15 +126,18 @@ const ADMIN_TABS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/leads", label: "Pipeline" },
   { href: "/admin/projects", label: "Projects" },
-  { href: "/admin/support", label: "Support" },
-  { href: "/admin/finance", label: "Finance" }
+  { href: "/admin/support", label: "Support" }
 ];
+
+const FINANCE_TABS = [{ href: "/finance", label: "Overview" }];
 
 export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area = "console" }: ConsoleLayoutProps) {
   const [location, setLocation] = useLocation();
-  const isAdminArea = area === "admin";
-  const navGroups = isAdminArea ? ADMIN_NAV : CONSOLE_NAV;
-  const topTabs = isAdminArea ? ADMIN_TABS : CONSOLE_TABS;
+  // True for both staff areas (Ops and Finance): cross-workspace, no workspace switcher.
+  const isAdminArea = area !== "console";
+  const areaLabel = area === "finance" ? "Finance" : "Ops";
+  const navGroups = area === "finance" ? FINANCE_NAV : isAdminArea ? ADMIN_NAV : CONSOLE_NAV;
+  const topTabs = area === "finance" ? FINANCE_TABS : isAdminArea ? ADMIN_TABS : CONSOLE_TABS;
   const { user, signOut } = useAuth();
   const { workspaces, activeWorkspace, isAdmin, loading: workspaceLoading, setActiveWorkspaceId } = useWorkspace();
   const displayName = getDisplayName(user);
@@ -304,7 +309,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
             ) : (
               <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />
             )}
-            <span className="dash-tag">{isAdminArea ? "ADMIN" : "CONSOLE"}</span>
+            <span className="dash-tag">{isAdminArea ? areaLabel.toUpperCase() : "CONSOLE"}</span>
           </a>
           <button
             onClick={() => setMobileSidebarOpen(false)}
@@ -395,7 +400,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
         </div>
         )}
 
-        <nav className="console-sidebar-nav" aria-label={isAdminArea ? "Admin" : "Console"}>
+        <nav className="console-sidebar-nav" aria-label={isAdminArea ? areaLabel : "Console"}>
           {navGroups.map((group, idx) => (
             <div className="console-sidebar-group" key={group.label ?? `group-${idx}`}>
               {group.label && <span className="console-sidebar-group-label">{group.label}</span>}
@@ -473,7 +478,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
                     onClick={() => setAccountMenuOpen(false)}
                   >
                     {isAdminArea ? <LayoutGrid size={14} /> : <ShieldCheck size={14} />}
-                    <span>{isAdminArea ? "Client console" : "Admin area"}</span>
+                    <span>{isAdminArea ? "Client console" : "Ops"}</span>
                   </Link>
                 )}
                 <div className="ws-menu-sep" />
@@ -512,7 +517,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
             >
               <Menu size={17} />
             </button>
-            <nav className="cp-tabs" aria-label={isAdminArea ? "Admin views" : "Workspace views"}>
+            <nav className="cp-tabs" aria-label={isAdminArea ? `${areaLabel} views` : "Workspace views"}>
               {topTabs.map((t) => (
                 <Link key={t.href} href={t.href} className={location === t.href ? "active" : undefined} aria-current={location === t.href ? "page" : undefined}>
                   {t.label}
@@ -562,7 +567,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
                 console-data's server-side read of app_metadata). The area
                 itself is still enforced by AdminRoute + RLS, not this button.
                 Icon-only in both areas, sitting just before the account menu. */}
-            {isAdmin && <DashboardSwitcher current={isAdminArea ? "admin" : "client"} />}
+            {isAdmin && <DashboardSwitcher current={area} />}
 
             <div className="dash-user-menu-wrapper" ref={userMenuRef}>
               <button

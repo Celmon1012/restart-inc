@@ -172,11 +172,11 @@ export default function AdminFinance() {
     : [];
 
   return (
-    <ConsoleLayout area="admin" onRefresh={() => void refresh()} isRefreshing={refreshing}>
+    <ConsoleLayout area="finance" onRefresh={() => void refresh()} isRefreshing={refreshing}>
       <StatusRegion message={loading ? "Loading finance data" : error ? `Could not load finance data: ${error}` : "Finance data loaded"} />
       <div className="dash-header-row">
         <div>
-          <span className="dash-kicker">OPERATIONS</span>
+          <span className="dash-kicker">FINANCE</span>
           <h1>Finance</h1>
           <p>Recurring revenue, collections, and what's still owed, across every client.</p>
         </div>

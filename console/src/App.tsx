@@ -202,6 +202,9 @@ function Router() {
         </ProtectedRoute>
       </Route>
       <Route path="/admin/finance">
+        <Redirect to="/finance" />
+      </Route>
+      <Route path="/finance">
         <ProtectedRoute>
           <AdminRoute>
             <AdminFinance />

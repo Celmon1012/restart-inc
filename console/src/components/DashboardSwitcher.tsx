@@ -5,13 +5,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutGrid, ShieldCheck } from "lucide-react";
+import { LayoutGrid, ShieldCheck, Wallet } from "lucide-react";
 
-type Dashboard = "client" | "admin";
+type Dashboard = "console" | "admin" | "finance";
 
 const DASHBOARDS: Array<{ key: Dashboard; label: string; href: string; icon: typeof LayoutGrid }> = [
-  { key: "client", label: "Client console", href: "/overview", icon: LayoutGrid },
-  { key: "admin", label: "Admin area", href: "/admin", icon: ShieldCheck }
+  { key: "console", label: "Client console", href: "/overview", icon: LayoutGrid },
+  { key: "admin", label: "Ops", href: "/admin", icon: ShieldCheck },
+  { key: "finance", label: "Finance", href: "/finance", icon: Wallet }
 ];
 
 export function DashboardSwitcher({ current }: { current: Dashboard }) {
