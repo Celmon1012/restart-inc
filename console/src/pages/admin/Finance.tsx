@@ -10,6 +10,7 @@ import { formatAmount, formatDate } from "@/lib/format";
 import { ExternalLink } from "lucide-react";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
+import { OperatingCosts } from "@/components/admin/OperatingCosts";
 
 type Totals = Record<string, number>;
 
@@ -228,6 +229,8 @@ export default function AdminFinance() {
               ))}
             </div>
           )}
+
+          <OperatingCosts finance={data} />
 
           <div className="admin-section">
             <h2 className="admin-section-title">Unpaid invoices</h2>
