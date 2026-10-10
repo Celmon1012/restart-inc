@@ -31,8 +31,7 @@ export default function TopBar() {
     <div className="topbar" role="region" aria-label="Announcement">
       <Link href="/scorecard" className="topbar-link" onClick={() => track("topbar_click", { target: "scorecard" })}>
         <span className="topbar-tag"><Gauge size={13} /> Free assessment</span>
-        <span className="topbar-title">Readiness Scorecard</span>
-        <span className="topbar-cta">Score your system in 5 minutes <ChevronRight size={14} /></span>
+        <span className="topbar-cta">Score your system's readiness in 5 minutes <ChevronRight size={14} /></span>
       </Link>
       <button type="button" className="topbar-close" aria-label="Dismiss announcement" onClick={dismiss}>
         <X size={14} />

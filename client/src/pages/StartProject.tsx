@@ -9,7 +9,6 @@ import {
   Menu,
   X,
   Loader2,
-  ShieldCheck,
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
@@ -817,7 +816,7 @@ export default function StartProject() {
                       <label><span>Your name *</span><input type="text" placeholder="e.g. Alex Vance" value={name} onChange={(e) => setName(e.target.value)} className="sp-field" autoComplete="name" /></label>
                       <label><span>Work email *</span><input type="email" placeholder="alex@company.com" value={email} onChange={(e) => setEmail(e.target.value)} className="sp-field" autoComplete="email" /></label>
                       <label><span>Company</span><input type="text" placeholder="e.g. Acme Global Logistics" value={company} onChange={(e) => setCompany(e.target.value)} className="sp-field" autoComplete="organization" /></label>
-                      <label><span>Phone <em>(optional)</em></span><input type="tel" placeholder="+234 806 000 0000" value={phone} onChange={(e) => { setPhone(e.target.value); if (!e.target.value.trim()) setWhatsappOptIn(false); }} className="sp-field" autoComplete="tel" inputMode="tel" /></label>
+                      <label><span>WhatsApp / Phone no. <em>(optional)</em></span><input type="tel" placeholder="+234 806 000 0000" value={phone} onChange={(e) => { setPhone(e.target.value); if (!e.target.value.trim()) setWhatsappOptIn(false); }} className="sp-field" autoComplete="tel" inputMode="tel" /></label>
                     </div>
                     <label className={`sp-optin${phone.trim() ? "" : " disabled"}`}>
                       <input type="checkbox" checked={whatsappOptIn} disabled={!phone.trim()} onChange={(e) => setWhatsappOptIn(e.target.checked)} />
@@ -925,7 +924,6 @@ export default function StartProject() {
                 </button>
               ) : <p className="sp-note sp-nav-note">Your brief saves as you go. If you leave before completing it, we'll send you a link back to where you stopped.</p>}
               <div className="scorecard-nav-next">
-                <span className="sp-confidential"><ShieldCheck size={14} className="text-teal" /> Confidential. Read by senior engineers.</span>
                 <button
                   type={step < LAST_STEP ? "button" : "submit"}
                   onClick={step < LAST_STEP ? goNext : undefined}
