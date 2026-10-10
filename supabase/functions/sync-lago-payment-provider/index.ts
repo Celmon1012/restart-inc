@@ -14,7 +14,9 @@
 //
 // POST /functions/v1/sync-lago-payment-provider
 //   body: { externalCustomerId: string, paymentProvider?: string, paymentProviderCode?: string }
-//   defaults: paymentProvider "flutterwave", paymentProviderCode "flw_main"
+//   defaults: paymentProvider "flutterwave", paymentProviderCode "flutterwave"
+//   (the code is whatever the Flutterwave integration is called in Lago -- it changes if the
+//   integration is deleted and re-added, so pass paymentProviderCode if yours differs)
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -67,7 +69,7 @@ Deno.serve(async (req) => {
   if (!externalCustomerId) return json({ error: "externalCustomerId is required" }, 400);
 
   const paymentProvider = body.paymentProvider ?? "flutterwave";
-  const paymentProviderCode = body.paymentProviderCode ?? "flw_main";
+  const paymentProviderCode = body.paymentProviderCode ?? "flutterwave";
 
   // Lago's customers resource only registers create/index/show/destroy --
   // there's no PUT/update route. An update is POST to the collection

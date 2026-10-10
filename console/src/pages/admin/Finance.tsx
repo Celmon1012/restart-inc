@@ -148,6 +148,24 @@ export default function AdminFinance() {
     }
   };
 
+  const [relinkingId, setRelinkingId] = useState<string | null>(null);
+  const [relinkResult, setRelinkResult] = useState<Record<string, { ok: boolean; text: string }>>({});
+
+  // Re-creates the customer's link to the Flutterwave integration in Lago. Needed after the
+  // integration is deleted and re-added (its code changes), or when "Pay Now" stops working.
+  const relinkPayments = async (customerId: string, name: string) => {
+    if (!window.confirm(`Re-link ${name} to the Flutterwave integration in Lago?`)) return;
+    setRelinkingId(customerId);
+    try {
+      await invokeFunction("sync-lago-payment-provider", { body: { externalCustomerId: customerId } });
+      setRelinkResult((r) => ({ ...r, [customerId]: { ok: true, text: "Linked" } }));
+    } catch (err) {
+      setRelinkResult((r) => ({ ...r, [customerId]: { ok: false, text: (err as Error).message } }));
+    } finally {
+      setRelinkingId(null);
+    }
+  };
+
   const currencies = data
     ? Array.from(new Set(data.monthly.flatMap((m) => Object.keys(m.collected)).concat(Object.keys(data.totals.collected))))
     : [];
@@ -294,6 +312,7 @@ export default function AdminFinance() {
                       <th className="num">Outstanding</th>
                       <th className="num">Invoices</th>
                       <th>Last invoice</th>
+                      <th />
                     </tr>
                   </thead>
                   <tbody>
@@ -311,6 +330,21 @@ export default function AdminFinance() {
                         <td className={`num ${Object.keys(c.overdue).length ? "admin-warn" : ""}`}>{formatTotals(c.outstanding)}</td>
                         <td className="num">{c.invoiceCount}</td>
                         <td>{c.lastInvoiceAt ? formatDate(c.lastInvoiceAt) : "—"}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="dash-tab-btn"
+                            disabled={relinkingId === c.customerId}
+                            onClick={() => void relinkPayments(c.customerId, c.name)}
+                          >
+                            {relinkingId === c.customerId ? "Linking…" : "Re-link payments"}
+                          </button>
+                          {relinkResult[c.customerId] && (
+                            <small className={relinkResult[c.customerId].ok ? "admin-ok" : "admin-warn"} role="status">
+                              {" "}{relinkResult[c.customerId].text}
+                            </small>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
