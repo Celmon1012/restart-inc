@@ -52,12 +52,12 @@ RUN f=app/services/credit_notes/estimate_service.rb \
  && sed -i '/return result.forbidden_failure! unless License.premium?/d' $f \
  && ! grep -q 'License.premium?' $f
 
-# Add an entity: one extra billing entity (the limit the licensed "pro" tier gives, 2 in
-# total) instead of none, and the new entity keeps its timezone, email settings and grace
-# period instead of dropping them without a licence. Raise the cap by changing :pro below.
+# Add an entity: no limit on billing entities (the licensed "enterprise" tier's rule instead of
+# the single entity an unlicensed install gets), and a new entity keeps its timezone, email
+# settings and grace period instead of dropping them without a licence.
 RUN f=app/models/organization.rb \
  && grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count' $f \
- && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:pro] - billing_entities.active.count/' $f \
+ && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:enterprise]/' $f \
  && ! grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities' $f
 RUN f=app/services/billing_entities/create_service.rb \
  && grep -q '^        if License.premium?$' $f \

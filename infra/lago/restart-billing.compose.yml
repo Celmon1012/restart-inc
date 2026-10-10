@@ -41,7 +41,7 @@ services:
         RUN f=app/services/payment_requests/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/credit_notes/create_service.rb && grep -q '^      License.premium?$$' $$f && sed -i '/def should_create_credit_note?/,/^    end/ s/^      License.premium?$$/      true/' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/credit_notes/estimate_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
-        RUN f=app/models/organization.rb && grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count' $$f && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:pro] - billing_entities.active.count/' $$f && ! grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities' $$f
+        RUN f=app/models/organization.rb && grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count' $$f && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:enterprise]/' $$f && ! grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities' $$f
         RUN f=app/services/billing_entities/create_service.rb && grep -q '^        if License.premium?$$' $$f && sed -i 's/^        if License.premium?$$/        if true/' $$f && ! grep -q 'License.premium?' $$f
     command:
       - sh
@@ -245,7 +245,7 @@ services:
         RUN f=app/services/payment_requests/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/credit_notes/create_service.rb && grep -q '^      License.premium?$$' $$f && sed -i '/def should_create_credit_note?/,/^    end/ s/^      License.premium?$$/      true/' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/credit_notes/estimate_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
-        RUN f=app/models/organization.rb && grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count' $$f && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:pro] - billing_entities.active.count/' $$f && ! grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities' $$f
+        RUN f=app/models/organization.rb && grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count' $$f && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:enterprise]/' $$f && ! grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities' $$f
         RUN f=app/services/billing_entities/create_service.rb && grep -q '^        if License.premium?$$' $$f && sed -i 's/^        if License.premium?$$/        if true/' $$f && ! grep -q 'License.premium?' $$f
     command:
       - ./scripts/start.worker.sh
@@ -289,7 +289,7 @@ services:
         RUN f=app/services/payment_requests/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/credit_notes/create_service.rb && grep -q '^      License.premium?$$' $$f && sed -i '/def should_create_credit_note?/,/^    end/ s/^      License.premium?$$/      true/' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/credit_notes/estimate_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
-        RUN f=app/models/organization.rb && grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count' $$f && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:pro] - billing_entities.active.count/' $$f && ! grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities' $$f
+        RUN f=app/models/organization.rb && grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count' $$f && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:enterprise]/' $$f && ! grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities' $$f
         RUN f=app/services/billing_entities/create_service.rb && grep -q '^        if License.premium?$$' $$f && sed -i 's/^        if License.premium?$$/        if true/' $$f && ! grep -q 'License.premium?' $$f
     command:
       - ./scripts/start.clock.sh
