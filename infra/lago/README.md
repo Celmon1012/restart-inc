@@ -8,7 +8,7 @@ show a premium popup and the payment link crashes.** So:
 > folder, and the patches re-checked.** Never point a deployment at `getlago/api` /
 > `getlago/front` directly.
 
-Current build: **`v1.53.0-p5`** (images `restart/lago-api:v1.53.0-p5`, `restart/lago-front:v1.53.0-p5`),
+Current build: **`v1.53.0-p6`** (images `restart/lago-api:v1.53.0-p6`, `restart/lago-front:v1.53.0-p6`),
 running in Coolify service `restart-billing` (uuid `pwz5mon2kh40psk4eb2fv0z7`).
 
 ## What is patched
@@ -35,8 +35,14 @@ Still gated on purpose: payment receipt emails, analytics dashboards, plan featu
 billing, minimum commitment), wallets and alerts, custom roles, SSO, integrations, AI. Unlock one
 only when asked for by name, and add it to this table.
 
-### 2. Upstream bug fix (not a licence gate)
+### 2. Upstream bug fixes (not licence gates)
 
+- `invoices/payments/flutterwave_service.rb`: upstream builds the Flutterwave checkout for the
+  invoice's **full total**, ignoring payments already recorded (a ₦1.5m invoice with ₦1m paid
+  asked for ₦1.5m). The patch charges `total_due_amount_cents`, and makes `tx_ref` unique per link
+  (Flutterwave refuses a `tx_ref` that already has a successful payment, which would block a
+  second part-payment). A payment link already created is reused for 24 hours, so after
+  deploying this, expire any open payment intent for an invoice that already has payments.
 - `payment_intents/fetch_service.rb`: upstream v1.53.0 reads `provider_session_id` from the
   payment provider's result, which only Stripe defines. For Flutterwave "Open payment link"
   raised `NoMethodError`, and the console's "Pay Now" never appeared. The patch reads it only

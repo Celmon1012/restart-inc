@@ -71,3 +71,16 @@ RUN f=app/services/payment_intents/fetch_service.rb \
  && grep -q 'provider_session_id: payment_url_result.provider_session_id' $f \
  && sed -i 's/provider_session_id: payment_url_result.provider_session_id/provider_session_id: (payment_url_result.provider_session_id if payment_url_result.respond_to?(:provider_session_id))/' $f \
  && grep -q 'respond_to?(:provider_session_id)' $f
+
+# Bug in upstream v1.53.0, not a licence gate: the Flutterwave payment link is created for the
+# invoice's FULL total, ignoring payments already recorded (a NGN 1,500,000 invoice with NGN
+# 1,000,000 paid asked for 1,500,000). Charge the amount still due. The tx_ref is also made
+# unique per link, because Flutterwave refuses a tx_ref that already has a successful payment,
+# so a second part-payment on the same invoice would otherwise fail. The webhook identifies the
+# invoice from meta.lago_invoice_id, not tx_ref, so this is safe.
+RUN f=app/services/invoices/payments/flutterwave_service.rb \
+ && grep -q 'Money.from_cents(invoice.total_amount_cents, invoice.currency).to_f' $f \
+ && grep -q 'tx_ref: invoice.id,' $f \
+ && sed -i 's/Money.from_cents(invoice.total_amount_cents, invoice.currency).to_f/Money.from_cents(invoice.total_due_amount_cents, invoice.currency).to_f/' $f \
+ && sed -i 's/tx_ref: invoice.id,/tx_ref: "#{invoice.id}-#{SecureRandom.hex(4)}",/' $f \
+ && grep -q 'invoice.total_due_amount_cents' $f && grep -q 'SecureRandom.hex(4)' $f
