@@ -62,9 +62,17 @@ async function getWorkspaceLagoCustomerId(jwt: string, workspaceId: string): Pro
   return rows[0]?.lago_customer_id ?? null;
 }
 
+// A slow Lago must never leave the Billing page spinning: the edge runtime kills a
+// request that outlives its wall clock and the browser then waits with no answer.
+// Reads give up after 10s; the payment link (an external Flutterwave call, and only a
+// convenience button) after 6s, so the invoice still shows without it.
+const LAGO_READ_TIMEOUT_MS = 10_000;
+const LAGO_PAYMENT_URL_TIMEOUT_MS = 6_000;
+
 async function lagoFetch(path: string) {
   const res = await fetch(`${LAGO_API_URL}/api/v1${path}`, {
     headers: { Authorization: `Bearer ${LAGO_API_KEY}` },
+    signal: AbortSignal.timeout(LAGO_READ_TIMEOUT_MS),
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Lago ${path} -> ${res.status}`);
@@ -80,6 +88,7 @@ async function lagoPost(path: string): Promise<{ ok: true; body: unknown } | { o
     method: "POST",
     headers: { Authorization: `Bearer ${LAGO_API_KEY}`, "Content-Type": "application/json" },
     body: "{}",
+    signal: AbortSignal.timeout(LAGO_PAYMENT_URL_TIMEOUT_MS),
   });
   const body = await res.json().catch(() => null);
   if (!res.ok) return { ok: false, status: res.status, error: body };
@@ -134,7 +143,9 @@ interface LagoAppliedCoupon {
 // (e.g. the payment provider rejects it), the invoice still shows, just
 // without a "Pay Now" button, rather than failing the whole billing fetch.
 async function fetchPaymentUrl(lagoInvoiceId: string): Promise<{ url: string | null; error: string | null }> {
-  const result = await lagoPost(`/invoices/${encodeURIComponent(lagoInvoiceId)}/payment_url`);
+  const result = await lagoPost(`/invoices/${encodeURIComponent(lagoInvoiceId)}/payment_url`).catch(
+    (err): { ok: false; status: number; error: unknown } => ({ ok: false, status: 0, error: (err as Error).message })
+  );
   if (!result.ok) {
     return { url: null, error: `Lago ${result.status}: ${JSON.stringify(result.error)}` };
   }
