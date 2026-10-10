@@ -62,3 +62,13 @@ edit('src/pages/developers/ApiKeysForm.tsx', (s) =>
     'const hasAccessToApiPermissionsPremiumAddOn = !!premiumIntegrations?.includes(PremiumIntegrationTypeEnum.ApiPermissions) || true',
   ),
 )
+
+// Billing entity timezone (the Edit button on Settings > General) and the manual
+// "Request overdue payment" page: both flags are licence-gated upstream. The API
+// side is patched in api.Dockerfile.
+edit('src/pages/settings/BillingEntity/sections/general/TimezoneBlock.tsx', (s) =>
+  s.replace('const { isPremium } = useCurrentUser()', 'useCurrentUser()\n  const isPremium = true'),
+)
+edit('src/pages/CustomerRequestOverduePayment/index.tsx', (s) =>
+  s.replace('const hasDunningIntegration = !!isPremium', 'const hasDunningIntegration = !!(isPremium || true)'),
+)

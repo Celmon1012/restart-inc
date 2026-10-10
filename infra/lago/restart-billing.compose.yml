@@ -28,7 +28,7 @@ services:
       timeout: 5s
       retries: 5
   api:
-    image: 'restart/lago-api:v1.53.0-p2'
+    image: 'restart/lago-api:v1.53.0-p3'
     pull_policy: build
     build:
       dockerfile_inline: |
@@ -36,6 +36,8 @@ services:
         RUN f=app/services/payments/manual_create_service.rb && grep -q 'return result.forbidden_failure! if !License.premium?' $$f && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/api_keys/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/models/organization.rb && grep -q 'License.premium? && premium_integrations.include?(premium_integration)' $$f && sed -i 's/License.premium? && premium_integrations.include?(premium_integration)/premium_integration == "api_permissions" || (License.premium? \&\& premium_integrations.include?(premium_integration))/' $$f && grep -q 'premium_integration == "api_permissions"' $$f
+        RUN f=app/services/billing_entities/update_service.rb && grep -q 'return unless License.premium?' $$f && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d; s/^\(      billing_entity.timezone = .*\)$$/\1\n      return unless License.premium?/ }' $$f && grep -A6 'def assign_premium_attributes' $$f | grep -q 'return unless License.premium?'
+        RUN f=app/services/payment_requests/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
     command:
       - sh
       - '-c'
@@ -77,7 +79,7 @@ services:
       retries: 15
       start_period: 120s
   front:
-    image: 'restart/lago-front:v1.53.0-p2'
+    image: 'restart/lago-front:v1.53.0-p3'
     pull_policy: build
     build:
       context: 'https://github.com/getlago/lago-front.git#v1.53.0'
@@ -161,6 +163,16 @@ services:
             'const hasAccessToApiPermissionsPremiumAddOn = !!premiumIntegrations?.includes(PremiumIntegrationTypeEnum.ApiPermissions) || true',
           ),
         )
+
+        // Billing entity timezone (the Edit button on Settings > General) and the manual
+        // "Request overdue payment" page: both flags are licence-gated upstream. The API
+        // side is patched in api.Dockerfile.
+        edit('src/pages/settings/BillingEntity/sections/general/TimezoneBlock.tsx', (s) =>
+          s.replace('const { isPremium } = useCurrentUser()', 'useCurrentUser()\n  const isPremium = true'),
+        )
+        edit('src/pages/CustomerRequestOverduePayment/index.tsx', (s) =>
+          s.replace('const hasDunningIntegration = !!isPremium', 'const hasDunningIntegration = !!(isPremium || true)'),
+        )
         PATCH_EOF
         RUN node /tmp/patch-front.mjs
         RUN pnpm build
@@ -186,7 +198,7 @@ services:
       - 'LAGO_FRONT_URL=${LAGO_FRONT_URL}'
       - LAGO_DISABLE_PDF_GENERATION=false
   api-worker:
-    image: 'restart/lago-api:v1.53.0-p2'
+    image: 'restart/lago-api:v1.53.0-p3'
     pull_policy: build
     build:
       dockerfile_inline: |
@@ -194,6 +206,8 @@ services:
         RUN f=app/services/payments/manual_create_service.rb && grep -q 'return result.forbidden_failure! if !License.premium?' $$f && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/api_keys/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/models/organization.rb && grep -q 'License.premium? && premium_integrations.include?(premium_integration)' $$f && sed -i 's/License.premium? && premium_integrations.include?(premium_integration)/premium_integration == "api_permissions" || (License.premium? \&\& premium_integrations.include?(premium_integration))/' $$f && grep -q 'premium_integration == "api_permissions"' $$f
+        RUN f=app/services/billing_entities/update_service.rb && grep -q 'return unless License.premium?' $$f && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d; s/^\(      billing_entity.timezone = .*\)$$/\1\n      return unless License.premium?/ }' $$f && grep -A6 'def assign_premium_attributes' $$f | grep -q 'return unless License.premium?'
+        RUN f=app/services/payment_requests/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
     command:
       - ./scripts/start.worker.sh
     depends_on:
@@ -223,7 +237,7 @@ services:
       retries: 15
       start_period: 60s
   api-clock:
-    image: 'restart/lago-api:v1.53.0-p2'
+    image: 'restart/lago-api:v1.53.0-p3'
     pull_policy: build
     build:
       dockerfile_inline: |
@@ -231,6 +245,8 @@ services:
         RUN f=app/services/payments/manual_create_service.rb && grep -q 'return result.forbidden_failure! if !License.premium?' $$f && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/api_keys/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/models/organization.rb && grep -q 'License.premium? && premium_integrations.include?(premium_integration)' $$f && sed -i 's/License.premium? && premium_integrations.include?(premium_integration)/premium_integration == "api_permissions" || (License.premium? \&\& premium_integrations.include?(premium_integration))/' $$f && grep -q 'premium_integration == "api_permissions"' $$f
+        RUN f=app/services/billing_entities/update_service.rb && grep -q 'return unless License.premium?' $$f && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d; s/^\(      billing_entity.timezone = .*\)$$/\1\n      return unless License.premium?/ }' $$f && grep -A6 'def assign_premium_attributes' $$f | grep -q 'return unless License.premium?'
+        RUN f=app/services/payment_requests/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
     command:
       - ./scripts/start.clock.sh
     exclude_from_hc: true

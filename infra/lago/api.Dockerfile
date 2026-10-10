@@ -23,3 +23,16 @@ RUN f=app/models/organization.rb \
  && grep -q 'License.premium? && premium_integrations.include?(premium_integration)' $f \
  && sed -i 's/License.premium? && premium_integrations.include?(premium_integration)/premium_integration == "api_permissions" || (License.premium? \&\& premium_integrations.include?(premium_integration))/' $f \
  && grep -q 'premium_integration == "api_permissions"' $f
+
+# Billing entity timezone: allowed without a licence. The same method also guards the
+# entity's email settings, which stay licensed -- only the timezone line moves above the check.
+RUN f=app/services/billing_entities/update_service.rb \
+ && grep -q 'return unless License.premium?' $f \
+ && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d; s/^\(      billing_entity.timezone = .*\)$/\1\n      return unless License.premium?/ }' $f \
+ && grep -A6 'def assign_premium_attributes' $f | grep -q 'return unless License.premium?'
+
+# Manual "Request overdue payment" (payment requests).
+RUN f=app/services/payment_requests/create_service.rb \
+ && grep -q 'return result.forbidden_failure! unless License.premium?' $f \
+ && sed -i '/return result.forbidden_failure! unless License.premium?/d' $f \
+ && ! grep -q 'License.premium?' $f
