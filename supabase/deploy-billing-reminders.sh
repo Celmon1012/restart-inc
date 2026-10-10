@@ -56,7 +56,7 @@ interface LagoInvoice {
   total_due_amount_cents?: number;
   total_paid_amount_cents?: number;
   file_url?: string | null;
-  customer?: { name?: string | null; email?: string | null };
+  customer?: { external_id?: string | null; name?: string | null; email?: string | null };
   metadata?: Meta[];
 }
 
@@ -160,6 +160,9 @@ async function run(dry: boolean) {
 
   for (const inv of invoices) {
     if (inv.status !== "finalized" || inv.payment_status === "succeeded" || !inv.payment_due_date) continue;
+    // Breadmaker Systems bills through its own entity on this Lago (customers "bm-…") and runs its own
+    // emails; same guard as lago-webhook, so its buyers never get Restart-branded reminders.
+    if ((inv.customer?.external_id ?? "").startsWith("bm-")) continue;
     const due = inv.total_due_amount_cents ?? inv.total_amount_cents - (inv.total_paid_amount_cents ?? 0);
     if (due <= 0) continue;
     const dueMs = new Date(inv.payment_due_date).getTime();
