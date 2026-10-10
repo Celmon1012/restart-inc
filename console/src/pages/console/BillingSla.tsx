@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { Sparkline } from "@/components/Sparkline";
-import { ArrowUpRight, ArrowRight, ChevronDown, ExternalLink, CreditCard, ShieldCheck, Tag, Wallet } from "lucide-react";
+import { ArrowUpRight, ArrowRight, ChevronDown, ExternalLink, CreditCard, Tag, Wallet } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/lib/supabase";
 import { formatAmount, formatDate } from "@/lib/format";
@@ -216,12 +216,19 @@ export default function BillingSla() {
     { enabled: Boolean(activeWorkspace), errorMessage: "Failed to load billing data" }
   );
 
-  const [priceModalOpen, setPriceModalOpen] = useState(false);
   const [billingTab, setBillingTab] = useState<"plan" | "invoices">("plan");
   const primarySubscription = data?.subscriptions?.find((s) => s.status === "active") ?? data?.subscriptions?.[0];
-  const renewalDate = primarySubscription
-    ? computeRenewalDate(primarySubscription.startedAt, primarySubscription.interval)
-    : null;
+
+  function subscriptionMeta(sub: BillingSubscription): string[] {
+    const renews = computeRenewalDate(sub.startedAt, sub.interval);
+    return [
+      ...(sub.amountCents !== null && sub.currency && sub.interval
+        ? [`${formatAmount(sub.amountCents, sub.currency)} per ${intervalUnit(sub.interval)}`]
+        : []),
+      ...(renews ? [`Renews ${formatDate(renews)}`] : []),
+      sub.startedAt ? `Started ${formatDate(sub.startedAt)}` : "Start date unavailable"
+    ];
+  }
 
   // Unpaid invoices, summed in the newest one's currency -- adding NGN to USD
   // would be a meaningless figure, so other currencies only count toward `count`.
@@ -277,51 +284,22 @@ export default function BillingSla() {
           />
         ) : (
           <div className="billing-page">
-            {primarySubscription && (
+            {outstanding && (
               <div className="billing-summary">
-                <div className="billing-summary-plan">
-                  <span className="billing-summary-label">
-                    <ShieldCheck size={12} className="text-teal" />
-                    {primarySubscription.status.toUpperCase()} SUBSCRIPTION
-                  </span>
-                  <strong>{primarySubscription.planName}</strong>
+                <div className="billing-summary-stat due">
+                  <span className="billing-summary-label">OUTSTANDING</span>
+                  <strong>{formatAmount(outstanding.cents, outstanding.currency)}</strong>
                   <span className="billing-summary-sub">
-                    {primarySubscription.startedAt
-                      ? `Active since ${formatDate(primarySubscription.startedAt)}`
-                      : "Plan details for this workspace."}
+                    {`${outstanding.count} unpaid invoice${outstanding.count === 1 ? "" : "s"}${
+                      outstanding.paidCents > 0
+                        ? ` · ${formatAmount(outstanding.paidCents, outstanding.currency)} paid so far`
+                        : ""
+                    }`}
                   </span>
-                </div>
-                <div className="billing-summary-stat">
-                  <span className="billing-summary-label">PRICE</span>
-                  <strong>
-                    {primarySubscription.amountCents !== null && primarySubscription.currency
-                      ? formatAmount(primarySubscription.amountCents, primarySubscription.currency)
-                      : "—"}
-                  </strong>
-                  <span className="billing-summary-sub">
-                    {primarySubscription.interval ? `per ${intervalUnit(primarySubscription.interval)}` : " "}
-                  </span>
-                </div>
-                <div className="billing-summary-stat">
-                  <span className="billing-summary-label">{renewalDate ? "RENEWS" : "NEXT CHARGE"}</span>
-                  <strong>{renewalDate ? formatDate(renewalDate) : "—"}</strong>
-                  <button type="button" className="billing-summary-link" onClick={() => setPriceModalOpen(true)}>
-                    <span>Price & server details</span>
+                  <button type="button" className="billing-summary-link" onClick={() => setBillingTab("invoices")}>
+                    <span>View invoices</span>
                     <ArrowRight size={11} />
                   </button>
-                </div>
-                <div className={`billing-summary-stat ${outstanding ? "due" : ""}`}>
-                  <span className="billing-summary-label">OUTSTANDING</span>
-                  <strong>{outstanding ? formatAmount(outstanding.cents, outstanding.currency) : "Nothing due"}</strong>
-                  <span className="billing-summary-sub">
-                    {outstanding
-                      ? `${outstanding.count} unpaid invoice${outstanding.count === 1 ? "" : "s"}${
-                          outstanding.paidCents > 0
-                            ? ` · ${formatAmount(outstanding.paidCents, outstanding.currency)} paid so far`
-                            : ""
-                        }`
-                      : "All invoices paid"}
-                  </span>
                 </div>
               </div>
             )}
@@ -360,11 +338,7 @@ export default function BillingSla() {
                           tone={statusTone(sub.status)}
                           title={sub.planName}
                           statusLabel={sub.status.toUpperCase()}
-                          metaItems={[
-                            sub.startedAt
-                              ? `Started ${formatDate(sub.startedAt)}`
-                              : "Start date unavailable"
-                          ]}
+                          metaItems={subscriptionMeta(sub)}
                           expandedContent={
                             <>
                               <div className="billing-detail-expanded-row">
@@ -532,64 +506,6 @@ export default function BillingSla() {
               </div>
               )}
             </div>
-
-            {priceModalOpen && primarySubscription && (
-              <div className="confirm-dialog-overlay" onClick={() => setPriceModalOpen(false)}>
-                <div className="confirm-dialog-card" onClick={(e) => e.stopPropagation()}>
-                  <h3>{primarySubscription.planName}</h3>
-                  <div className="billing-detail-expanded">
-                    {primarySubscription.amountCents !== null && primarySubscription.currency && (
-                      <div className="billing-detail-expanded-row">
-                        <span>Price</span>
-                        <span className="mono">
-                          {formatAmount(primarySubscription.amountCents, primarySubscription.currency)}
-                          {primarySubscription.interval && ` / ${primarySubscription.interval}`}
-                        </span>
-                      </div>
-                    )}
-                    {primarySubscription.startedAt && (
-                      <div className="billing-detail-expanded-row">
-                        <span>Started</span>
-                        <span>{formatDate(primarySubscription.startedAt)}</span>
-                      </div>
-                    )}
-                    {renewalDate && (
-                      <div className="billing-detail-expanded-row">
-                        <span>Renews</span>
-                        <span>{formatDate(renewalDate)}</span>
-                      </div>
-                    )}
-                    {activeWorkspace?.server && (
-                      <>
-                        <div className="billing-detail-expanded-row">
-                          <span>Server</span>
-                          <span className="mono">{activeWorkspace.server.name}</span>
-                        </div>
-                        <div className="billing-detail-expanded-row">
-                          <span>Capacity</span>
-                          <span>
-                            {activeWorkspace.server.cpus ?? "—"} vCPU · {activeWorkspace.server.memoryGb ?? "—"} GB RAM
-                          </span>
-                        </div>
-                      </>
-                    )}
-                    <div className="billing-detail-expanded-actions">
-                      <Link href="/systems?tab=infrastructure" className="overview-section-link">
-                        <span>Manage capacity</span>
-                        <ArrowRight size={12} />
-                      </Link>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="console-btn-secondary mt-4 w-full justify-center"
-                    onClick={() => setPriceModalOpen(false)}
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
     </ConsoleLayout>
