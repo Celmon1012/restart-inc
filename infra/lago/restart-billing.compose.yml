@@ -28,7 +28,7 @@ services:
       timeout: 5s
       retries: 5
   api:
-    image: 'restart/lago-api:v1.53.0-p3'
+    image: 'restart/lago-api:v1.53.0-p4'
     pull_policy: build
     build:
       dockerfile_inline: |
@@ -39,6 +39,10 @@ services:
         RUN f=app/services/billing_entities/update_service.rb && grep -q 'return unless License.premium?' $$f && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d }' $$f && ! grep -A6 'def assign_premium_attributes' $$f | grep -q 'License.premium?'
         RUN files=$$(grep -rl 'email_settings.include?' app/services) && sed -z -i 's/License\.premium? &&\(\s*\)\([a-z_]*\.billing_entity\.email_settings\.include?\)/\1\2/g' $$files && ! grep -rPzq 'License\.premium\? &&\s*[a-z_]*\.billing_entity\.email_settings' app/services
         RUN f=app/services/payment_requests/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/credit_notes/create_service.rb && grep -q '^      License.premium?$$' $$f && sed -i '/def should_create_credit_note?/,/^    end/ s/^      License.premium?$$/      true/' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/credit_notes/estimate_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/models/organization.rb && grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count' $$f && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:pro] - billing_entities.active.count/' $$f && ! grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities' $$f
+        RUN f=app/services/billing_entities/create_service.rb && grep -q '^        if License.premium?$$' $$f && sed -i 's/^        if License.premium?$$/        if true/' $$f && ! grep -q 'License.premium?' $$f
     command:
       - sh
       - '-c'
@@ -80,7 +84,7 @@ services:
       retries: 15
       start_period: 120s
   front:
-    image: 'restart/lago-front:v1.53.0-p3'
+    image: 'restart/lago-front:v1.53.0-p4'
     pull_policy: build
     build:
       context: 'https://github.com/getlago/lago-front.git#v1.53.0'
@@ -182,6 +186,27 @@ services:
         ]) {
           edit(f, (s) => s.replace(/: isPremium(\s*\n)/, ': (isPremium || true)$$1'))
         }
+
+        // Credit notes: "Issue a credit note" in the invoice list, the invoice page and the
+        // invoice's credit-note tab. The API side is patched in api.Dockerfile. (The "Add an
+        // entity" button needs no front-end patch: it follows the API's canCreateBillingEntity.)
+        const unlockBlockAt = (key) => (src) => {
+          const start = src.indexOf(key)
+          if (start === -1) throw new Error(`key $${key} not found`)
+          const m = /(openPremiumWarningDialog\(\)|premiumWarningDialog\.open\(\))/.exec(src.slice(start))
+          if (!m) throw new Error('premium dialog fallback not found')
+          const end = start + m.index + m[0].length
+          return src.slice(0, start) + src.slice(start, end).replaceAll('isPremium', '(isPremium || true)') + src.slice(end)
+        }
+        const CREDIT_NOTE_KEY = 'text_636bdef6565341dcb9cfb127' // "Issue a credit note"
+        edit('src/pages/CustomerInvoiceDetails.tsx', unlockBlockAt(CREDIT_NOTE_KEY))
+        edit('src/components/customers/CustomerInvoicesList.tsx', (s) =>
+          s
+            .replace('canIssueCreditNote(invoice) && !isPremium', 'canIssueCreditNote(invoice) && !(isPremium || true)')
+            .replace('canIssueCreditNote(invoice) && isPremium', 'canIssueCreditNote(invoice) && (isPremium || true)'),
+        )
+        edit('src/components/invoices/InvoicesList.tsx', (s) => s.replace('if (!isPremium) {', 'if (!(isPremium || true)) {'))
+        edit('src/components/invoices/InvoiceCreditNoteList.tsx', (s) => s.replace('{isPremium ? (', '{(isPremium || true) ? ('))
         PATCH_EOF
         RUN node /tmp/patch-front.mjs
         RUN pnpm build
@@ -207,7 +232,7 @@ services:
       - 'LAGO_FRONT_URL=${LAGO_FRONT_URL}'
       - LAGO_DISABLE_PDF_GENERATION=false
   api-worker:
-    image: 'restart/lago-api:v1.53.0-p3'
+    image: 'restart/lago-api:v1.53.0-p4'
     pull_policy: build
     build:
       dockerfile_inline: |
@@ -218,6 +243,10 @@ services:
         RUN f=app/services/billing_entities/update_service.rb && grep -q 'return unless License.premium?' $$f && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d }' $$f && ! grep -A6 'def assign_premium_attributes' $$f | grep -q 'License.premium?'
         RUN files=$$(grep -rl 'email_settings.include?' app/services) && sed -z -i 's/License\.premium? &&\(\s*\)\([a-z_]*\.billing_entity\.email_settings\.include?\)/\1\2/g' $$files && ! grep -rPzq 'License\.premium\? &&\s*[a-z_]*\.billing_entity\.email_settings' app/services
         RUN f=app/services/payment_requests/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/credit_notes/create_service.rb && grep -q '^      License.premium?$$' $$f && sed -i '/def should_create_credit_note?/,/^    end/ s/^      License.premium?$$/      true/' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/credit_notes/estimate_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/models/organization.rb && grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count' $$f && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:pro] - billing_entities.active.count/' $$f && ! grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities' $$f
+        RUN f=app/services/billing_entities/create_service.rb && grep -q '^        if License.premium?$$' $$f && sed -i 's/^        if License.premium?$$/        if true/' $$f && ! grep -q 'License.premium?' $$f
     command:
       - ./scripts/start.worker.sh
     depends_on:
@@ -247,7 +276,7 @@ services:
       retries: 15
       start_period: 60s
   api-clock:
-    image: 'restart/lago-api:v1.53.0-p3'
+    image: 'restart/lago-api:v1.53.0-p4'
     pull_policy: build
     build:
       dockerfile_inline: |
@@ -258,6 +287,10 @@ services:
         RUN f=app/services/billing_entities/update_service.rb && grep -q 'return unless License.premium?' $$f && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d }' $$f && ! grep -A6 'def assign_premium_attributes' $$f | grep -q 'License.premium?'
         RUN files=$$(grep -rl 'email_settings.include?' app/services) && sed -z -i 's/License\.premium? &&\(\s*\)\([a-z_]*\.billing_entity\.email_settings\.include?\)/\1\2/g' $$files && ! grep -rPzq 'License\.premium\? &&\s*[a-z_]*\.billing_entity\.email_settings' app/services
         RUN f=app/services/payment_requests/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/credit_notes/create_service.rb && grep -q '^      License.premium?$$' $$f && sed -i '/def should_create_credit_note?/,/^    end/ s/^      License.premium?$$/      true/' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/services/credit_notes/estimate_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
+        RUN f=app/models/organization.rb && grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count' $$f && sed -i 's/MULTI_ENTITIES_MAX\[:default\] - billing_entities.active.count/MULTI_ENTITIES_MAX[:pro] - billing_entities.active.count/' $$f && ! grep -q 'MULTI_ENTITIES_MAX\[:default\] - billing_entities' $$f
+        RUN f=app/services/billing_entities/create_service.rb && grep -q '^        if License.premium?$$' $$f && sed -i 's/^        if License.premium?$$/        if true/' $$f && ! grep -q 'License.premium?' $$f
     command:
       - ./scripts/start.clock.sh
     exclude_from_hc: true

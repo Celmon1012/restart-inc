@@ -80,3 +80,24 @@ for (const f of [
 ]) {
   edit(f, (s) => s.replace(/: isPremium(\s*\n)/, ': (isPremium || true)$1'))
 }
+
+// Credit notes: "Issue a credit note" in the invoice list, the invoice page and the
+// invoice's credit-note tab. The API side is patched in api.Dockerfile. (The "Add an
+// entity" button needs no front-end patch: it follows the API's canCreateBillingEntity.)
+const unlockBlockAt = (key) => (src) => {
+  const start = src.indexOf(key)
+  if (start === -1) throw new Error(`key ${key} not found`)
+  const m = /(openPremiumWarningDialog\(\)|premiumWarningDialog\.open\(\))/.exec(src.slice(start))
+  if (!m) throw new Error('premium dialog fallback not found')
+  const end = start + m.index + m[0].length
+  return src.slice(0, start) + src.slice(start, end).replaceAll('isPremium', '(isPremium || true)') + src.slice(end)
+}
+const CREDIT_NOTE_KEY = 'text_636bdef6565341dcb9cfb127' // "Issue a credit note"
+edit('src/pages/CustomerInvoiceDetails.tsx', unlockBlockAt(CREDIT_NOTE_KEY))
+edit('src/components/customers/CustomerInvoicesList.tsx', (s) =>
+  s
+    .replace('canIssueCreditNote(invoice) && !isPremium', 'canIssueCreditNote(invoice) && !(isPremium || true)')
+    .replace('canIssueCreditNote(invoice) && isPremium', 'canIssueCreditNote(invoice) && (isPremium || true)'),
+)
+edit('src/components/invoices/InvoicesList.tsx', (s) => s.replace('if (!isPremium) {', 'if (!(isPremium || true)) {'))
+edit('src/components/invoices/InvoiceCreditNoteList.tsx', (s) => s.replace('{isPremium ? (', '{(isPremium || true) ? ('))
