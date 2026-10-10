@@ -217,6 +217,7 @@ export default function BillingSla() {
   );
 
   const [priceModalOpen, setPriceModalOpen] = useState(false);
+  const [billingTab, setBillingTab] = useState<"plan" | "invoices">("plan");
   const primarySubscription = data?.subscriptions?.find((s) => s.status === "active") ?? data?.subscriptions?.[0];
   const renewalDate = primarySubscription
     ? computeRenewalDate(primarySubscription.startedAt, primarySubscription.interval)
@@ -325,7 +326,27 @@ export default function BillingSla() {
               </div>
             )}
 
-            <div className="console-grid-layout billing-grid">
+            <div className="dash-tabs-bar">
+              <button
+                type="button"
+                className={`dash-tab-btn ${billingTab === "plan" ? "active" : ""}`}
+                onClick={() => setBillingTab("plan")}
+              >
+                <Tag size={14} />
+                <span>Plan & Payment</span>
+              </button>
+              <button
+                type="button"
+                className={`dash-tab-btn ${billingTab === "invoices" ? "active" : ""}`}
+                onClick={() => setBillingTab("invoices")}
+              >
+                <Wallet size={14} />
+                <span>Invoices ({data.invoices?.length ?? 0})</span>
+              </button>
+            </div>
+
+            <div className="settings-tab-panel">
+              {billingTab === "plan" && (
               <div className="console-col">
                 {data.subscriptions && data.subscriptions.length > 0 && (
                   <div className="console-card">
@@ -431,7 +452,9 @@ export default function BillingSla() {
                   )}
                 </div>
               </div>
+              )}
 
+              {billingTab === "invoices" && (
               <div className="console-col">
                 <div className="console-card">
                   <div className="card-top-header card-top-header-spaced">
@@ -507,6 +530,7 @@ export default function BillingSla() {
                   </div>
                 </div>
               </div>
+              )}
             </div>
 
             {priceModalOpen && primarySubscription && (

@@ -15,7 +15,6 @@ import Timeline from "./pages/console/Timeline";
 import Support from "./pages/console/Support";
 import ProfileSecurity from "./pages/console/ProfileSecurity";
 import ConsoleSettings from "./pages/console/ConsoleSettings";
-import ApiKeyVault from "./pages/console/ApiKeyVault";
 import BillingSla from "./pages/console/BillingSla";
 import NewProject from "./pages/NewProject";
 import AdminOverview from "./pages/admin/Overview";
@@ -117,11 +116,6 @@ function Router() {
       <Route path="/settings">
         <ProtectedRoute>
           <ConsoleSettings />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/keys">
-        <ProtectedRoute>
-          <ApiKeyVault />
         </ProtectedRoute>
       </Route>
       <Route path="/billing">

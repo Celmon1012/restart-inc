@@ -15,7 +15,6 @@ import {
   Terminal,
   Settings,
   CreditCard,
-  Key,
   LogOut,
   Bell,
   Check,
@@ -76,7 +75,6 @@ const CONSOLE_NAV: NavGroup[] = [
   {
     label: "Account",
     items: [
-      { href: "/keys", label: "API Keys", icon: Key },
       { href: "/settings", label: "Settings", icon: Settings },
       { href: "/billing", label: "Billing & SLA", icon: CreditCard },
       { href: "/support", label: "Help & Support", icon: LifeBuoy }

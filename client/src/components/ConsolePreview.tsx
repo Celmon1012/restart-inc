@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, ArrowUpRight, Bell, ChevronsUpDown, Clock, CreditCard, History, Key, LayoutGrid, LifeBuoy, MoreHorizontal, Server, Settings, Shield, Terminal, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Bell, ChevronsUpDown, Clock, CreditCard, History, LayoutGrid, LifeBuoy, MoreHorizontal, Server, Settings, Shield, Terminal, User } from "lucide-react";
 
 /* ------------------------------------------------------------------
  * Hero preview of the Restart Console. Uses the same markup and .cp-*
@@ -16,7 +16,6 @@ const NAV = [
 ];
 const ACCOUNT = [
   { label: "Security & Access", icon: Shield },
-  { label: "API Keys", icon: Key },
   { label: "Settings", icon: Settings },
   { label: "Billing & SLA", icon: CreditCard },
   { label: "Help & Support", icon: LifeBuoy },
