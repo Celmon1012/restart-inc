@@ -125,10 +125,6 @@ export default function Platform() {
               <span className="section-label teal">PLATFORM</span>
               <h1>Turn operational friction into <span>technical leverage.</span></h1>
               <p>
-                Most operational drag isn't one broken system. It's the spreadsheet between two tools, the approval that
-                lives in someone's inbox, and the software bill nobody has audited since the business was half its size.
-              </p>
-              <p>
                 We map that work, automate what repeats, and build the platform underneath when the business has
                 outgrown its tools. You follow every step in the Restart Console.
               </p>
@@ -210,11 +206,11 @@ export default function Platform() {
         <section className="final-cta" id="contact">
           <div className="final-cta-grid" />
           <div className="container final-cta-content">
-            <span className="section-label teal">START WITH THE MAP</span>
-            <h2>Find out where <span>the friction is.</span></h2>
-            <p>Tell us which workflow costs you the most time. We'll reply with whether a mapping engagement makes sense and what it would cover.</p>
+            <span className="section-label teal">FREE ASSESSMENT · 5 MINUTES</span>
+            <h2>Score your system. <span>Find the friction.</span></h2>
+            <p>Answer 12 questions across 6 areas. You get a readiness score, your weakest areas, and the first steps we would take.</p>
             <div className="final-cta-buttons">
-              <Link href="/start-project" className="button solid">Start a project <ArrowUpRight size={15} /></Link>
+              <Link href="/scorecard" className="button solid">Take the Readiness Scorecard <ArrowUpRight size={15} /></Link>
               <Link href="/contact" className="button outline">Get in touch</Link>
             </div>
           </div>
