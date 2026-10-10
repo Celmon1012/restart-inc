@@ -24,12 +24,17 @@ RUN f=app/models/organization.rb \
  && sed -i 's/License.premium? && premium_integrations.include?(premium_integration)/premium_integration == "api_permissions" || (License.premium? \&\& premium_integrations.include?(premium_integration))/' $f \
  && grep -q 'premium_integration == "api_permissions"' $f
 
-# Billing entity timezone: allowed without a licence. The same method also guards the
-# entity's email settings, which stay licensed -- only the timezone line moves above the check.
+# Billing entity timezone and email settings: allowed without a licence. Both were guarded
+# by one check in assign_premium_attributes. The invoice emails themselves are also gated on
+# License.premium?, so that check is lifted from the invoice.finalized sending paths too.
+# Payment receipts stay behind their own premium integration.
 RUN f=app/services/billing_entities/update_service.rb \
  && grep -q 'return unless License.premium?' $f \
- && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d; s/^\(      billing_entity.timezone = .*\)$/\1\n      return unless License.premium?/ }' $f \
- && grep -A6 'def assign_premium_attributes' $f | grep -q 'return unless License.premium?'
+ && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d }' $f \
+ && ! grep -A6 'def assign_premium_attributes' $f | grep -q 'License.premium?'
+RUN files=$(grep -rl 'email_settings.include?' app/services) \
+ && sed -z -i 's/License\.premium? &&\(\s*\)\([a-z_]*\.billing_entity\.email_settings\.include?\)/\1\2/g' $files \
+ && ! grep -rPzq 'License\.premium\? &&\s*[a-z_]*\.billing_entity\.email_settings' app/services
 
 # Manual "Request overdue payment" (payment requests).
 RUN f=app/services/payment_requests/create_service.rb \

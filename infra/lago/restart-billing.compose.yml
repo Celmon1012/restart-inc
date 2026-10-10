@@ -36,7 +36,8 @@ services:
         RUN f=app/services/payments/manual_create_service.rb && grep -q 'return result.forbidden_failure! if !License.premium?' $$f && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/api_keys/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/models/organization.rb && grep -q 'License.premium? && premium_integrations.include?(premium_integration)' $$f && sed -i 's/License.premium? && premium_integrations.include?(premium_integration)/premium_integration == "api_permissions" || (License.premium? \&\& premium_integrations.include?(premium_integration))/' $$f && grep -q 'premium_integration == "api_permissions"' $$f
-        RUN f=app/services/billing_entities/update_service.rb && grep -q 'return unless License.premium?' $$f && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d; s/^\(      billing_entity.timezone = .*\)$$/\1\n      return unless License.premium?/ }' $$f && grep -A6 'def assign_premium_attributes' $$f | grep -q 'return unless License.premium?'
+        RUN f=app/services/billing_entities/update_service.rb && grep -q 'return unless License.premium?' $$f && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d }' $$f && ! grep -A6 'def assign_premium_attributes' $$f | grep -q 'License.premium?'
+        RUN files=$$(grep -rl 'email_settings.include?' app/services) && sed -z -i 's/License\.premium? &&\(\s*\)\([a-z_]*\.billing_entity\.email_settings\.include?\)/\1\2/g' $$files && ! grep -rPzq 'License\.premium\? &&\s*[a-z_]*\.billing_entity\.email_settings' app/services
         RUN f=app/services/payment_requests/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
     command:
       - sh
@@ -173,6 +174,14 @@ services:
         edit('src/pages/CustomerRequestOverduePayment/index.tsx', (s) =>
           s.replace('const hasDunningIntegration = !!isPremium', 'const hasDunningIntegration = !!(isPremium || true)'),
         )
+
+        // Email scenarios (Settings > Email scenarios): the switches check the licence flag.
+        for (const f of [
+          'src/pages/settings/BillingEntity/sections/BillingEntityEmailScenarios.tsx',
+          'src/pages/settings/BillingEntity/sections/BillingEntityEmailScenariosConfig.tsx',
+        ]) {
+          edit(f, (s) => s.replace(/: isPremium(\s*\n)/, ': (isPremium || true)$$1'))
+        }
         PATCH_EOF
         RUN node /tmp/patch-front.mjs
         RUN pnpm build
@@ -206,7 +215,8 @@ services:
         RUN f=app/services/payments/manual_create_service.rb && grep -q 'return result.forbidden_failure! if !License.premium?' $$f && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/api_keys/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/models/organization.rb && grep -q 'License.premium? && premium_integrations.include?(premium_integration)' $$f && sed -i 's/License.premium? && premium_integrations.include?(premium_integration)/premium_integration == "api_permissions" || (License.premium? \&\& premium_integrations.include?(premium_integration))/' $$f && grep -q 'premium_integration == "api_permissions"' $$f
-        RUN f=app/services/billing_entities/update_service.rb && grep -q 'return unless License.premium?' $$f && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d; s/^\(      billing_entity.timezone = .*\)$$/\1\n      return unless License.premium?/ }' $$f && grep -A6 'def assign_premium_attributes' $$f | grep -q 'return unless License.premium?'
+        RUN f=app/services/billing_entities/update_service.rb && grep -q 'return unless License.premium?' $$f && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d }' $$f && ! grep -A6 'def assign_premium_attributes' $$f | grep -q 'License.premium?'
+        RUN files=$$(grep -rl 'email_settings.include?' app/services) && sed -z -i 's/License\.premium? &&\(\s*\)\([a-z_]*\.billing_entity\.email_settings\.include?\)/\1\2/g' $$files && ! grep -rPzq 'License\.premium\? &&\s*[a-z_]*\.billing_entity\.email_settings' app/services
         RUN f=app/services/payment_requests/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
     command:
       - ./scripts/start.worker.sh
@@ -245,7 +255,8 @@ services:
         RUN f=app/services/payments/manual_create_service.rb && grep -q 'return result.forbidden_failure! if !License.premium?' $$f && sed -i '/return result.forbidden_failure! if !License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/api_keys/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/models/organization.rb && grep -q 'License.premium? && premium_integrations.include?(premium_integration)' $$f && sed -i 's/License.premium? && premium_integrations.include?(premium_integration)/premium_integration == "api_permissions" || (License.premium? \&\& premium_integrations.include?(premium_integration))/' $$f && grep -q 'premium_integration == "api_permissions"' $$f
-        RUN f=app/services/billing_entities/update_service.rb && grep -q 'return unless License.premium?' $$f && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d; s/^\(      billing_entity.timezone = .*\)$$/\1\n      return unless License.premium?/ }' $$f && grep -A6 'def assign_premium_attributes' $$f | grep -q 'return unless License.premium?'
+        RUN f=app/services/billing_entities/update_service.rb && grep -q 'return unless License.premium?' $$f && sed -i '/def assign_premium_attributes/,/^    end/ { /return unless License.premium?/d }' $$f && ! grep -A6 'def assign_premium_attributes' $$f | grep -q 'License.premium?'
+        RUN files=$$(grep -rl 'email_settings.include?' app/services) && sed -z -i 's/License\.premium? &&\(\s*\)\([a-z_]*\.billing_entity\.email_settings\.include?\)/\1\2/g' $$files && ! grep -rPzq 'License\.premium\? &&\s*[a-z_]*\.billing_entity\.email_settings' app/services
         RUN f=app/services/payment_requests/create_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'License.premium?' $$f
     command:
       - ./scripts/start.clock.sh

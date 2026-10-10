@@ -72,3 +72,11 @@ edit('src/pages/settings/BillingEntity/sections/general/TimezoneBlock.tsx', (s) 
 edit('src/pages/CustomerRequestOverduePayment/index.tsx', (s) =>
   s.replace('const hasDunningIntegration = !!isPremium', 'const hasDunningIntegration = !!(isPremium || true)'),
 )
+
+// Email scenarios (Settings > Email scenarios): the switches check the licence flag.
+for (const f of [
+  'src/pages/settings/BillingEntity/sections/BillingEntityEmailScenarios.tsx',
+  'src/pages/settings/BillingEntity/sections/BillingEntityEmailScenariosConfig.tsx',
+]) {
+  edit(f, (s) => s.replace(/: isPremium(\s*\n)/, ': (isPremium || true)$1'))
+}
