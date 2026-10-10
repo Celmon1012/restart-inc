@@ -69,14 +69,23 @@ async function getWorkspaceLagoCustomerId(jwt: string, workspaceId: string): Pro
 const LAGO_READ_TIMEOUT_MS = 10_000;
 const LAGO_PAYMENT_URL_TIMEOUT_MS = 6_000;
 
+// Each Lago call logs its status and time, so a slow or refused one shows up in the edge
+// function logs (Coolify > supabase service > Runtime Logs) instead of as a bare "non-2xx".
 async function lagoFetch(path: string) {
-  const res = await fetch(`${LAGO_API_URL}/api/v1${path}`, {
-    headers: { Authorization: `Bearer ${LAGO_API_KEY}` },
-    signal: AbortSignal.timeout(LAGO_READ_TIMEOUT_MS),
-  });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Lago ${path} -> ${res.status}`);
-  return res.json();
+  const started = Date.now();
+  try {
+    const res = await fetch(`${LAGO_API_URL}/api/v1${path}`, {
+      headers: { Authorization: `Bearer ${LAGO_API_KEY}` },
+      signal: AbortSignal.timeout(LAGO_READ_TIMEOUT_MS),
+    });
+    console.log(`console-billing lago GET ${path.split("?")[0]} -> ${res.status} in ${Date.now() - started}ms`);
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Lago ${path} -> ${res.status}`);
+    return res.json();
+  } catch (err) {
+    console.error(`console-billing lago GET ${path.split("?")[0]} failed after ${Date.now() - started}ms: ${(err as Error).message}`);
+    throw err;
+  }
 }
 
 // Lago's Rails backend rejects a POST that declares Content-Type: application/json
@@ -90,6 +99,7 @@ async function lagoPost(path: string): Promise<{ ok: true; body: unknown } | { o
     body: "{}",
     signal: AbortSignal.timeout(LAGO_PAYMENT_URL_TIMEOUT_MS),
   });
+  console.log(`console-billing lago POST ${path} -> ${res.status}`);
   const body = await res.json().catch(() => null);
   if (!res.ok) return { ok: false, status: res.status, error: body };
   return { ok: true, body };
@@ -276,6 +286,7 @@ Deno.serve(async (req) => {
     const billing = await fetchBilling(lagoCustomerId);
     return json({ billingConfigured: true, ...billing });
   } catch (err) {
+    console.error(`console-billing failed: ${(err as Error).message}`);
     return json({ error: `Failed to load billing data: ${(err as Error).message}` }, 502);
   }
 });
