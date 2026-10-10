@@ -755,8 +755,7 @@ export default function StartProject() {
           <span className="section-label teal">START A PROJECT · 4 STEPS</span>
           <h1>Tell us what you're <span>building</span></h1>
           <p>
-            Where it's under pressure, what needs to change, and how to reach you. A senior engineer reads every
-            brief and replies within one business day, not a sales queue.
+            A senior engineer reads every brief and replies within one business day.
           </p>
         </header>
 
@@ -824,7 +823,6 @@ export default function StartProject() {
                       <input type="checkbox" checked={whatsappOptIn} disabled={!phone.trim()} onChange={(e) => setWhatsappOptIn(e.target.checked)} />
                       <span>Confirm on WhatsApp too, and let me reply there. Only about this brief. Reply STOP anytime.</span>
                     </label>
-                    <p className="sp-note">Your brief saves as you go. If you leave before sending it, we'll email you a link back to where you stopped, twice at most.</p>
                   </fieldset>
 
                   {/* Honeypot: hidden from people, tempting to bots */}
@@ -925,7 +923,7 @@ export default function StartProject() {
                 <button type="button" className="button outline" onClick={goBack}>
                   <ArrowLeft size={15} /> Back
                 </button>
-              ) : <span />}
+              ) : <p className="sp-note sp-nav-note">Your brief saves as you go. If you leave before completing it, we'll send you a link back to where you stopped.</p>}
               <div className="scorecard-nav-next">
                 <span className="sp-confidential"><ShieldCheck size={14} className="text-teal" /> Confidential. Read by senior engineers.</span>
                 <button

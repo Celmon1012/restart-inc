@@ -5,12 +5,9 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
-  Calendar,
   Check,
-  ClipboardList,
   Mail,
   MessageCircle,
-  MessageSquare,
   Phone,
   ShieldCheck,
   Timer,
@@ -38,49 +35,6 @@ import { whatsappLink } from "@/lib/site";
  * page where a prospect is most likely to hold us to it, so it names what
  * happens, who does it, and what to do if it does not happen.
  */
-
-interface Step {
-  icon: typeof Timer;
-  kicker: string;
-  title: string;
-  timing: string;
-  body: string;
-}
-
-const STEPS: Step[] = [
-  {
-    icon: ClipboardList,
-    kicker: "STEP 01",
-    title: "A senior engineer reads your brief",
-    timing: "Within 24 hours",
-    body:
-      "Your submission goes to engineering leadership, not a sales queue. Whoever reads it has built systems like the one you described, and is deciding whether Restart is genuinely the right fit — including when the answer is no.",
-  },
-  {
-    icon: MessageSquare,
-    kicker: "STEP 02",
-    title: "You get a written response with a clear next move",
-    timing: "Within 24 hours",
-    body:
-      "A direct reply covering whether there is a fit, which of the four delivery lanes matches your constraint, and what the first concrete step would be. If we are not the right fit, we will say so and, where we can, point you somewhere better.",
-  },
-  {
-    icon: Calendar,
-    kicker: "STEP 03",
-    title: "A 30-minute working session",
-    timing: "Within 3 business days, if there is a fit",
-    body:
-      "Not a pitch. We scope the boundary of the problem, the constraints that matter, and what a useful first milestone looks like. You leave with a clearer picture whether or not you proceed.",
-  },
-  {
-    icon: ShieldCheck,
-    kicker: "STEP 04",
-    title: "A fixed-scope proposal",
-    timing: "Within 5 business days",
-    body:
-      "Milestones, the technical approach, the commercial terms, and the assumptions we are making. Fixed scope against defined deliverables — not an open-ended retainer priced by the hour.",
-  },
-];
 
 export default function InquirySubmitted() {
   const [location] = useLocation();
@@ -133,11 +87,11 @@ export default function InquirySubmitted() {
             </div>
             <span className="section-label teal">BRIEF RECEIVED</span>
             <h1>
-              We have it. <span>A senior engineer will read it today.</span>
+              A senior engineer will read it today.
             </h1>
             <p className="ty-lede">
               Your brief is in the queue now. You will get a written response within 24 hours with
-              whether there is a fit and the clearest next step — not a generic sales sequence.
+              whether there is a fit and the clearest next step.
             </p>
 
             {referenceId && (
@@ -166,29 +120,6 @@ export default function InquirySubmitted() {
               reply to that address or call the number below and say so plainly. The commitment is
               not dropped because we are busy.
             </p>
-          </section>
-
-          {/* What happens next */}
-          <section className="ty-steps-section">
-            <h2>What happens next</h2>
-            <div className="ty-steps">
-              {STEPS.map((step) => {
-                const Icon = step.icon;
-                return (
-                  <article className="ty-step" key={step.kicker}>
-                    <div className="ty-step-head">
-                      <span className="ty-step-icon">
-                        <Icon size={15} />
-                      </span>
-                      <span className="ty-step-kicker">{step.kicker}</span>
-                      <span className="ty-step-timing">{step.timing}</span>
-                    </div>
-                    <h3>{step.title}</h3>
-                    <p>{step.body}</p>
-                  </article>
-                );
-              })}
-            </div>
           </section>
 
           {/* While you wait */}

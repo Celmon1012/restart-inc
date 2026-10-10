@@ -1454,6 +1454,7 @@ textarea.sp-field{ resize: vertical; min-height: 140px; }
 .sp-fields label em{ color: #6e7485; font-style: normal; font-weight: 400; }
 .sp-legend-note{ margin-left: 6px; color: #6e7485; font-size: 0.8125rem; font-style: normal; font-weight: 400; }
 .sp-note{ clear: both; margin: 12px 0 0; color: #6e7485; font-size: 0.8125rem; line-height: 1.55; }
+.sp-nav-note{ margin: 0; max-width: 340px; font-size: 0.75rem; }
 .sp-error{ margin-top: 16px; padding: 12px 14px; border: 1px solid rgba(229,176,97,.35); border-radius: 8px; background: rgba(229,176,97,.07); color: var(--amber); font-size: 0.875rem; }
 .sp-notice{ display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; padding: 12px 14px; border: 1px solid rgba(46,229,193,.28); border-radius: 8px; background: rgba(46,229,193,.06); color: #c9d2e3; font-size: 0.875rem; }
 .sp-notice-action{ flex-shrink: 0; background: none; border: 0; padding: 0; color: var(--teal); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
