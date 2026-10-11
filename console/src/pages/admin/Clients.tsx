@@ -13,6 +13,7 @@ import { formatDate } from "@/lib/format";
 import { CLIENT_TYPE_LABEL, loadPortfolio } from "@/lib/admin";
 import { CLIENT_STATUS_LABEL, moneyFor, statusFor, type ClientStatus } from "@/lib/adminClients";
 import { formatTotals, loadFinanceOverview } from "./Finance";
+import { AddClient } from "@/components/admin/AddClient";
 
 const STATUS_TONE: Record<ClientStatus, string> = { active: "", scoping: "warning", idle: "neutral" };
 
@@ -64,6 +65,7 @@ export default function AdminClients() {
           <h1>Clients</h1>
           <p>Who we work for, their projects, what they're worth, and what they're waiting on.</p>
         </div>
+        <AddClient />
       </div>
 
       {portfolio.error && <ErrorAlert message={`Couldn't load clients: ${portfolio.error}`} onRetry={portfolio.retry} />}

@@ -15,7 +15,7 @@ import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { consoleSchema } from "@/lib/supabase";
 import { invokeFunction } from "@/lib/functions";
 import { formatAmount, formatDate, formatRelative } from "@/lib/format";
-import { CLIENT_TYPE_LABEL, ENGAGEMENT_LABEL, loadPortfolio } from "@/lib/admin";
+import { CLIENT_TYPE_LABEL, ENGAGEMENT_LABEL, loadPortfolio, queryParam } from "@/lib/admin";
 import { ProjectStatusPill, ProgressCell } from "./Projects";
 import { ProjectActions } from "@/components/admin/ProjectActions";
 import { LinkBilling } from "@/components/admin/LinkBilling";
@@ -49,7 +49,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export default function AdminProjectDetail(props: { id?: string }) {
   const params = useParams<{ id: string }>();
   const id = props.id ?? params.id;
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = queryParam("tab");
+    return t === "milestones" || t === "requests" || t === "support" || t === "billing" ? t : "overview";
+  });
 
   const portfolio = useAsyncResource(() => loadPortfolio({ includeArchived: true }), [id], { errorMessage: "Failed to load project" });
   const project = portfolio.data?.projects.find((p) => p.id === id) ?? null;
