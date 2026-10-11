@@ -27,6 +27,7 @@ export function AddTask({ onAdded }: { onAdded: () => Promise<void> | void }) {
   const [title, setTitle] = useState("");
   // "" = the team, unassigned; "client" = the client has to do it; otherwise a team member's user id.
   const [assignTo, setAssignTo] = useState("");
+  const [due, setDue] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,12 +79,14 @@ export function AddTask({ onAdded }: { onAdded: () => Promise<void> | void }) {
           title: title.trim(),
           sort_order: count ?? 0,
           owner: assignTo === "client" ? "client" : "team",
-          assignee_id: assignTo && assignTo !== "client" ? assignTo : null
+          assignee_id: assignTo && assignTo !== "client" ? assignTo : null,
+          due_at: due || null
         });
       if (tErr) throw new Error(tErr.message);
 
       toast.success("Task added");
       setTitle("");
+      setDue("");
       if (creatingMilestone) {
         setMilestoneId(deliverableId);
         setNewMilestone("");
@@ -135,6 +138,7 @@ export function AddTask({ onAdded }: { onAdded: () => Promise<void> | void }) {
       )}
 
       <input type="text" required placeholder="Task…" value={title} onChange={(e) => setTitle(e.target.value)} style={{ minWidth: 240 }} autoFocus />
+      <label className="admin-muted">Due <input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Deadline" /></label>
       <select value={assignTo} onChange={(e) => setAssignTo(e.target.value)} aria-label="Assigned to">
         <option value="">Team (unassigned)</option>
         {(options.data?.team ?? []).map((m) => <option key={m.user_id} value={m.user_id}>{m.email}</option>)}

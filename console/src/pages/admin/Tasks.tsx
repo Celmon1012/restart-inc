@@ -10,6 +10,7 @@ import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { HealthBadge } from "@/components/HealthBadge";
 import { consoleSchema } from "@/lib/supabase";
 import { loadTeamMembers, loadWorkspaceNames } from "@/lib/admin";
+import { formatDate } from "@/lib/format";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddTask } from "@/components/admin/AddTask";
 import { Check, ArrowRight, Search } from "lucide-react";
@@ -26,6 +27,7 @@ interface TaskRow {
   created_at: string;
   owner: "team" | "client";
   assignee_id: string | null;
+  due_at: string | null;
   deliverable: {
     id: string;
     title: string;
@@ -36,7 +38,7 @@ interface TaskRow {
   } | null;
 }
 
-type Filter = "open" | "done" | "all";
+type Filter = "open" | "overdue" | "done" | "all";
 type Who = "anyone" | "mine" | "client" | "unassigned";
 
 export default function AdminTasks() {
@@ -50,7 +52,7 @@ export default function AdminTasks() {
   const { data, loading, error, retry, refresh, refreshing } = useAsyncResource<TaskRow[]>(
     async (signal) => {
       const [tasksRes, deliverablesRes, names] = await Promise.all([
-        consoleSchema().from("deliverable_tasks").select("id,title,is_done,sort_order,created_at,deliverable_id,owner,assignee_id").order("sort_order", { ascending: true }),
+        consoleSchema().from("deliverable_tasks").select("id,title,is_done,sort_order,created_at,deliverable_id,owner,assignee_id,due_at").order("sort_order", { ascending: true }),
         consoleSchema().from("deliverables").select("id,title,status,due_at,sort_order,workspace_id"),
         loadWorkspaceNames()
       ]);
@@ -89,10 +91,15 @@ export default function AdminTasks() {
     await refresh();
   };
 
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const isOverdue = (t: TaskRow) => !t.is_done && Boolean(t.due_at) && (t.due_at as string) < todayIso;
+  const overdueTasks = tasks.filter(isOverdue).length;
+
   const needle = search.trim().toLowerCase();
   const visible = tasks.filter(
     (t) =>
-      (filter === "all" || (filter === "open" ? !t.is_done : t.is_done)) &&
+      (filter === "all" ||
+        (filter === "open" ? !t.is_done : filter === "overdue" ? isOverdue(t) : t.is_done)) &&
       (who === "anyone" ||
         (who === "client" ? t.owner === "client" : who === "mine" ? t.owner === "team" && t.assignee_id === user?.id : t.owner === "team" && !t.assignee_id)) &&
       (!needle ||
@@ -165,9 +172,9 @@ export default function AdminTasks() {
       )}
 
       <div className="admin-toolbar">
-        {(["open", "done", "all"] as Filter[]).map((f) => (
+        {(["open", "overdue", "done", "all"] as Filter[]).map((f) => (
           <button key={f} className={`dash-tab-btn ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>
-            {f === "open" ? "Open" : f === "done" ? "Done" : "All"}
+            {f === "open" ? "Open" : f === "overdue" ? `Overdue (${overdueTasks})` : f === "done" ? "Done" : "All"}
           </button>
         ))}
         <select value={who} onChange={(e) => setWho(e.target.value as Who)} aria-label="Assigned to">
@@ -213,6 +220,11 @@ export default function AdminTasks() {
                       {t.is_done && <Check size={12} />}
                     </button>
                     <span className={t.is_done ? "done" : ""}>{t.title}</span>
+                    {t.due_at && (
+                      <span className={isOverdue(t) ? "admin-warn" : "admin-muted"}>
+                        {isOverdue(t) ? "overdue · " : "due "}{formatDate(t.due_at)}
+                      </span>
+                    )}
                     <span className={t.owner === "client" ? "admin-warn" : "admin-muted"}>
                       {t.owner === "client" ? "Client to do" : t.assignee_id ? (teamEmail.get(t.assignee_id) ?? "Assigned").split("@")[0] : "Unassigned"}
                     </span>
