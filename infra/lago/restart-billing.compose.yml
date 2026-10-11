@@ -28,7 +28,7 @@ services:
       timeout: 5s
       retries: 5
   api:
-    image: 'restart/lago-api:v1.53.0-p6'
+    image: 'restart/lago-api:v1.53.0-p7'
     pull_policy: build
     build:
       dockerfile_inline: |
@@ -45,6 +45,9 @@ services:
         RUN f=app/services/billing_entities/create_service.rb && grep -q '^        if License.premium?$$' $$f && sed -i 's/^        if License.premium?$$/        if true/' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/payment_intents/fetch_service.rb && grep -q 'provider_session_id: payment_url_result.provider_session_id' $$f && sed -i 's/provider_session_id: payment_url_result.provider_session_id/provider_session_id: (payment_url_result.provider_session_id if payment_url_result.respond_to?(:provider_session_id))/' $$f && grep -q 'respond_to?(:provider_session_id)' $$f
         RUN f=app/services/invoices/payments/flutterwave_service.rb && grep -q 'Money.from_cents(invoice.total_amount_cents, invoice.currency).to_f' $$f && grep -q 'tx_ref: invoice.id,' $$f && sed -i 's/Money.from_cents(invoice.total_amount_cents, invoice.currency).to_f/Money.from_cents(invoice.total_due_amount_cents, invoice.currency).to_f/' $$f && sed -i 's/tx_ref: invoice.id,/tx_ref: "#{invoice.id}-#{SecureRandom.hex(4)}",/' $$f && grep -q 'invoice.total_due_amount_cents' $$f && grep -q 'SecureRandom.hex(4)' $$f
+        RUN f=app/services/subscriptions/create_service.rb && grep -q 'return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $$f && sed -i '/return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)/d' $$f && ! grep -q 'forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $$f
+        RUN f=app/services/subscriptions/update_service.rb && grep -q 'return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $$f && sed -i '/return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)/d' $$f && ! grep -q 'forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $$f
+        RUN f=app/services/plans/override_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'forbidden_failure! unless License.premium?' $$f
     command:
       - sh
       - '-c'
@@ -86,7 +89,7 @@ services:
       retries: 15
       start_period: 120s
   front:
-    image: 'restart/lago-front:v1.53.0-p6'
+    image: 'restart/lago-front:v1.53.0-p7'
     pull_policy: build
     build:
       context: 'https://github.com/getlago/lago-front.git#v1.53.0'
@@ -209,6 +212,26 @@ services:
         )
         edit('src/components/invoices/InvoicesList.tsx', (s) => s.replace('if (!isPremium) {', 'if (!(isPremium || true)) {'))
         edit('src/components/invoices/InvoiceCreditNoteList.tsx', (s) => s.replace('{isPremium ? (', '{(isPremium || true) ? ('))
+
+        // Plan overrides on a subscription (e.g. a per-client subscription fee). The API side is patched
+        // in api.Dockerfile. Every "Edit" action on the subscription's plan goes through
+        // useSubscriptionPremiumGate, the plan tab shows an "Unlock plan overrides" upsell banner, and
+        // the create/edit subscription form masks the override sections and only renders the fee and
+        // charge editors for premium users.
+        edit('src/hooks/plans/useSubscriptionPremiumGate.ts', (s) =>
+          s.replace('const isGated = isInSubscriptionForm && !isPremium', 'const isGated = isInSubscriptionForm && !(isPremium || true)'),
+        )
+        edit('src/components/subscriptions/details-v2/SubscriptionDetailsV2Plan.tsx', (s) =>
+          s.replace('if (!isPremium) {', 'if (!(isPremium || true)) {'),
+        )
+        edit('src/pages/subscriptions/CreateSubscription.tsx', (src) => {
+          const start = src.indexOf('{/* Premium upsell (non-premium users) */}')
+          if (start === -1) throw new Error('subscription form: premium upsell marker not found')
+          const m = /<PlanFormProvider/.exec(src.slice(start))
+          if (!m) throw new Error('subscription form: PlanFormProvider not found')
+          const end = start + m.index
+          return src.slice(0, start) + src.slice(start, end).replaceAll('isPremium', '(isPremium || true)') + src.slice(end)
+        })
         PATCH_EOF
         RUN node /tmp/patch-front.mjs
         RUN pnpm build
@@ -234,7 +257,7 @@ services:
       - 'LAGO_FRONT_URL=${LAGO_FRONT_URL}'
       - LAGO_DISABLE_PDF_GENERATION=false
   api-worker:
-    image: 'restart/lago-api:v1.53.0-p6'
+    image: 'restart/lago-api:v1.53.0-p7'
     pull_policy: build
     build:
       dockerfile_inline: |
@@ -251,6 +274,9 @@ services:
         RUN f=app/services/billing_entities/create_service.rb && grep -q '^        if License.premium?$$' $$f && sed -i 's/^        if License.premium?$$/        if true/' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/payment_intents/fetch_service.rb && grep -q 'provider_session_id: payment_url_result.provider_session_id' $$f && sed -i 's/provider_session_id: payment_url_result.provider_session_id/provider_session_id: (payment_url_result.provider_session_id if payment_url_result.respond_to?(:provider_session_id))/' $$f && grep -q 'respond_to?(:provider_session_id)' $$f
         RUN f=app/services/invoices/payments/flutterwave_service.rb && grep -q 'Money.from_cents(invoice.total_amount_cents, invoice.currency).to_f' $$f && grep -q 'tx_ref: invoice.id,' $$f && sed -i 's/Money.from_cents(invoice.total_amount_cents, invoice.currency).to_f/Money.from_cents(invoice.total_due_amount_cents, invoice.currency).to_f/' $$f && sed -i 's/tx_ref: invoice.id,/tx_ref: "#{invoice.id}-#{SecureRandom.hex(4)}",/' $$f && grep -q 'invoice.total_due_amount_cents' $$f && grep -q 'SecureRandom.hex(4)' $$f
+        RUN f=app/services/subscriptions/create_service.rb && grep -q 'return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $$f && sed -i '/return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)/d' $$f && ! grep -q 'forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $$f
+        RUN f=app/services/subscriptions/update_service.rb && grep -q 'return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $$f && sed -i '/return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)/d' $$f && ! grep -q 'forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $$f
+        RUN f=app/services/plans/override_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'forbidden_failure! unless License.premium?' $$f
     command:
       - ./scripts/start.worker.sh
     depends_on:
@@ -280,7 +306,7 @@ services:
       retries: 15
       start_period: 60s
   api-clock:
-    image: 'restart/lago-api:v1.53.0-p6'
+    image: 'restart/lago-api:v1.53.0-p7'
     pull_policy: build
     build:
       dockerfile_inline: |
@@ -297,6 +323,9 @@ services:
         RUN f=app/services/billing_entities/create_service.rb && grep -q '^        if License.premium?$$' $$f && sed -i 's/^        if License.premium?$$/        if true/' $$f && ! grep -q 'License.premium?' $$f
         RUN f=app/services/payment_intents/fetch_service.rb && grep -q 'provider_session_id: payment_url_result.provider_session_id' $$f && sed -i 's/provider_session_id: payment_url_result.provider_session_id/provider_session_id: (payment_url_result.provider_session_id if payment_url_result.respond_to?(:provider_session_id))/' $$f && grep -q 'respond_to?(:provider_session_id)' $$f
         RUN f=app/services/invoices/payments/flutterwave_service.rb && grep -q 'Money.from_cents(invoice.total_amount_cents, invoice.currency).to_f' $$f && grep -q 'tx_ref: invoice.id,' $$f && sed -i 's/Money.from_cents(invoice.total_amount_cents, invoice.currency).to_f/Money.from_cents(invoice.total_due_amount_cents, invoice.currency).to_f/' $$f && sed -i 's/tx_ref: invoice.id,/tx_ref: "#{invoice.id}-#{SecureRandom.hex(4)}",/' $$f && grep -q 'invoice.total_due_amount_cents' $$f && grep -q 'SecureRandom.hex(4)' $$f
+        RUN f=app/services/subscriptions/create_service.rb && grep -q 'return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $$f && sed -i '/return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)/d' $$f && ! grep -q 'forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $$f
+        RUN f=app/services/subscriptions/update_service.rb && grep -q 'return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $$f && sed -i '/return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)/d' $$f && ! grep -q 'forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $$f
+        RUN f=app/services/plans/override_service.rb && grep -q 'return result.forbidden_failure! unless License.premium?' $$f && sed -i '/return result.forbidden_failure! unless License.premium?/d' $$f && ! grep -q 'forbidden_failure! unless License.premium?' $$f
     command:
       - ./scripts/start.clock.sh
     exclude_from_hc: true

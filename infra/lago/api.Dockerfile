@@ -84,3 +84,20 @@ RUN f=app/services/invoices/payments/flutterwave_service.rb \
  && sed -i 's/Money.from_cents(invoice.total_amount_cents, invoice.currency).to_f/Money.from_cents(invoice.total_due_amount_cents, invoice.currency).to_f/' $f \
  && sed -i 's/tx_ref: invoice.id,/tx_ref: "#{invoice.id}-#{SecureRandom.hex(4)}",/' $f \
  && grep -q 'invoice.total_due_amount_cents' $f && grep -q 'SecureRandom.hex(4)' $f
+
+# Plan overrides: a per-customer price (or name, description, trial) on a subscription, e.g. the
+# subscription fee of a standard plan set to the amount agreed with one client. Three gates:
+# creating a subscription with plan_overrides, updating one, and the override service itself.
+# Overrides of individual charges through their own endpoints (and charge filters) stay gated.
+RUN f=app/services/subscriptions/create_service.rb \
+ && grep -q 'return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $f \
+ && sed -i '/return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)/d' $f \
+ && ! grep -q 'forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $f
+RUN f=app/services/subscriptions/update_service.rb \
+ && grep -q 'return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $f \
+ && sed -i '/return result.forbidden_failure! if !License.premium? && params.key?(:plan_overrides)/d' $f \
+ && ! grep -q 'forbidden_failure! if !License.premium? && params.key?(:plan_overrides)' $f
+RUN f=app/services/plans/override_service.rb \
+ && grep -q 'return result.forbidden_failure! unless License.premium?' $f \
+ && sed -i '/return result.forbidden_failure! unless License.premium?/d' $f \
+ && ! grep -q 'forbidden_failure! unless License.premium?' $f

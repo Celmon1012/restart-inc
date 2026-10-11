@@ -101,3 +101,23 @@ edit('src/components/customers/CustomerInvoicesList.tsx', (s) =>
 )
 edit('src/components/invoices/InvoicesList.tsx', (s) => s.replace('if (!isPremium) {', 'if (!(isPremium || true)) {'))
 edit('src/components/invoices/InvoiceCreditNoteList.tsx', (s) => s.replace('{isPremium ? (', '{(isPremium || true) ? ('))
+
+// Plan overrides on a subscription (e.g. a per-client subscription fee). The API side is patched
+// in api.Dockerfile. Every "Edit" action on the subscription's plan goes through
+// useSubscriptionPremiumGate, the plan tab shows an "Unlock plan overrides" upsell banner, and
+// the create/edit subscription form masks the override sections and only renders the fee and
+// charge editors for premium users.
+edit('src/hooks/plans/useSubscriptionPremiumGate.ts', (s) =>
+  s.replace('const isGated = isInSubscriptionForm && !isPremium', 'const isGated = isInSubscriptionForm && !(isPremium || true)'),
+)
+edit('src/components/subscriptions/details-v2/SubscriptionDetailsV2Plan.tsx', (s) =>
+  s.replace('if (!isPremium) {', 'if (!(isPremium || true)) {'),
+)
+edit('src/pages/subscriptions/CreateSubscription.tsx', (src) => {
+  const start = src.indexOf('{/* Premium upsell (non-premium users) */}')
+  if (start === -1) throw new Error('subscription form: premium upsell marker not found')
+  const m = /<PlanFormProvider/.exec(src.slice(start))
+  if (!m) throw new Error('subscription form: PlanFormProvider not found')
+  const end = start + m.index
+  return src.slice(0, start) + src.slice(start, end).replaceAll('isPremium', '(isPremium || true)') + src.slice(end)
+})

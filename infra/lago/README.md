@@ -8,7 +8,7 @@ show a premium popup and the payment link crashes.** So:
 > folder, and the patches re-checked.** Never point a deployment at `getlago/api` /
 > `getlago/front` directly.
 
-Current build: **`v1.53.0-p6`** (images `restart/lago-api:v1.53.0-p6`, `restart/lago-front:v1.53.0-p6`),
+Current build: **`v1.53.0-p7`** (images `restart/lago-api:v1.53.0-p7`, `restart/lago-front:v1.53.0-p7`),
 running in Coolify service `restart-billing` (uuid `pwz5mon2kh40psk4eb2fv0z7`).
 
 ## What is patched
@@ -30,6 +30,13 @@ Only the features below. Everything else stays behind the premium popup.
 | Manual "Request overdue payment" | `payment_requests/create_service.rb` | request-payment page |
 | Credit notes (create + estimate) | `credit_notes/create_service.rb`, `estimate_service.rb` | "Issue a credit note" in 3 places |
 | Add an entity (no cap) | `organization.rb` entity limit, `billing_entities/create_service.rb` | none (follows the API) |
+| Plan overrides on a subscription (a per-client price, name, description or trial on a standard plan; the "Unlock plan overrides" banner and the Edit ✨ buttons on the subscription's plan tab) | `subscriptions/create_service.rb`, `subscriptions/update_service.rb`, `plans/override_service.rb` | `useSubscriptionPremiumGate` hook, plan tab banner, create/edit subscription form |
+
+Plan overrides cover what `plan_overrides` carries on a subscription (including its charges). Editing
+a charge or charge filter on its own endpoint (`update_or_override_charge_service`,
+`update_or_override_fixed_charge_service`, `charge_filters/*`) is still licence-gated. To use an
+override: open the subscription, Subscription plan tab, Edit on "Subscription fee". It creates a
+child plan for that customer only; the shared plan and other customers are untouched.
 
 Still gated on purpose: payment receipt emails, analytics dashboards, plan features (progressive
 billing, minimum commitment), wallets and alerts, custom roles, SSO, integrations, AI. Unlock one
