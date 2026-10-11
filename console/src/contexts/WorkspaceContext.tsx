@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, useEffect, useState } from "react";
+import React, { createContext, useContext, useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthContext";
 import type { Workspace, WorkspaceSummary } from "@/lib/resources";
@@ -33,6 +33,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The user id we already tried to auto-link for, so it runs once per session
+  // rather than on every refresh.
+  const claimedFor = useRef<string | null>(null);
 
   const load = useCallback(async (workspaceId: string | null) => {
     setLoading(true);
@@ -42,9 +45,23 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       // POST body invoke() normally sends -- appending it to the function
       // name is the standard supabase-js way to do that.
       const path = workspaceId ? `console-data?workspace_id=${workspaceId}` : "console-data";
-      const { data, error: fnError } = await supabase.functions.invoke(path);
+      let { data, error: fnError } = await supabase.functions.invoke(path);
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
+
+      // A client whose project an admin created has a contact email but no membership
+      // until their login is attached. Once per session, try attaching it (verified emails
+      // only, enforced in the database), including for an account that already has some
+      // other project, e.g. an empty one created by onboarding before it was linked.
+      const userId = session?.user?.id ?? null;
+      if (!data?.isAdmin && userId && claimedFor.current !== userId) {
+        claimedFor.current = userId;
+        const { data: linked } = await supabase.schema("console").rpc("claim_my_workspaces");
+        if (Number(linked) > 0) {
+          const again = await supabase.functions.invoke(path);
+          if (!again.error && !again.data?.error) data = again.data;
+        }
+      }
       setWorkspaces(data?.workspaces ?? []);
       setActiveWorkspace(data?.active ?? null);
       setIsAdmin(Boolean(data?.isAdmin));
@@ -54,7 +71,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (authLoading) return;
