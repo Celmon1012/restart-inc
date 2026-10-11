@@ -146,8 +146,9 @@ export default function AdminProjects() {
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [showArchived, setShowArchived] = useState(false);
 
-  const { data, loading, error, retry, refresh, refreshing } = useAsyncResource(() => loadPortfolio(), [], {
+  const { data, loading, error, retry, refresh, refreshing } = useAsyncResource(() => loadPortfolio({ includeArchived: showArchived }), [showArchived], {
     errorMessage: "Failed to load projects"
   });
   const projects = data?.projects ?? [];
@@ -208,6 +209,9 @@ export default function AdminProjects() {
             {f === "all" ? `All (${projects.length})` : `${PROJECT_STATUS_LABEL[f]} (${count(f)})`}
           </button>
         ))}
+        <label className="admin-muted" style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> Show archived
+        </label>
         <span className="admin-toolbar-spacer" />
         <div className="workspace-search-box">
           <Search size={13} />
@@ -240,7 +244,7 @@ export default function AdminProjects() {
               {visible.map((p) => (
                 <tr key={p.id} className="clickable" onClick={() => setLocation(`/admin/projects/${p.id}`)}>
                   <td>
-                    <strong>{p.name}</strong>
+                    <strong>{p.name}</strong>{p.archived_at && <span className="admin-muted"> · archived</span>}
                     <div className="admin-muted">{clientName.get(p.id) !== p.name ? clientName.get(p.id) : p.contact_email ?? "—"}</div>
                   </td>
                   <td><ProjectStatusPill status={p.status} /></td>

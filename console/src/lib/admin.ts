@@ -17,6 +17,7 @@ export interface AdminWorkspace {
   engagement_type: string | null;
   qualification: string | null;
   created_by: string | null;
+  archived_at: string | null;
   // Set by complete_onboarding (full_name, role, website, timeline, budget) or
   // create_project (source, timeline, budget, brief).
   onboarding: {
@@ -34,7 +35,7 @@ export async function loadAdminWorkspaces(): Promise<AdminWorkspace[]> {
   const { data, error } = await consoleSchema()
     .from("workspaces")
     .select(
-      "id,name,tier_label,created_at,coolify_project_uuid,lago_customer_id,contact_email,client_type,engagement_type,qualification,created_by,onboarding"
+      "id,name,tier_label,created_at,coolify_project_uuid,lago_customer_id,contact_email,client_type,engagement_type,qualification,created_by,archived_at,onboarding"
     )
     .order("name", { ascending: true });
   if (error) throw error;
@@ -128,7 +129,8 @@ export function clientKeyFor(w: Pick<AdminWorkspace, "id" | "contact_email" | "c
   return `ws:${w.id}`;
 }
 
-export async function loadPortfolio(): Promise<{ projects: ProjectSummary[]; clients: ClientSummary[] }> {
+/** Archived projects are hidden unless includeArchived is set (the Projects toggle and a project's own page). */
+export async function loadPortfolio(options: { includeArchived?: boolean } = {}): Promise<{ projects: ProjectSummary[]; clients: ClientSummary[] }> {
   const [workspaces, deliverablesRes, tasksRes, requestsRes] = await Promise.all([
     loadAdminWorkspaces(),
     consoleSchema().from("deliverables").select("id,workspace_id,title,status,due_at,sort_order").order("sort_order"),
@@ -143,7 +145,7 @@ export async function loadPortfolio(): Promise<{ projects: ProjectSummary[]; cli
   const requests = requestsRes.error ? [] : requestsRes.data ?? [];
   const workspaceOfDeliverable = new Map(deliverables.map((d) => [d.id as string, d.workspace_id as string]));
 
-  const projects: ProjectSummary[] = workspaces.map((w) => {
+  const projects: ProjectSummary[] = workspaces.filter((w) => options.includeArchived || !w.archived_at).map((w) => {
     const mine = deliverables.filter((d) => d.workspace_id === w.id);
     const myTasks = tasks.filter((t) => workspaceOfDeliverable.get(t.deliverable_id) === w.id);
     const completed = mine.filter((d) => d.status === "completed").length;

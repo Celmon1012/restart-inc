@@ -17,6 +17,7 @@ import { invokeFunction } from "@/lib/functions";
 import { formatAmount, formatDate, formatRelative } from "@/lib/format";
 import { CLIENT_TYPE_LABEL, ENGAGEMENT_LABEL, loadPortfolio } from "@/lib/admin";
 import { ProjectStatusPill, ProgressCell } from "./Projects";
+import { ProjectActions } from "@/components/admin/ProjectActions";
 
 type Tab = "overview" | "milestones" | "requests" | "support" | "billing";
 
@@ -49,7 +50,7 @@ export default function AdminProjectDetail(props: { id?: string }) {
   const id = props.id ?? params.id;
   const [tab, setTab] = useState<Tab>("overview");
 
-  const portfolio = useAsyncResource(() => loadPortfolio(), [id], { errorMessage: "Failed to load project" });
+  const portfolio = useAsyncResource(() => loadPortfolio({ includeArchived: true }), [id], { errorMessage: "Failed to load project" });
   const project = portfolio.data?.projects.find((p) => p.id === id) ?? null;
   const client = portfolio.data?.clients.find((c) => c.projects.some((p) => p.id === id)) ?? null;
 
@@ -137,8 +138,10 @@ export default function AdminProjectDetail(props: { id?: string }) {
             <ProjectStatusPill status={project.status} />{" "}
             {project.engagement_type ? ENGAGEMENT_LABEL[project.engagement_type] ?? project.engagement_type : project.tier_label ?? ""}
             {project.currentMilestone ? ` · Now: ${project.currentMilestone}` : ""}
+            {project.archived_at ? " · Archived" : ""}
           </p>
         </div>
+        <ProjectActions id={project.id} name={project.name} archivedAt={project.archived_at} onChanged={portfolio.refresh} />
       </div>
 
       <div className="cp-stats mb-6">
