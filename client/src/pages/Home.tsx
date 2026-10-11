@@ -76,7 +76,7 @@ export default function Home() {
   useEffect(() => {
     applyPageSeo({
       title: "Restart Inc.",
-      description: "Restart Inc. is a technology and engineering firm that helps ambitious builders and operators turn complex workflows and product ideas into reliable, scalable systems.",
+      description: "As a technology firm we help ambitious builders and operators turn complex workflows and product ideas into reliable, scalable production systems.",
       path: "/",
     });
     return () => resetSeoToDefault();

@@ -38,7 +38,7 @@ export const SITE_URL = "https://restart.ng";
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/brand/restart-mark.png`;
 const DEFAULT_TITLE = "Restart Inc. — Engineering systems your growth depends on";
 const DEFAULT_DESCRIPTION =
-  "Restart Inc. is a technology and engineering firm that helps ambitious builders and operators turn complex workflows and product ideas into reliable, scalable systems.";
+  "As a technology firm we help ambitious builders and operators turn complex workflows and product ideas into reliable, scalable production systems.";
 
 export function applyJsonLd(id: string, data: Record<string, unknown>) {
   setJsonLd(id, data);
