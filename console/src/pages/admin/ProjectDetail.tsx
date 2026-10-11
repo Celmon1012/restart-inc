@@ -74,6 +74,16 @@ export default function AdminProjectDetail(props: { id?: string }) {
     { enabled: Boolean(project) }
   );
 
+  const members = useAsyncResource(
+    async () => {
+      const { data, error } = await consoleSchema().rpc("admin_workspace_members", { p_workspace_id: id });
+      if (error) throw error;
+      return (data ?? []) as Array<{ user_id: string; email: string; joined_at: string }>;
+    },
+    [id],
+    { errorMessage: "Failed to load members" }
+  );
+
   const requests = useAsyncResource<ServerRequest[]>(
     async () => {
       const { data, error } = await consoleSchema().from("server_requests").select("*").eq("workspace_id", id).order("created_at", { ascending: false });
@@ -216,6 +226,20 @@ export default function AdminProjectDetail(props: { id?: string }) {
               <Field label="Type">{client?.clientType ? CLIENT_TYPE_LABEL[client.clientType] ?? client.clientType : null}</Field>
               <Field label="Website">{client?.website && <a className="text-teal" href={client.website.startsWith("http") ? client.website : `https://${client.website}`} target="_blank" rel="noreferrer">{client.website}</a>}</Field>
               <Field label="Billing">{project.lago_customer_id ? `Lago · ${project.lago_customer_id}` : "Not set up"}</Field>
+              <Field label="Console access">
+                {members.loading ? "…" : members.error ? <span className="admin-warn">Couldn't load</span> : (members.data ?? []).length === 0 ? <span className="admin-muted">No one yet. They get access by signing up with the contact email.</span> : (
+                  <span>
+                    {(members.data ?? []).map((m, i) => {
+                      const matches = m.email.toLowerCase() === (project.contact_email ?? "").toLowerCase();
+                      return (
+                        <span key={m.user_id}>
+                          {i > 0 ? ", " : ""}{m.email}{!matches && <span className="admin-warn"> (not the contact email)</span>}
+                        </span>
+                      );
+                    })}
+                  </span>
+                )}
+              </Field>
             </div>
 
             <div className="cp-card-head cp-sub"><span>Leads from this contact</span></div>
