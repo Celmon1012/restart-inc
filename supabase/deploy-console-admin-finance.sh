@@ -141,6 +141,25 @@ Deno.serve(async (req) => {
   if (!caller) return json({ error: "Unauthorized" }, 401);
   if (!caller.isAdmin) return json({ error: "Forbidden" }, 403);
 
+  // ?customers=1 -> the Lago customers a project can be linked to (Breadmaker's
+  // are left out), for the "Link billing" control on a project's Billing tab.
+  if (new URL(req.url).searchParams.get("customers")) {
+    try {
+      const customers: Array<{ externalId: string; name: string | null; email: string | null }> = [];
+      for (let page = 1; page <= MAX_INVOICE_PAGES; page++) {
+        const res = await lagoFetch(`/customers?per_page=100&page=${page}`);
+        const batch: Array<{ external_id: string; name?: string | null; email?: string | null }> = res?.customers ?? [];
+        for (const c of batch) {
+          if (!isBreadmaker(c.external_id)) customers.push({ externalId: c.external_id, name: c.name ?? null, email: c.email ?? null });
+        }
+        if (!res?.meta?.next_page || batch.length === 0) break;
+      }
+      return json({ customers });
+    } catch (err) {
+      return json({ error: `Failed to load Lago customers: ${(err as Error).message}` }, 502);
+    }
+  }
+
   try {
     const workspaces = await getWorkspaces(jwt);
     const byCustomer = new Map(workspaces.filter((w) => w.lago_customer_id && !isBreadmaker(w.lago_customer_id)).map((w) => [w.lago_customer_id!, w]));

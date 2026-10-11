@@ -18,6 +18,7 @@ import { formatAmount, formatDate, formatRelative } from "@/lib/format";
 import { CLIENT_TYPE_LABEL, ENGAGEMENT_LABEL, loadPortfolio } from "@/lib/admin";
 import { ProjectStatusPill, ProgressCell } from "./Projects";
 import { ProjectActions } from "@/components/admin/ProjectActions";
+import { LinkBilling } from "@/components/admin/LinkBilling";
 
 type Tab = "overview" | "milestones" | "requests" | "support" | "billing";
 
@@ -285,13 +286,25 @@ export default function AdminProjectDetail(props: { id?: string }) {
           </div>
         ))}
 
+      {tab === "billing" && (
+        <LinkBilling
+          workspaceId={project.id}
+          linkedCustomerId={project.lago_customer_id}
+          takenCustomerIds={new Set((portfolio.data?.projects ?? []).filter((p) => p.id !== project.id && p.lago_customer_id).map((p) => p.lago_customer_id!))}
+          onChanged={async () => {
+            await portfolio.refresh();
+            billing.retry();
+          }}
+        />
+      )}
+
       {tab === "billing" &&
         (billing.loading ? (
           <LoadingState label="Loading billing from Lago…" />
         ) : billing.error ? (
           <ErrorAlert message={`Couldn't load billing: ${billing.error}`} onRetry={billing.retry} />
         ) : !billing.data?.billingConfigured ? (
-          <EmptyState title="Billing isn't set up" hint="Link this workspace to a Lago customer (workspaces.lago_customer_id) to see its plan and invoices." />
+          <EmptyState title="Billing isn't set up" hint="Pick this project's Lago customer above to see its plan and invoices." />
         ) : (
           <>
             <h2 className="admin-section-title">Subscriptions</h2>
