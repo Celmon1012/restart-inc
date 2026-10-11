@@ -104,12 +104,16 @@ function monthlyCents(plan: LagoPlan): number {
   }
 }
 
+// Breadmaker Systems is a separate entity billed on the same Lago (customers "bm-…");
+// its money never belongs in Restart's books.
+const isBreadmaker = (externalId: string | null | undefined) => (externalId ?? "").startsWith("bm-");
+
 async function fetchAllInvoices(): Promise<LagoInvoice[]> {
   const all: LagoInvoice[] = [];
   for (let page = 1; page <= MAX_INVOICE_PAGES; page++) {
     const res = await lagoFetch(`/invoices?per_page=100&page=${page}`);
     const batch: LagoInvoice[] = res?.invoices ?? [];
-    all.push(...batch);
+    all.push(...batch.filter((inv) => !isBreadmaker(inv.customer?.external_id)));
     const next = res?.meta?.next_page;
     if (!next || batch.length === 0) break;
   }
@@ -134,7 +138,7 @@ Deno.serve(async (req) => {
 
   try {
     const workspaces = await getWorkspaces(jwt);
-    const byCustomer = new Map(workspaces.filter((w) => w.lago_customer_id).map((w) => [w.lago_customer_id!, w]));
+    const byCustomer = new Map(workspaces.filter((w) => w.lago_customer_id && !isBreadmaker(w.lago_customer_id)).map((w) => [w.lago_customer_id!, w]));
 
     const [invoices, plansRes, subsByCustomer] = await Promise.all([
       fetchAllInvoices(),

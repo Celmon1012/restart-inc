@@ -1,16 +1,28 @@
-// Restart's own operating costs, set against revenue from the Finance page.
-// Costs live in console.expenses; the USD->NGN rate and cash balance in
-// console.finance_settings. Everything is folded into NGN (home currency) for
-// the ratios; revenue in currencies other than NGN/USD is left out.
+// Restart's overhead (console.expenses) and the totals that set all costs,
+// hosting included, against revenue from the Finance page. Hosting itself is
+// per-deployment and lives in DeploymentMargins. Everything is folded into NGN
+// (home currency); revenue in currencies other than NGN/USD/EUR is left out.
 
 import { useMemo, useState } from "react";
 import { consoleSchema } from "@/lib/supabase";
 import { formatAmount, formatDate, formatPercent } from "@/lib/format";
-import { ErrorAlert, LoadingState } from "@/components/AsyncStates";
-import { useAsyncResource } from "@/hooks/useAsyncResource";
+import {
+  COST_CURRENCIES,
+  expenseInMonth,
+  hostingInMonth,
+  monthKey,
+  overheadInMonth,
+  toNgn,
+  totalsToNgn,
+  type Books,
+  type Cadence,
+  type CostCurrency,
+  type Expense,
+  type Settings
+} from "@/lib/financeBooks";
 import type { FinanceOverview } from "@/pages/admin/Finance";
 
-const CATEGORIES = {
+const CATEGORIES: Record<Expense["category"], string> = {
   infrastructure: "Infrastructure",
   software: "Software & tools",
   people: "People",
@@ -18,129 +30,68 @@ const CATEGORIES = {
   legal_tax: "Legal & tax",
   banking_fees: "Banking & fees",
   other: "Other"
-} as const;
-type Category = keyof typeof CATEGORIES;
-type Cadence = "monthly" | "quarterly" | "annual" | "one_off";
+};
+type Category = Expense["category"];
 const CADENCE_LABEL: Record<Cadence, string> = { monthly: "Monthly", quarterly: "Quarterly", annual: "Annual", one_off: "One-off" };
-
-interface Expense {
-  id: string;
-  name: string;
-  category: Category;
-  amount_cents: number;
-  currency: "NGN" | "USD";
-  cadence: Cadence;
-  start_date: string;
-  end_date: string | null;
-  notes: string | null;
-}
-interface Settings {
-  usd_ngn: number;
-  cash_ngn_cents: number;
-}
-interface CostData {
-  expenses: Expense[];
-  settings: Settings;
-}
-
-async function loadCosts(): Promise<CostData> {
-  const [exp, set] = await Promise.all([
-    consoleSchema().from("expenses").select("id,name,category,amount_cents,currency,cadence,start_date,end_date,notes").order("start_date", { ascending: false }),
-    consoleSchema().from("finance_settings").select("usd_ngn,cash_ngn_cents").eq("id", true).maybeSingle()
-  ]);
-  if (exp.error) throw exp.error;
-  if (set.error) throw set.error;
-  const s = set.data;
-  return {
-    // bigint comes back as a number from PostgREST; numeric as a string in some setups.
-    expenses: (exp.data ?? []).map((e) => ({ ...e, amount_cents: Number(e.amount_cents) })) as Expense[],
-    settings: { usd_ngn: Number(s?.usd_ngn ?? 1500), cash_ngn_cents: Number(s?.cash_ngn_cents ?? 0) }
-  };
-}
 
 const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
 
-const toNgn = (cents: number, currency: string, rate: number) => (currency === "NGN" ? cents : currency === "USD" ? cents * rate : 0);
+const emptyForm = { name: "", category: "software" as Category, amount: "", currency: "NGN" as CostCurrency, cadence: "monthly" as Cadence, start: new Date().toISOString().slice(0, 10), end: "" };
 
-/** Revenue totals ({NGN: kobo, USD: cents}) folded into kobo. */
-const totalsToNgn = (t: Record<string, number> | undefined, rate: number) =>
-  Object.entries(t ?? {}).reduce((sum, [c, v]) => sum + toNgn(v, c, rate), 0);
-
-/** What an expense costs in the given month ("YYYY-MM"), in its own currency's minor units. */
-function costInMonth(e: Expense, month: string): number {
-  const monthStart = `${month}-01`;
-  const monthEnd = `${month}-31`; // string compare against ISO dates; any day <= 31 sorts correctly
-  if (e.start_date > monthEnd) return 0;
-  if (e.end_date && e.end_date < monthStart) return 0;
-  if (e.cadence === "one_off") return e.start_date.slice(0, 7) === month ? e.amount_cents : 0;
-  if (e.cadence === "quarterly") return e.amount_cents / 3;
-  if (e.cadence === "annual") return e.amount_cents / 12;
-  return e.amount_cents;
-}
-
-const monthKey = (d: Date) => d.toISOString().slice(0, 7);
-
-const emptyForm = { name: "", category: "infrastructure" as Category, amount: "", currency: "NGN" as "NGN" | "USD", cadence: "monthly" as Cadence, start: new Date().toISOString().slice(0, 10), end: "" };
-
-export function OperatingCosts({ finance }: { finance: FinanceOverview }) {
-  const { data, loading, error, retry, refresh } = useAsyncResource<CostData>(() => loadCosts(), [], { errorMessage: "Failed to load operating costs" });
+export function OperatingCosts({ finance, books, refresh }: { finance: FinanceOverview; books: Books; refresh: () => Promise<void> }) {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [rateInput, setRateInput] = useState<string | null>(null);
-  const [cashInput, setCashInput] = useState<string | null>(null);
+  const [edits, setEdits] = useState<Partial<Record<keyof Settings, string>>>({});
 
-  const rate = data?.settings.usd_ngn ?? 1500;
+  const rates = books.settings;
 
   const calc = useMemo(() => {
-    if (!data) return null;
     const now = new Date();
     const thisMonth = monthKey(now);
-    const costFor = (month: string) => data.expenses.reduce((s, e) => s + toNgn(costInMonth(e, month), e.currency, rate), 0);
-    const recurringNow = data.expenses
-      .filter((e) => e.cadence !== "one_off")
-      .reduce((s, e) => s + toNgn(costInMonth(e, thisMonth), e.currency, rate), 0);
+    const costNow = (m: string) => hostingInMonth(books, m) + overheadInMonth(books, m);
 
     // Last 6 months, oldest first. Finance's monthly series has 12 months of collected revenue.
     const months = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - i), 1));
-      const key = monthKey(d);
-      const collected = totalsToNgn(finance.monthly.find((m) => m.month === key)?.collected, rate);
-      const cost = costFor(key);
-      return { key, collected, cost, net: collected - cost };
+      const key = monthKey(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - i), 1)));
+      const collected = totalsToNgn(finance.monthly.find((m) => m.month === key)?.collected, rates);
+      const hosting = hostingInMonth(books, key);
+      const overhead = overheadInMonth(books, key);
+      return { key, collected, hosting, overhead, cost: hosting + overhead, net: collected - hosting - overhead };
     });
+
+    const recurringOverhead = books.expenses
+      .filter((e) => e.cadence !== "one_off")
+      .reduce((s, e) => s + toNgn(expenseInMonth(e, thisMonth), e.currency, rates), 0);
+    const runRate = hostingInMonth(books, thisMonth) + recurringOverhead;
 
     const last3 = months.slice(-3);
     const avgCollected = last3.reduce((s, m) => s + m.collected, 0) / 3;
     const avgCost = last3.reduce((s, m) => s + m.cost, 0) / 3;
-    const mrr = totalsToNgn(finance.totals.mrr, rate);
+    const mrr = totalsToNgn(finance.totals.mrr, rates);
     const burn = Math.max(0, avgCost - avgCollected);
     const byCategory = (Object.keys(CATEGORIES) as Category[])
-      .map((c) => ({
-        c,
-        v: data.expenses.filter((e) => e.category === c).reduce((s, e) => s + toNgn(costInMonth(e, thisMonth), e.currency, rate), 0)
-      }))
+      .map((c) => ({ c, v: books.expenses.filter((e) => e.category === c).reduce((s, e) => s + toNgn(expenseInMonth(e, thisMonth), e.currency, rates), 0) }))
       .filter((r) => r.v > 0)
       .sort((a, b) => b.v - a.v);
 
     return {
       thisMonth,
-      recurringNow,
-      costThisMonth: months[months.length - 1].cost,
+      runRate,
+      costThisMonth: costNow(thisMonth),
       months,
       avgCollected,
       avgCost,
-      mrr,
-      mrrCoverage: recurringNow > 0 ? mrr / recurringNow : null,
-      breakEvenGap: Math.max(0, recurringNow - mrr),
+      mrrCoverage: runRate > 0 ? mrr / runRate : null,
+      breakEvenGap: Math.max(0, runRate - mrr),
       margin3m: avgCollected > 0 ? ((avgCollected - avgCost) / avgCollected) * 100 : null,
       burn,
-      runwayMonths: burn > 0 ? data.settings.cash_ngn_cents / burn : null,
+      runwayMonths: burn > 0 ? books.settings.cash_ngn_cents / burn : null,
       byCategory
     };
-  }, [data, finance, rate]);
+  }, [books, finance, rates]);
 
   const startEdit = (e: Expense) => {
     setEditingId(e.id);
@@ -170,7 +121,7 @@ export function OperatingCosts({ finance }: { finance: FinanceOverview }) {
       currency: form.currency,
       cadence: form.cadence,
       start_date: form.start,
-      end_date: form.end || null
+      end_date: form.cadence === "one_off" ? null : form.end || null
     };
     try {
       const q = editingId ? consoleSchema().from("expenses").update(row).eq("id", editingId) : consoleSchema().from("expenses").insert(row);
@@ -192,32 +143,37 @@ export function OperatingCosts({ finance }: { finance: FinanceOverview }) {
     else await refresh();
   };
 
-  const saveSettings = async (patch: Partial<Settings>) => {
-    const { error: err } = await consoleSchema().from("finance_settings").update(patch).eq("id", true);
+  const saveSetting = async (key: keyof Settings, value: number) => {
+    const { error: err } = await consoleSchema().from("finance_settings").update({ [key]: value }).eq("id", true);
     if (err) window.alert(err.message);
     else {
-      setRateInput(null);
-      setCashInput(null);
+      setEdits((e) => ({ ...e, [key]: undefined }));
       await refresh();
     }
   };
 
-  if (loading) return <LoadingState label="Loading operating costs…" />;
-  if (error) return <ErrorAlert message={`Couldn't load operating costs: ${error}`} onRetry={retry} retryLabel="Reload costs" />;
-  if (!data || !calc) return null;
-
-  const empty = data.expenses.length === 0;
   const covered = calc.mrrCoverage !== null && calc.mrrCoverage >= 1;
+  const settingField = (key: "usd_ngn" | "eur_ngn", label: string) => (
+    <>
+      <label>
+        {label}{" "}
+        <input type="number" step="0.01" min="1" style={{ width: 110 }} value={edits[key] ?? String(rates[key])} onChange={(e) => setEdits({ ...edits, [key]: e.target.value })} />
+      </label>
+      {edits[key] !== undefined && (
+        <button className="dash-tab-btn active" onClick={() => void saveSetting(key, Number(edits[key]))} disabled={!(Number(edits[key]) > 0)}>Save</button>
+      )}
+    </>
+  );
 
   return (
     <>
       <div className="admin-section">
-        <h2 className="admin-section-title">Operating costs vs revenue</h2>
+        <h2 className="admin-section-title">Costs vs revenue</h2>
         <div className="cp-stats">
           <div>
             <small>MONTHLY RUN-RATE COST</small>
-            <strong>{ngn(calc.recurringNow)}</strong>
-            <em>recurring, {calc.thisMonth} · {ngn(calc.costThisMonth)} incl. one-offs</em>
+            <strong>{ngn(calc.runRate)}</strong>
+            <em>hosting + recurring overhead · {ngn(calc.costThisMonth)} this month</em>
           </div>
           <div>
             <small>MRR COVERS COSTS</small>
@@ -248,16 +204,18 @@ export function OperatingCosts({ finance }: { finance: FinanceOverview }) {
               <tr>
                 <th>Month</th>
                 <th className="num">Collected</th>
-                <th className="num">Operating cost</th>
+                <th className="num">Hosting</th>
+                <th className="num">Overhead</th>
                 <th className="num">Net</th>
               </tr>
             </thead>
             <tbody>
               {[...calc.months].reverse().map((m) => (
                 <tr key={m.key}>
-                  <td>{formatDate(`${m.key}-01T00:00:00Z`).replace(/^1 /, "")}</td>
+                  <td>{new Date(`${m.key}-01T00:00:00Z`).toLocaleString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" })}</td>
                   <td className="num">{ngn(m.collected)}</td>
-                  <td className="num">{ngn(m.cost)}</td>
+                  <td className="num">{ngn(m.hosting)}</td>
+                  <td className="num">{ngn(m.overhead)}</td>
                   <td className={`num ${m.net < 0 ? "admin-warn" : "admin-ok"}`}>{ngn(m.net)}</td>
                 </tr>
               ))}
@@ -265,24 +223,12 @@ export function OperatingCosts({ finance }: { finance: FinanceOverview }) {
           </table>
         </div>
         <p className="admin-muted mt-2">
-          All in NGN. USD figures convert at the rate below; revenue in other currencies is excluded. Annual and quarterly costs are spread evenly across months.
+          All in NGN at the rates below. Hosting is the server cost of client deployments (above); overhead is everything else (below). Annual and quarterly costs are spread evenly across months.
         </p>
 
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", marginTop: 12 }}>
-          <label>
-            USD → NGN{" "}
-            <input
-              type="number"
-              step="0.01"
-              min="1"
-              style={{ width: 110 }}
-              value={rateInput ?? String(data.settings.usd_ngn)}
-              onChange={(e) => setRateInput(e.target.value)}
-            />
-          </label>
-          {rateInput !== null && (
-            <button className="dash-tab-btn active" onClick={() => void saveSettings({ usd_ngn: Number(rateInput) })} disabled={!(Number(rateInput) > 0)}>Save rate</button>
-          )}
+          {settingField("usd_ngn", "USD → NGN")}
+          {settingField("eur_ngn", "EUR → NGN")}
           <label>
             Cash on hand (₦){" "}
             <input
@@ -290,35 +236,35 @@ export function OperatingCosts({ finance }: { finance: FinanceOverview }) {
               step="1"
               min="0"
               style={{ width: 150 }}
-              value={cashInput ?? String(data.settings.cash_ngn_cents / 100)}
-              onChange={(e) => setCashInput(e.target.value)}
+              value={edits.cash_ngn_cents ?? String(rates.cash_ngn_cents / 100)}
+              onChange={(e) => setEdits({ ...edits, cash_ngn_cents: e.target.value })}
             />
           </label>
-          {cashInput !== null && (
-            <button className="dash-tab-btn active" onClick={() => void saveSettings({ cash_ngn_cents: Math.round(Number(cashInput) * 100) })} disabled={!(Number(cashInput) >= 0)}>Save cash</button>
+          {edits.cash_ngn_cents !== undefined && (
+            <button className="dash-tab-btn active" onClick={() => void saveSetting("cash_ngn_cents", Math.round(Number(edits.cash_ngn_cents) * 100))} disabled={!(Number(edits.cash_ngn_cents) >= 0)}>Save</button>
           )}
         </div>
       </div>
 
       <div className="admin-section">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 className="admin-section-title">Cost lines</h2>
-          <button className="dash-tab-btn active" onClick={startAdd}>Add cost</button>
+          <h2 className="admin-section-title">Overhead</h2>
+          <button className="dash-tab-btn active" onClick={startAdd}>Add overhead</button>
         </div>
+        <p className="admin-muted">Costs not tied to one client: tools, people, marketing, legal and tax, fees. Client servers go under Deployments instead, so they aren't counted twice.</p>
 
         {showForm && (
           <form
             onSubmit={(e) => { e.preventDefault(); void save(); }}
             style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "12px 0" }}
           >
-            <input type="text" required placeholder="Name (e.g. Hetzner CX42)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <input type="text" required placeholder="Name (e.g. Google Workspace)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as Category })}>
               {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
             <input type="number" required min="0" step="0.01" placeholder="Amount" style={{ width: 120 }} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-            <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as "NGN" | "USD" })}>
-              <option value="NGN">NGN</option>
-              <option value="USD">USD</option>
+            <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as CostCurrency })}>
+              {COST_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             <select value={form.cadence} onChange={(e) => setForm({ ...form, cadence: e.target.value as Cadence })}>
               {Object.entries(CADENCE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -333,14 +279,14 @@ export function OperatingCosts({ finance }: { finance: FinanceOverview }) {
           </form>
         )}
 
-        {empty ? (
-          <div className="dash-empty-state">No costs yet. Add hosting, tools, salaries, fees and tax, then the ratios above fill in.</div>
+        {books.expenses.length === 0 ? (
+          <div className="dash-empty-state">No overhead yet. Add tools, salaries, fees and tax, then the ratios above fill in.</div>
         ) : (
           <>
             {calc.byCategory.length > 0 && (
               <p className="admin-muted" style={{ margin: "8px 0" }}>
                 This month by category:{" "}
-                {calc.byCategory.map((r) => `${CATEGORIES[r.c]} ${ngn(r.v)} (${Math.round((r.v / calc.costThisMonth) * 100)}%)`).join(" · ")}
+                {calc.byCategory.map((r) => `${CATEGORIES[r.c]} ${ngn(r.v)}`).join(" · ")}
               </p>
             )}
             <div className="admin-table-wrap">
@@ -357,13 +303,13 @@ export function OperatingCosts({ finance }: { finance: FinanceOverview }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.expenses.map((e) => (
+                  {books.expenses.map((e) => (
                     <tr key={e.id}>
                       <td><strong>{e.name}</strong></td>
                       <td>{CATEGORIES[e.category]}</td>
                       <td>{CADENCE_LABEL[e.cadence]}</td>
                       <td className="num">{formatAmount(e.amount_cents, e.currency)}</td>
-                      <td className="num">{e.cadence === "one_off" ? "—" : ngn(toNgn(costInMonth(e, calc.thisMonth), e.currency, rate))}</td>
+                      <td className="num">{e.cadence === "one_off" ? "—" : ngn(toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates))}</td>
                       <td className="admin-muted">
                         {formatDate(e.start_date)}{e.cadence !== "one_off" && ` → ${e.end_date ? formatDate(e.end_date) : "ongoing"}`}
                       </td>
