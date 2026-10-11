@@ -69,6 +69,7 @@ const CONSOLE_NAV: NavGroup[] = [
       { href: "/overview", label: "Overview", icon: LayoutGrid },
       { href: "/systems", label: "Systems", icon: Server },
       { href: "/delivery", label: "Delivery", icon: Clock },
+      { href: "/tasks", label: "Tasks", icon: ListChecks },
       { href: "/activity", label: "Activity", icon: Terminal },
       { href: "/timeline", label: "Timeline", icon: History }
     ]
@@ -327,7 +328,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
           <button
             onClick={(e) => { if (!workspaceMenuOpen) placeMenu(e.currentTarget); setWorkspaceMenuOpen(!workspaceMenuOpen); }}
             className={`ws-switcher-btn ${workspaceMenuOpen ? "active" : ""}`}
-            title={activeWorkspace?.name ?? "Switch workspace"}
+            title={activeWorkspace?.name ?? "Switch project"}
             aria-haspopup="menu"
             aria-expanded={workspaceMenuOpen}
           >
@@ -336,7 +337,8 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
               <i className={`org-dot ${activeWorkspace?.server?.isReachable ? "" : activeWorkspace?.provisioning ? "pending" : "down"}`} />
             </span>
             <span className="ws-switcher-text">
-              <span className="ws-switcher-name">{activeWorkspace?.name ?? (workspaceLoading ? "Loading…" : "No workspace")}</span>
+              <span className="ws-switcher-kicker">PROJECT</span>
+              <span className="ws-switcher-name">{activeWorkspace?.name ?? (workspaceLoading ? "Loading…" : "No project")}</span>
             </span>
             <ChevronsUpDown size={14} className="ws-switcher-chevron" />
           </button>
@@ -361,7 +363,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
               )}
 
               <div className="ws-menu-list">
-                {workspaces.length === 0 && <span className="ws-menu-empty">No workspaces assigned yet</span>}
+                {workspaces.length === 0 && <span className="ws-menu-empty">No projects assigned yet</span>}
                 {workspaces.length > 0 && filteredWorkspaces.length === 0 && (
                   <span className="ws-menu-empty">No projects match "{workspaceSearch}"</span>
                 )}

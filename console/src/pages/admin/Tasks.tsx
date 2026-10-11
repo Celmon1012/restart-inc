@@ -4,15 +4,15 @@
 // deliverable and its workspace works because both FKs exist, and RLS lets an
 // admin read every row.
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { HealthBadge } from "@/components/HealthBadge";
 import { consoleSchema } from "@/lib/supabase";
 import { loadTeamMembers, loadWorkspaceNames } from "@/lib/admin";
-import { formatDate } from "@/lib/format";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddTask } from "@/components/admin/AddTask";
+import { TaskEditForm, assigneeLabel, dueInfo } from "@/components/admin/TaskEdit";
 import { Check, ArrowRight, Search } from "lucide-react";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
@@ -45,9 +45,9 @@ export default function AdminTasks() {
   const [filter, setFilter] = useState<Filter>("open");
   const [search, setSearch] = useState("");
   const [who, setWho] = useState<Who>("anyone");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const { user } = useAuth();
   const team = useAsyncResource(() => loadTeamMembers(), []);
-  const teamEmail = new Map((team.data ?? []).map((m) => [m.user_id, m.email]));
 
   const { data, loading, error, retry, refresh, refreshing } = useAsyncResource<TaskRow[]>(
     async (signal) => {
@@ -211,7 +211,8 @@ export default function AdminTasks() {
               .sort((a, b) => a.order - b.order)
               .map((m) =>
                 m.tasks.map((t) => (
-                  <div className="admin-task-row" key={t.id}>
+                  <Fragment key={t.id}>
+                  <div className="admin-task-row">
                     <button
                       className={`deliverable-task-check ${t.is_done ? "done" : ""}`}
                       onClick={() => toggle(t)}
@@ -220,20 +221,25 @@ export default function AdminTasks() {
                       {t.is_done && <Check size={12} />}
                     </button>
                     <span className={t.is_done ? "done" : ""}>{t.title}</span>
-                    {t.due_at && (
-                      <span className={isOverdue(t) ? "admin-warn" : "admin-muted"}>
-                        {isOverdue(t) ? "overdue · " : "due "}{formatDate(t.due_at)}
-                      </span>
-                    )}
-                    <span className={t.owner === "client" ? "admin-warn" : "admin-muted"}>
-                      {t.owner === "client" ? "Client to do" : t.assignee_id ? (teamEmail.get(t.assignee_id) ?? "Assigned").split("@")[0] : "Unassigned"}
-                    </span>
+                    {dueInfo(t) && <span className={dueInfo(t)!.overdue ? "admin-warn" : "admin-muted"}>{dueInfo(t)!.text}</span>}
+                    <span className={t.owner === "client" ? "admin-warn" : "admin-muted"}>{assigneeLabel(t, team.data ?? [])}</span>
+                    <button className="dash-tab-btn" onClick={() => setEditingId(editingId === t.id ? null : t.id)}>Edit</button>
                     <span className={`admin-task-context ${m.status === "blocked" ? "admin-warn" : ""}`}>
                       {m.title}
                       {m.status === "blocked" ? " · blocked" : ""}
                       {!t.is_done && <HealthBadge status={m.status} dueAt={m.dueAt} />}
                     </span>
                   </div>
+                  {editingId === t.id && (
+                    <div className="admin-task-row">
+                      <TaskEditForm
+                        task={t}
+                        team={team.data ?? []}
+                        onDone={async (saved) => { setEditingId(null); if (saved) await refresh(); }}
+                      />
+                    </div>
+                  )}
+                  </Fragment>
                 ))
               )}
           </div>

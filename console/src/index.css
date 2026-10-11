@@ -2956,3 +2956,12 @@
 
 .settings-tab-panel{max-width:760px;margin-top:4px}
 .billing-page .settings-tab-panel{max-width:none}
+
+/* Checklist rows. The row's `span { flex: 1 }` rule above also matched the client
+   view's checkbox (a span), stretching it into a wide bar. Keep the checkbox fixed and
+   put a task's title and its meta (due date, who it's for) in one flexible body. */
+.deliverable-task-row span.deliverable-task-check{ flex: none; }
+.deliverable-task-row .task-body{ flex: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
+.deliverable-task-row .task-body > span{ flex: none; }
+.deliverable-task-row .task-body > span:first-child{ flex: 0 1 auto; }
+.ws-switcher-kicker{ font-size: 0.5625rem; letter-spacing: .1em; color: #5c6273; font-weight: 600; line-height: 1; margin-bottom: 3px; }

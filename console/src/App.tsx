@@ -10,6 +10,7 @@ import Onboarding from "./pages/Onboarding";
 import Overview from "./pages/console/Overview";
 import Systems from "./pages/console/Systems";
 import Delivery from "./pages/console/Delivery";
+import ClientTasks from "./pages/console/Tasks";
 import Activity from "./pages/console/Activity";
 import Timeline from "./pages/console/Timeline";
 import Support from "./pages/console/Support";
@@ -87,6 +88,11 @@ function Router() {
       <Route path="/delivery">
         <ProtectedRoute>
           <Delivery />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/tasks">
+        <ProtectedRoute>
+          <ClientTasks />
         </ProtectedRoute>
       </Route>
       <Route path="/activity">

@@ -23,6 +23,8 @@ import { Check, Plus, Send, Trash2, X } from "lucide-react";
 import { EmptyState, ErrorAlert, LoadingState } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { toast } from "sonner";
+import { loadTeamMembers } from "@/lib/admin";
+import { TaskEditForm, assigneeLabel, dueInfo, type TeamMember } from "@/components/admin/TaskEdit";
 
 interface DeliverableTask {
   id: string;
@@ -30,6 +32,9 @@ interface DeliverableTask {
   title: string;
   is_done: boolean;
   sort_order: number;
+  owner?: "team" | "client";
+  assignee_id?: string | null;
+  due_at?: string | null;
 }
 
 interface DeliverableActivity extends AgentActivity {
@@ -51,6 +56,8 @@ function MilestoneCard({
   tasks,
   activities,
   detailsLoading,
+  team,
+  onTaskSaved,
   onStatusChange,
   onAddTask,
   onToggleTask,
@@ -65,6 +72,8 @@ function MilestoneCard({
   tasks: DeliverableTask[];
   activities: DeliverableActivity[];
   detailsLoading: boolean;
+  team: TeamMember[];
+  onTaskSaved: () => Promise<void> | void;
   onStatusChange: (id: string, status: Deliverable["status"]) => void;
   onAddTask: (deliverableId: string, title: string) => Promise<void>;
   onToggleTask: (task: DeliverableTask) => Promise<void>;
@@ -76,6 +85,7 @@ function MilestoneCard({
 }) {
   const [newTask, setNewTask] = useState("");
   const [noteDraft, setNoteDraft] = useState("");
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const doneCount = tasks.filter((t) => t.is_done).length;
 
   const addTask = async () => {
@@ -113,21 +123,35 @@ function MilestoneCard({
           <p className="key-desc">No checklist items yet.</p>
         ) : (
           <div className="deliverable-tasklist">
-            {tasks.map((task) => (
-              <div className="deliverable-task-row" key={task.id}>
-                <button
-                  className={`deliverable-task-check ${task.is_done ? "done" : ""}`}
-                  onClick={() => onToggleTask(task)}
-                  aria-label={task.is_done ? "Mark not done" : "Mark done"}
-                >
-                  {task.is_done && <Check size={12} />}
-                </button>
-                <span className={task.is_done ? "done" : ""}>{task.title}</span>
-                <button className="deliverable-task-remove" onClick={() => onDeleteTask(task)} aria-label="Remove item">
-                  <Trash2 size={12} />
-                </button>
-              </div>
-            ))}
+            {tasks.map((task) =>
+              editingTaskId === task.id ? (
+                <TaskEditForm
+                  key={task.id}
+                  task={task}
+                  team={team}
+                  onDone={async (saved) => { setEditingTaskId(null); if (saved) await onTaskSaved(); }}
+                />
+              ) : (
+                <div className="deliverable-task-row" key={task.id}>
+                  <button
+                    className={`deliverable-task-check ${task.is_done ? "done" : ""}`}
+                    onClick={() => onToggleTask(task)}
+                    aria-label={task.is_done ? "Mark not done" : "Mark done"}
+                  >
+                    {task.is_done && <Check size={12} />}
+                  </button>
+                  <span className="task-body">
+                    <span className={task.is_done ? "done" : ""}>{task.title}</span>
+                    {dueInfo(task) && <span className={dueInfo(task)!.overdue ? "admin-warn" : "admin-muted"}>{dueInfo(task)!.text}</span>}
+                    <span className={task.owner === "client" ? "admin-warn" : "admin-muted"}>{assigneeLabel(task, team)}</span>
+                  </span>
+                  <button className="dash-tab-btn" onClick={() => setEditingTaskId(task.id)}>Edit</button>
+                  <button className="deliverable-task-remove" onClick={() => onDeleteTask(task)} aria-label="Remove item">
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              )
+            )}
           </div>
         )}
         <div className="deliverable-task-add">
@@ -242,6 +266,7 @@ export function MilestoneEditor({ workspaceId, onChanged }: { workspaceId: strin
   const [tasksByDeliverable, setTasksByDeliverable] = useState<Record<string, DeliverableTask[]>>({});
   const [activitiesByDeliverable, setActivitiesByDeliverable] = useState<Record<string, DeliverableActivity[]>>({});
   const [detailsLoading, setDetailsLoading] = useState(true);
+  const team = useAsyncResource(() => loadTeamMembers(), []);
   const [showNew, setShowNew] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Deliverable | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -421,6 +446,8 @@ export function MilestoneEditor({ workspaceId, onChanged }: { workspaceId: strin
               tasks={tasksByDeliverable[milestone.id] ?? []}
               activities={activitiesByDeliverable[milestone.id] ?? []}
               detailsLoading={detailsLoading}
+              team={team.data ?? []}
+              onTaskSaved={reloadDetails}
               onStatusChange={handleStatusChange}
               onAddTask={handleAddTask}
               onToggleTask={handleToggleTask}

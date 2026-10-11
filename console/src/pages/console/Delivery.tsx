@@ -59,9 +59,11 @@ function DeliverableCard({ milestone, order, tasks }: { milestone: Deliverable; 
                 <span className={`deliverable-task-check ${task.is_done ? "done" : ""}`} aria-label={task.is_done ? "Done" : "Not done"}>
                   {task.is_done && <Check size={12} />}
                 </span>
-                <span className={task.is_done ? "done" : ""}>{task.title}</span>
-                {task.owner === "client" && !task.is_done && <span className="admin-warn"> · waiting on you</span>}
-                {task.due_at && !task.is_done && <span className="admin-muted"> · due {formatDate(task.due_at)}</span>}
+                <span className="task-body">
+                  <span className={task.is_done ? "done" : ""}>{task.title}</span>
+                  {task.owner === "client" && !task.is_done && <span className="admin-warn">waiting on you</span>}
+                  {task.due_at && !task.is_done && <span className="admin-muted">due {formatDate(task.due_at)}</span>}
+                </span>
               </div>
             ))}
           </div>
