@@ -100,7 +100,7 @@ interface LagoInvoice {
   total_due_amount_cents?: number;
   total_paid_amount_cents?: number;
   file_url?: string | null;
-  customer?: { name?: string | null; email?: string | null };
+  customer?: { external_id?: string | null; name?: string | null; email?: string | null };
 }
 
 function money(cents: number, currency = "NGN"): string {
@@ -266,6 +266,11 @@ Deno.serve(async (req) => {
 
   // Acknowledge everything else so Lago doesn't retry events we don't use.
   if (!EMAIL_EVENTS.includes(type) || !invoice) return json({ ok: true, ignored: type });
+
+  // Breadmaker Systems bills through its own entity on this Lago. Its customers are created by the
+  // Breadmaker site with an external id starting "bm-", and its payments are settled by its own
+  // lago-breadmaker-webhook. Without this guard its buyers would get Restart-branded emails.
+  if ((invoice.customer?.external_id ?? "").startsWith("bm-")) return json({ ok: true, ignored: "breadmaker customer" });
 
   let updated = 0;
   if (type === "invoice.payment_status_updated" && invoice.lago_id && invoice.payment_status === "succeeded") {
