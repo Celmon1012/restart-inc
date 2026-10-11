@@ -79,6 +79,11 @@ interface LagoSubscription {
   external_id: string;
   plan_code: string;
   status: string;
+  // The price of the plan this subscription actually runs on. A per-customer
+  // override is a copy of the plan under the same code, which /plans doesn't list,
+  // so the plan looked up by code carries the standard price, not the agreed one.
+  plan_amount_cents?: number;
+  plan_amount_currency?: string;
 }
 
 interface LagoPlan {
@@ -276,8 +281,15 @@ Deno.serve(async (req) => {
       for (const sub of subs) {
         if (sub.status !== "active") continue;
         activeSubscriptions++;
-        const plan = planByCode.get(sub.plan_code);
-        if (!plan) continue;
+        const catalogPlan = planByCode.get(sub.plan_code);
+        if (!catalogPlan) continue;
+        // Price from the subscription itself (honours per-customer overrides); the
+        // catalog plan still supplies the billing interval.
+        const plan = {
+          ...catalogPlan,
+          amount_cents: sub.plan_amount_cents ?? catalogPlan.amount_cents,
+          amount_currency: sub.plan_amount_currency ?? catalogPlan.amount_currency,
+        };
         const cents = monthlyCents(plan);
         add(mrr, plan.amount_currency, cents);
         add(clientFor(customerId).mrr, plan.amount_currency, cents);

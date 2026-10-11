@@ -110,6 +110,10 @@ interface LagoSubscription {
   plan_code: string;
   status: string;
   started_at: string | null;
+  // The price of the plan this subscription actually runs on, which differs from the
+  // catalog plan when a per-customer override applies.
+  plan_amount_cents?: number;
+  plan_amount_currency?: string;
 }
 
 interface LagoInvoice {
@@ -219,8 +223,8 @@ async function fetchBilling(externalCustomerId: string) {
         planName: plan?.name ?? s.plan_code,
         status: s.status,
         startedAt: s.started_at,
-        amountCents: plan?.amount_cents ?? null,
-        currency: plan?.amount_currency ?? null,
+        amountCents: s.plan_amount_cents ?? plan?.amount_cents ?? null,
+        currency: s.plan_amount_currency ?? plan?.amount_currency ?? null,
         interval: plan?.interval ?? null,
       };
     }),

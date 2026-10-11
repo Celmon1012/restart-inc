@@ -352,13 +352,30 @@ async function getWorkspaceLagoCustomerId(jwt: string, workspaceId: string): Pro
   return rows[0]?.lago_customer_id ?? null;
 }
 
+// A slow Lago must never leave the Billing page spinning: the edge runtime kills a
+// request that outlives its wall clock and the browser then waits with no answer.
+// Reads give up after 10s; the payment link (an external Flutterwave call, and only a
+// convenience button) after 6s, so the invoice still shows without it.
+const LAGO_READ_TIMEOUT_MS = 10_000;
+const LAGO_PAYMENT_URL_TIMEOUT_MS = 6_000;
+
+// Each Lago call logs its status and time, so a slow or refused one shows up in the edge
+// function logs (Coolify > supabase service > Runtime Logs) instead of as a bare "non-2xx".
 async function lagoFetch(path: string) {
-  const res = await fetch(`${LAGO_API_URL}/api/v1${path}`, {
-    headers: { Authorization: `Bearer ${LAGO_API_KEY}` },
-  });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Lago ${path} -> ${res.status}`);
-  return res.json();
+  const started = Date.now();
+  try {
+    const res = await fetch(`${LAGO_API_URL}/api/v1${path}`, {
+      headers: { Authorization: `Bearer ${LAGO_API_KEY}` },
+      signal: AbortSignal.timeout(LAGO_READ_TIMEOUT_MS),
+    });
+    console.log(`console-billing lago GET ${path.split("?")[0]} -> ${res.status} in ${Date.now() - started}ms`);
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Lago ${path} -> ${res.status}`);
+    return res.json();
+  } catch (err) {
+    console.error(`console-billing lago GET ${path.split("?")[0]} failed after ${Date.now() - started}ms: ${(err as Error).message}`);
+    throw err;
+  }
 }
 
 // Lago's Rails backend rejects a POST that declares Content-Type: application/json
@@ -370,7 +387,9 @@ async function lagoPost(path: string): Promise<{ ok: true; body: unknown } | { o
     method: "POST",
     headers: { Authorization: `Bearer ${LAGO_API_KEY}`, "Content-Type": "application/json" },
     body: "{}",
+    signal: AbortSignal.timeout(LAGO_PAYMENT_URL_TIMEOUT_MS),
   });
+  console.log(`console-billing lago POST ${path} -> ${res.status}`);
   const body = await res.json().catch(() => null);
   if (!res.ok) return { ok: false, status: res.status, error: body };
   return { ok: true, body };
@@ -381,6 +400,10 @@ interface LagoSubscription {
   plan_code: string;
   status: string;
   started_at: string | null;
+  // The price of the plan this subscription actually runs on, which differs from the
+  // catalog plan when a per-customer override applies.
+  plan_amount_cents?: number;
+  plan_amount_currency?: string;
 }
 
 interface LagoInvoice {
@@ -424,7 +447,9 @@ interface LagoAppliedCoupon {
 // (e.g. the payment provider rejects it), the invoice still shows, just
 // without a "Pay Now" button, rather than failing the whole billing fetch.
 async function fetchPaymentUrl(lagoInvoiceId: string): Promise<{ url: string | null; error: string | null }> {
-  const result = await lagoPost(`/invoices/${encodeURIComponent(lagoInvoiceId)}/payment_url`);
+  const result = await lagoPost(`/invoices/${encodeURIComponent(lagoInvoiceId)}/payment_url`).catch(
+    (err): { ok: false; status: number; error: unknown } => ({ ok: false, status: 0, error: (err as Error).message })
+  );
   if (!result.ok) {
     return { url: null, error: `Lago ${result.status}: ${JSON.stringify(result.error)}` };
   }
@@ -488,8 +513,8 @@ async function fetchBilling(externalCustomerId: string) {
         planName: plan?.name ?? s.plan_code,
         status: s.status,
         startedAt: s.started_at,
-        amountCents: plan?.amount_cents ?? null,
-        currency: plan?.amount_currency ?? null,
+        amountCents: s.plan_amount_cents ?? plan?.amount_cents ?? null,
+        currency: s.plan_amount_currency ?? plan?.amount_currency ?? null,
         interval: plan?.interval ?? null,
       };
     }),
@@ -555,6 +580,7 @@ Deno.serve(async (req) => {
     const billing = await fetchBilling(lagoCustomerId);
     return json({ billingConfigured: true, ...billing });
   } catch (err) {
+    console.error(`console-billing failed: ${(err as Error).message}`);
     return json({ error: `Failed to load billing data: ${(err as Error).message}` }, 502);
   }
 });
@@ -642,6 +668,11 @@ interface LagoSubscription {
   external_id: string;
   plan_code: string;
   status: string;
+  // The price of the plan this subscription actually runs on. A per-customer
+  // override is a copy of the plan under the same code, which /plans doesn't list,
+  // so the plan looked up by code carries the standard price, not the agreed one.
+  plan_amount_cents?: number;
+  plan_amount_currency?: string;
 }
 
 interface LagoPlan {
@@ -839,8 +870,15 @@ Deno.serve(async (req) => {
       for (const sub of subs) {
         if (sub.status !== "active") continue;
         activeSubscriptions++;
-        const plan = planByCode.get(sub.plan_code);
-        if (!plan) continue;
+        const catalogPlan = planByCode.get(sub.plan_code);
+        if (!catalogPlan) continue;
+        // Price from the subscription itself (honours per-customer overrides); the
+        // catalog plan still supplies the billing interval.
+        const plan = {
+          ...catalogPlan,
+          amount_cents: sub.plan_amount_cents ?? catalogPlan.amount_cents,
+          amount_currency: sub.plan_amount_currency ?? catalogPlan.amount_currency,
+        };
         const cents = monthlyCents(plan);
         add(mrr, plan.amount_currency, cents);
         add(clientFor(customerId).mrr, plan.amount_currency, cents);
