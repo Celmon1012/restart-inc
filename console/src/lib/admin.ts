@@ -254,3 +254,10 @@ export const PROJECT_STATUS_TONE: Record<ProjectStatus, "healthy" | "warning" | 
   live: "healthy",
   onboarding: "warning"
 };
+
+/** Console admins (the team), for assigning tasks. Empty if the lookup fails. */
+export async function loadTeamMembers(): Promise<Array<{ user_id: string; email: string }>> {
+  const { data, error } = await consoleSchema().rpc("admin_team_members");
+  if (error) return [];
+  return (data ?? []) as Array<{ user_id: string; email: string }>;
+}

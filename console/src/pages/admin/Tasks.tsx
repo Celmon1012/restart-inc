@@ -9,7 +9,9 @@ import { Link } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { HealthBadge } from "@/components/HealthBadge";
 import { consoleSchema } from "@/lib/supabase";
-import { loadWorkspaceNames } from "@/lib/admin";
+import { loadTeamMembers, loadWorkspaceNames } from "@/lib/admin";
+import { useAuth } from "@/contexts/AuthContext";
+import { AddTask } from "@/components/admin/AddTask";
 import { Check, ArrowRight, Search } from "lucide-react";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
@@ -22,6 +24,8 @@ interface TaskRow {
   is_done: boolean;
   sort_order: number;
   created_at: string;
+  owner: "team" | "client";
+  assignee_id: string | null;
   deliverable: {
     id: string;
     title: string;
@@ -33,15 +37,20 @@ interface TaskRow {
 }
 
 type Filter = "open" | "done" | "all";
+type Who = "anyone" | "mine" | "client" | "unassigned";
 
 export default function AdminTasks() {
   const [filter, setFilter] = useState<Filter>("open");
   const [search, setSearch] = useState("");
+  const [who, setWho] = useState<Who>("anyone");
+  const { user } = useAuth();
+  const team = useAsyncResource(() => loadTeamMembers(), []);
+  const teamEmail = new Map((team.data ?? []).map((m) => [m.user_id, m.email]));
 
   const { data, loading, error, retry, refresh, refreshing } = useAsyncResource<TaskRow[]>(
     async (signal) => {
       const [tasksRes, deliverablesRes, names] = await Promise.all([
-        consoleSchema().from("deliverable_tasks").select("id,title,is_done,sort_order,created_at,deliverable_id").order("sort_order", { ascending: true }),
+        consoleSchema().from("deliverable_tasks").select("id,title,is_done,sort_order,created_at,deliverable_id,owner,assignee_id").order("sort_order", { ascending: true }),
         consoleSchema().from("deliverables").select("id,title,status,due_at,sort_order,workspace_id"),
         loadWorkspaceNames()
       ]);
@@ -84,6 +93,8 @@ export default function AdminTasks() {
   const visible = tasks.filter(
     (t) =>
       (filter === "all" || (filter === "open" ? !t.is_done : t.is_done)) &&
+      (who === "anyone" ||
+        (who === "client" ? t.owner === "client" : who === "mine" ? t.owner === "team" && t.assignee_id === user?.id : t.owner === "team" && !t.assignee_id)) &&
       (!needle ||
         [t.title, t.deliverable?.title, t.deliverable?.workspace?.name].some((v) => v?.toLowerCase().includes(needle)))
   );
@@ -123,6 +134,7 @@ export default function AdminTasks() {
           <h1>Tasks</h1>
           <p>Every open checklist item across every client, in one list.</p>
         </div>
+        <AddTask onAdded={refresh} />
       </div>
 
       {error && <ErrorAlert message={`Couldn't load tasks: ${error}`} onRetry={retry} retryLabel="Reload tasks" />}
@@ -158,6 +170,12 @@ export default function AdminTasks() {
             {f === "open" ? "Open" : f === "done" ? "Done" : "All"}
           </button>
         ))}
+        <select value={who} onChange={(e) => setWho(e.target.value as Who)} aria-label="Assigned to">
+          <option value="anyone">Anyone</option>
+          <option value="mine">Mine</option>
+          <option value="unassigned">Team, unassigned</option>
+          <option value="client">Waiting on client</option>
+        </select>
         <span className="admin-toolbar-spacer" />
         <div className="workspace-search-box">
           <Search size={13} />
@@ -195,6 +213,9 @@ export default function AdminTasks() {
                       {t.is_done && <Check size={12} />}
                     </button>
                     <span className={t.is_done ? "done" : ""}>{t.title}</span>
+                    <span className={t.owner === "client" ? "admin-warn" : "admin-muted"}>
+                      {t.owner === "client" ? "Client to do" : t.assignee_id ? (teamEmail.get(t.assignee_id) ?? "Assigned").split("@")[0] : "Unassigned"}
+                    </span>
                     <span className={`admin-task-context ${m.status === "blocked" ? "admin-warn" : ""}`}>
                       {m.title}
                       {m.status === "blocked" ? " · blocked" : ""}

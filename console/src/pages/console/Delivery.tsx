@@ -23,6 +23,8 @@ interface DeliverableTask {
   title: string;
   is_done: boolean;
   sort_order: number;
+  // "client" = waiting on the client to do it; staff ticks it off when they have.
+  owner?: "team" | "client";
 }
 
 const STATUS_LABEL: Record<Deliverable["status"], string> = {
@@ -57,6 +59,7 @@ function DeliverableCard({ milestone, order, tasks }: { milestone: Deliverable; 
                   {task.is_done && <Check size={12} />}
                 </span>
                 <span className={task.is_done ? "done" : ""}>{task.title}</span>
+                {task.owner === "client" && !task.is_done && <span className="admin-warn"> · waiting on you</span>}
               </div>
             ))}
           </div>
