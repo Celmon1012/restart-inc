@@ -16,7 +16,7 @@ type Totals = Record<string, number>;
 
 export interface FinanceOverview {
   generatedAt: string;
-  totals: { collected: Totals; collectedThisMonth: Totals; outstanding: Totals; overdue: Totals; mrr: Totals };
+  totals: { collected: Totals; collectedThisMonth: Totals; outstanding: Totals; overdue: Totals; mrr: Totals; vatCollected?: Totals; vatCollectedThisMonth?: Totals };
   activeSubscriptions: number;
   billedClients: number;
   unbilledClients: number;
@@ -195,7 +195,7 @@ export default function AdminFinance() {
               <em>{data.activeSubscriptions} active subscription{data.activeSubscriptions === 1 ? "" : "s"}</em>
             </div>
             <div>
-              <small>COLLECTED THIS MONTH</small>
+              <small>COLLECTED THIS MONTH (EX-VAT)</small>
               <strong><TotalsValue totals={data.totals.collectedThisMonth} /></strong>
               <em>{formatTotals(data.totals.collected)} all-time</em>
             </div>

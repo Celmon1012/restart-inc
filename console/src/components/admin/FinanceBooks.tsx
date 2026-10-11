@@ -7,6 +7,7 @@ import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { loadBooks, type Books } from "@/lib/financeBooks";
 import type { FinanceOverview } from "@/pages/admin/Finance";
 import { DeploymentMargins } from "./DeploymentMargins";
+import { VatPanel } from "./VatPanel";
 import { OperatingCosts } from "./OperatingCosts";
 
 export function FinanceBooks({ finance }: { finance: FinanceOverview }) {
@@ -20,6 +21,7 @@ export function FinanceBooks({ finance }: { finance: FinanceOverview }) {
     <>
       <OperatingCosts finance={finance} books={data} refresh={refresh} />
       <DeploymentMargins finance={finance} books={data} refresh={refresh} />
+      <VatPanel finance={finance} />
     </>
   );
 }

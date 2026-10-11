@@ -632,6 +632,7 @@ interface LagoInvoice {
   total_amount_cents: number;
   total_due_amount_cents?: number;
   total_paid_amount_cents?: number;
+  taxes_amount_cents?: number;
   currency: string;
   file_url: string | null;
   customer?: { external_id?: string; name?: string | null };
@@ -743,6 +744,10 @@ Deno.serve(async (req) => {
     const now = new Date();
     const thisMonth = now.toISOString().slice(0, 7);
     const collectedThisMonth: Totals = {};
+    // VAT is not revenue: collected/monthly/client figures below are ex-VAT, and the
+    // tax portion of each payment is tracked here as owed to the tax authority.
+    const vatCollected: Totals = {};
+    const vatCollectedThisMonth: Totals = {};
 
     // Last 12 calendar months of collected revenue, per currency.
     const months: string[] = [];
@@ -805,11 +810,19 @@ Deno.serve(async (req) => {
         ? 0
         : Math.max(inv.total_due_amount_cents ?? inv.total_amount_cents - paid, 0);
       if (paid > 0) {
-        add(collected, inv.currency, paid);
-        add(client.collected, inv.currency, paid);
+        // Split the payment pro rata into net revenue and the VAT inside it.
+        const total = inv.total_amount_cents;
+        const vat = total > 0 ? Math.round(paid * Math.min(Math.max(inv.taxes_amount_cents ?? 0, 0), total) / total) : 0;
+        const net = paid - vat;
         const month = inv.issuing_date.slice(0, 7);
-        if (monthly[month]) add(monthly[month], inv.currency, paid);
-        if (month === thisMonth) add(collectedThisMonth, inv.currency, paid);
+        add(collected, inv.currency, net);
+        add(client.collected, inv.currency, net);
+        if (monthly[month]) add(monthly[month], inv.currency, net);
+        if (month === thisMonth) add(collectedThisMonth, inv.currency, net);
+        if (vat > 0) {
+          add(vatCollected, inv.currency, vat);
+          if (month === thisMonth) add(vatCollectedThisMonth, inv.currency, vat);
+        }
       }
       if (due > 0) {
         add(outstanding, inv.currency, due);
@@ -854,7 +867,7 @@ Deno.serve(async (req) => {
 
     return json({
       generatedAt: now.toISOString(),
-      totals: { collected, collectedThisMonth, outstanding, overdue, mrr },
+      totals: { collected, collectedThisMonth, outstanding, overdue, mrr, vatCollected, vatCollectedThisMonth },
       activeSubscriptions,
       billedClients: byCustomer.size,
       unbilledClients: workspaces.length - byCustomer.size,
