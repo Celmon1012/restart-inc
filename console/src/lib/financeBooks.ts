@@ -10,6 +10,17 @@ export const COST_CURRENCIES: CostCurrency[] = ["NGN", "USD", "EUR"];
 
 export type Cadence = "monthly" | "quarterly" | "annual" | "one_off";
 
+export const EXPENSE_CATEGORIES = {
+  infrastructure: "Infrastructure",
+  software: "Software & tools",
+  people: "People",
+  marketing: "Marketing",
+  legal_tax: "Legal & tax",
+  banking_fees: "Banking & fees",
+  other: "Other"
+} as const;
+export const CADENCE_LABEL: Record<Cadence, string> = { monthly: "Monthly", quarterly: "Quarterly", annual: "Annual", one_off: "One-off" };
+
 export interface Expense {
   id: string;
   name: string;
@@ -41,10 +52,42 @@ export interface Settings {
   cash_ngn_cents: number;
 }
 
+export interface Account {
+  id: string;
+  name: string;
+  kind: "bank" | "card" | "cash" | "wallet";
+  currency: CostCurrency;
+  note: string | null;
+  active: boolean;
+}
+
+/** A payment actually made against an expense (console.expense_payments). */
+export interface ExpensePayment {
+  id: string;
+  expense_id: string;
+  account_id: string | null;
+  paid_on: string;
+  period_end: string | null;
+  amount_cents: number;
+  currency: CostCurrency;
+  fx_rate: number;
+  amount_ngn_cents: number;
+  vat_cents: number;
+  reference: string | null;
+  note: string | null;
+  created_at: string;
+  voided_at: string | null;
+  void_reason: string | null;
+}
+
 export interface Books {
   expenses: Expense[];
   services: Service[];
   settings: Settings;
+  accounts: Account[];
+  payments: ExpensePayment[];
+  /** False until the payments migration has been applied; the cost panels still work without it. */
+  paymentsAvailable: boolean;
 }
 
 export async function loadBooks(): Promise<Books> {
@@ -56,7 +99,27 @@ export async function loadBooks(): Promise<Books> {
   if (exp.error) throw exp.error;
   if (svc.error) throw svc.error;
   if (set.error) throw set.error;
+
+  // Accounts and payments are additive: a missing table must not take the cost panels down.
+  const [acc, pay] = await Promise.all([
+    consoleSchema().from("finance_accounts").select("id,name,kind,currency,note,active").order("name"),
+    consoleSchema()
+      .from("expense_payments")
+      .select("id,expense_id,account_id,paid_on,period_end,amount_cents,currency,fx_rate,amount_ngn_cents,vat_cents,reference,note,created_at,voided_at,void_reason")
+      .order("paid_on", { ascending: false })
+      .order("created_at", { ascending: false })
+  ]);
+  const paymentsAvailable = !acc.error && !pay.error;
   return {
+    accounts: (paymentsAvailable ? acc.data ?? [] : []) as Account[],
+    payments: (paymentsAvailable ? pay.data ?? [] : []).map((p) => ({
+      ...p,
+      amount_cents: Number(p.amount_cents),
+      amount_ngn_cents: Number(p.amount_ngn_cents),
+      vat_cents: Number(p.vat_cents),
+      fx_rate: Number(p.fx_rate)
+    })) as ExpensePayment[],
+    paymentsAvailable,
     // bigint comes back as a number from PostgREST; numeric may arrive as a string.
     expenses: (exp.data ?? []).map((e) => ({ ...e, amount_cents: Number(e.amount_cents) })) as Expense[],
     services: (svc.data ?? []).map((s) => ({ ...s, monthly_cost_cents: Number(s.monthly_cost_cents) })) as Service[],
@@ -115,3 +178,56 @@ export const hostingInMonth = (b: Books, month: string) =>
 
 export const overheadInMonth = (b: Books, month: string) =>
   b.expenses.reduce((sum, e) => sum + toNgn(expenseInMonth(e, month), e.currency, b.settings), 0);
+
+const isoDate = (d: Date) => d.toISOString().slice(0, 10);
+const todayIso = () => isoDate(new Date());
+
+/** The date one billing period after `date` ("YYYY-MM-DD"), clamping the day (31 Jan + 1 month = 28/29 Feb). */
+export function addPeriod(date: string, cadence: Exclude<Cadence, "one_off">): string {
+  const months = cadence === "monthly" ? 1 : cadence === "quarterly" ? 3 : 12;
+  const [y, m, d] = date.split("-").map(Number);
+  const target = new Date(Date.UTC(y, m - 1 + months, 1));
+  const last = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(d, last));
+  return isoDate(target);
+}
+
+/** The last day covered by a period that starts on `due`. */
+export function periodEndFor(due: string, cadence: Exclude<Cadence, "one_off">): string {
+  const next = new Date(`${addPeriod(due, cadence)}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() - 1);
+  return isoDate(next);
+}
+
+/**
+ * When a recurring expense is next due, or null for a one-off or one that has ended.
+ * After a payment it is the day after that payment's period ends. With no payment recorded
+ * yet it is the current billing cycle's date, counted from the start date, so a cost that was
+ * set up before payments were tracked shows as due now rather than months overdue.
+ */
+export function nextDue(expense: Expense, payments: ExpensePayment[]): string | null {
+  if (expense.cadence === "one_off") return null;
+  const cadence = expense.cadence;
+  const covered = payments
+    .filter((p) => p.expense_id === expense.id && !p.voided_at && p.period_end)
+    .map((p) => p.period_end as string)
+    .sort();
+  let due: string;
+  if (covered.length > 0) {
+    const next = new Date(`${covered[covered.length - 1]}T00:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    due = isoDate(next);
+  } else {
+    due = expense.start_date;
+    const today = todayIso();
+    for (let guard = 0; guard < 600; guard++) {
+      const following = addPeriod(due, cadence);
+      if (following > today) break;
+      due = following;
+    }
+  }
+  if (expense.end_date && due > expense.end_date) return null;
+  return due;
+}
+
+export const isPaymentLive = (p: ExpensePayment) => !p.voided_at;

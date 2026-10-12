@@ -3,13 +3,16 @@
 // per-deployment and lives in DeploymentMargins. Everything is folded into NGN
 // (home currency); revenue in currencies other than NGN/USD/EUR is left out.
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { consoleSchema } from "@/lib/supabase";
 import { formatAmount, formatDate, formatPercent } from "@/lib/format";
 import {
+  CADENCE_LABEL,
   COST_CURRENCIES,
+  EXPENSE_CATEGORIES,
   expenseInMonth,
   hostingInMonth,
+  nextDue,
   monthKey,
   overheadInMonth,
   toNgn,
@@ -21,18 +24,10 @@ import {
   type Settings
 } from "@/lib/financeBooks";
 import type { FinanceOverview } from "@/pages/admin/Finance";
+import { PaymentForm } from "@/components/admin/ExpensePayments";
 
-const CATEGORIES: Record<Expense["category"], string> = {
-  infrastructure: "Infrastructure",
-  software: "Software & tools",
-  people: "People",
-  marketing: "Marketing",
-  legal_tax: "Legal & tax",
-  banking_fees: "Banking & fees",
-  other: "Other"
-};
+const CATEGORIES: Record<Expense["category"], string> = EXPENSE_CATEGORIES;
 type Category = Expense["category"];
-const CADENCE_LABEL: Record<Cadence, string> = { monthly: "Monthly", quarterly: "Quarterly", annual: "Annual", one_off: "One-off" };
 
 const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
 
@@ -41,6 +36,7 @@ const emptyForm = { name: "", category: "software" as Category, amount: "", curr
 export function OperatingCosts({ finance, books, refresh }: { finance: FinanceOverview; books: Books; refresh: () => Promise<void> }) {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -139,7 +135,9 @@ export function OperatingCosts({ finance, books, refresh }: { finance: FinanceOv
   const remove = async (e: Expense) => {
     if (!window.confirm(`Delete "${e.name}"? Past months will no longer include it.`)) return;
     const { error: err } = await consoleSchema().from("expenses").delete().eq("id", e.id);
-    if (err) window.alert(err.message);
+    // 23503: payments are recorded against it. Those are kept for the audit trail, so end the cost instead.
+    if (err?.code === "23503") window.alert("This cost has payments recorded against it, which are kept for the audit trail. Set an end date on it instead of deleting it.");
+    else if (err) window.alert(err.message);
     else await refresh();
   };
 
@@ -299,12 +297,17 @@ export function OperatingCosts({ finance, books, refresh }: { finance: FinanceOv
                     <th className="num">Amount</th>
                     <th className="num">Per month (₦)</th>
                     <th>Period</th>
+                    <th>Next due</th>
                     <th />
                   </tr>
                 </thead>
                 <tbody>
-                  {books.expenses.map((e) => (
-                    <tr key={e.id}>
+                  {books.expenses.map((e) => {
+                    const due = nextDue(e, books.payments);
+                    const overdue = due !== null && due < new Date().toISOString().slice(0, 10);
+                    return (
+                    <Fragment key={e.id}>
+                    <tr>
                       <td><strong>{e.name}</strong></td>
                       <td>{CATEGORIES[e.category]}</td>
                       <td>{CADENCE_LABEL[e.cadence]}</td>
@@ -313,12 +316,27 @@ export function OperatingCosts({ finance, books, refresh }: { finance: FinanceOv
                       <td className="admin-muted">
                         {formatDate(e.start_date)}{e.cadence !== "one_off" && ` → ${e.end_date ? formatDate(e.end_date) : "ongoing"}`}
                       </td>
+                      <td className={overdue ? "admin-warn" : "admin-muted"}>
+                        {e.cadence === "one_off" ? "—" : due ? `${overdue ? "overdue · " : ""}${formatDate(due)}` : "ended"}
+                      </td>
                       <td>
+                        {books.paymentsAvailable && e.cadence !== "one_off" && due && (
+                          <><button className="dash-tab-btn active" onClick={() => setPayingId(payingId === e.id ? null : e.id)}>Mark paid</button>{" "}</>
+                        )}
                         <button className="dash-tab-btn" onClick={() => startEdit(e)}>Edit</button>{" "}
                         <button className="dash-tab-btn" onClick={() => void remove(e)}>Delete</button>
                       </td>
                     </tr>
-                  ))}
+                    {payingId === e.id && (
+                      <tr>
+                        <td colSpan={8}>
+                          <PaymentForm books={books} expense={e} onClose={() => setPayingId(null)} onSaved={refresh} />
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

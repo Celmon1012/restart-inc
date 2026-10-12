@@ -9,6 +9,7 @@ import type { FinanceOverview } from "@/pages/admin/Finance";
 import { DeploymentMargins } from "./DeploymentMargins";
 import { VatPanel } from "./VatPanel";
 import { OperatingCosts } from "./OperatingCosts";
+import { ExpensePayments } from "./ExpensePayments";
 
 export function FinanceBooks({ finance }: { finance: FinanceOverview }) {
   const { data, loading, error, retry, refresh } = useAsyncResource<Books>(() => loadBooks(), [], { errorMessage: "Failed to load costs" });
@@ -20,6 +21,7 @@ export function FinanceBooks({ finance }: { finance: FinanceOverview }) {
   return (
     <>
       <OperatingCosts finance={finance} books={data} refresh={refresh} />
+      <ExpensePayments books={data} refresh={refresh} />
       <DeploymentMargins finance={finance} books={data} refresh={refresh} />
       <VatPanel finance={finance} />
     </>
