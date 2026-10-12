@@ -9,6 +9,7 @@
 // tracked server Coolify no longer sees is offered for ending. Contabo servers are kept by hand.
 
 import { Fragment, useMemo, useState } from "react";
+import { BellRing } from "lucide-react";
 import { RowMenu } from "@/components/admin/RowMenu";
 import { PaymentForm } from "@/components/admin/ExpensePayments";
 import { consoleSchema } from "@/lib/supabase";
@@ -286,9 +287,14 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                       <td>
                         <strong>{nameOf(r.id)}</strong>
                         {r.discount > 0 && (
-                          <div className="admin-warn">
-                            coupon: {ngn(r.discount)}/mo not billed{r.couponLeft !== null ? ` · ${r.couponLeft} invoice${r.couponLeft === 1 ? "" : "s"} left` : ""}
-                          </div>
+                          <span
+                            className="tip tip-warn"
+                            tabIndex={0}
+                            aria-label="Coupon applied"
+                            data-tip={`Coupon: ${ngn(r.discount)}/mo not billed${r.couponLeft !== null ? ` · ${r.couponLeft} invoice${r.couponLeft === 1 ? "" : "s"} left` : ""}`}
+                          >
+                            <BellRing size={14} />
+                          </span>
                         )}
                       </td>
                       <td>
@@ -308,7 +314,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                       <td className="num">{ngn(r.cost)}</td>
                       <td className={`num ${r.margin < 0 ? "admin-danger" : ""}`}>
                         {r.hostingSale > 0 || r.cost > 0 ? ngn(r.margin) : "—"}
-                        {r.pct !== null && <div className={r.pct < 0 ? "admin-danger" : "admin-muted"}>{formatPercent(r.pct, 0)}</div>}
+                        {r.pct !== null && <span className={r.pct < 0 ? "admin-danger" : "admin-muted"} style={{ marginLeft: 8 }}>{formatPercent(r.pct, 0)}</span>}
                       </td>
                       <td>
                         {lines.map((l) => (
@@ -316,7 +322,10 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                             {l.sv.ended_on && l.due === null ? (
                               <span className="admin-muted">ended {formatDate(l.sv.ended_on)}</span>
                             ) : l.overdue ? (
-                              <span><span className="pill-overdue">OVERDUE</span><div className="admin-muted">{formatDate(l.due as string)}</div></span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+                                <span className="admin-muted">{formatDate(l.due as string)}</span>
+                                <span className="pill-overdue">OVERDUE</span>
+                              </span>
                             ) : l.due ? (
                               <span className="admin-muted">{formatDate(l.due)}</span>
                             ) : (
@@ -359,7 +368,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                 <td className="num">{ngn(totals.cost)}</td>
                 <td className="num">
                   <strong>{ngn(totals.sale - totals.cost)}</strong>
-                  {totals.sale > 0 && <div className="admin-muted">{formatPercent(((totals.sale - totals.cost) / totals.sale) * 100, 0)}</div>}
+                  {totals.sale > 0 && <span className="admin-muted" style={{ marginLeft: 8 }}>{formatPercent(((totals.sale - totals.cost) / totals.sale) * 100, 0)}</span>}
                 </td>
                 <td colSpan={2} />
               </tr>
