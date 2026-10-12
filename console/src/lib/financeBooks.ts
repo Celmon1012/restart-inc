@@ -8,7 +8,7 @@ import { consoleSchema } from "./supabase";
 export type CostCurrency = "NGN" | "USD" | "EUR";
 export const COST_CURRENCIES: CostCurrency[] = ["NGN", "USD", "EUR"];
 
-export type Cadence = "monthly" | "quarterly" | "annual" | "one_off";
+export type Cadence = "weekly" | "monthly" | "quarterly" | "annual" | "one_off";
 
 export const EXPENSE_CATEGORIES = {
   infrastructure: "Hosting",
@@ -22,7 +22,9 @@ export const EXPENSE_CATEGORIES = {
   banking_fees: "Banking",
   other: "Other"
 } as const;
-export const CADENCE_LABEL: Record<Cadence, string> = { monthly: "Monthly", quarterly: "Quarterly", annual: "Annual", one_off: "One-off" };
+export const CADENCE_LABEL: Record<Cadence, string> = { weekly: "Weekly", monthly: "Monthly", quarterly: "Quarterly", annual: "Yearly", one_off: "One-time" };
+/** What the cadence picker offers. Quarterly still exists for older rows but isn't offered. */
+export const CADENCE_OPTIONS: Cadence[] = ["weekly", "monthly", "annual", "one_off"];
 
 export interface Expense {
   id: string;
@@ -172,6 +174,7 @@ export function expenseInMonth(e: Expense, month: string): number {
   if (e.start_date > `${month}-31`) return 0;
   if (e.end_date && e.end_date < `${month}-01`) return 0;
   if (e.cadence === "one_off") return e.start_date.slice(0, 7) === month ? e.amount_cents : 0;
+  if (e.cadence === "weekly") return (e.amount_cents * 52) / 12;
   if (e.cadence === "quarterly") return e.amount_cents / 3;
   if (e.cadence === "annual") return e.amount_cents / 12;
   return e.amount_cents;
@@ -213,6 +216,11 @@ const todayIso = () => isoDate(new Date());
 
 /** The date one billing period after `date` ("YYYY-MM-DD"), clamping the day (31 Jan + 1 month = 28/29 Feb). */
 export function addPeriod(date: string, cadence: Exclude<Cadence, "one_off">): string {
+  if (cadence === "weekly") {
+    const week = new Date(`${date}T00:00:00Z`);
+    week.setUTCDate(week.getUTCDate() + 7);
+    return isoDate(week);
+  }
   const months = cadence === "monthly" ? 1 : cadence === "quarterly" ? 3 : 12;
   const [y, m, d] = date.split("-").map(Number);
   const target = new Date(Date.UTC(y, m - 1 + months, 1));

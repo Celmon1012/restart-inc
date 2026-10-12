@@ -11,6 +11,7 @@ import { consoleSchema } from "@/lib/supabase";
 import { formatAmount, formatDate, formatPercent } from "@/lib/format";
 import {
   CADENCE_LABEL,
+  CADENCE_OPTIONS,
   COST_CURRENCIES,
   EXPENSE_CATEGORIES,
   expenseInMonth,
@@ -43,6 +44,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [catFilter, setCatFilter] = useState<Category | "all">("all");
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -353,7 +355,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
               {COST_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             <select value={form.cadence} onChange={(e) => setForm({ ...form, cadence: e.target.value as Cadence })}>
-              {Object.entries(CADENCE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {CADENCE_OPTIONS.concat(CADENCE_OPTIONS.includes(form.cadence) ? [] : [form.cadence]).map((k) => <option key={k} value={k}>{CADENCE_LABEL[k]}</option>)}
             </select>
             <label>{form.cadence === "one_off" ? "Date" : "From"} <input type="date" required value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} /></label>
             {form.cadence !== "one_off" && (
@@ -369,12 +371,35 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
           <div className="dash-empty-state">No operating expenses yet. Add tools, internet, salaries, fees and tax, then the ratios on Overview fill in.</div>
         ) : (
           <>
+            {/* This month by category: each is a filter, so one click shows that category's expenses and its total. */}
+            <div className="admin-toolbar" style={{ margin: "10px 0" }}>
+              {(() => {
+                const monthlyOf = (list: Expense[]) => list.reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0);
+                const present = (Object.keys(CATEGORIES) as Category[]).filter((c) => operating.some((e) => e.category === c));
+                return (
+                  <>
+                    <button className={`dash-tab-btn ${catFilter === "all" ? "active" : ""}`} onClick={() => setCatFilter("all")}>
+                      All · {ngn(monthlyOf(operating))}
+                    </button>
+                    {present
+                      .map((c) => ({ c, total: monthlyOf(operating.filter((e) => e.category === c)) }))
+                      .sort((a, b) => b.total - a.total)
+                      .map(({ c, total }) => (
+                        <button key={c} className={`dash-tab-btn ${catFilter === c ? "active" : ""}`} onClick={() => setCatFilter(catFilter === c ? "all" : c)}>
+                          {CATEGORIES[c]} · {ngn(total)}
+                        </button>
+                      ))}
+                  </>
+                );
+              })()}
+            </div>
             <div className="admin-table-wrap">
               <table className="admin-table">
                 <thead>
                   <tr>
                     <th>Expense</th>
-                    <th>Repeats</th>
+                    <th>Category</th>
+                    <th>Cadence</th>
                     <th className="num">Amount</th>
                     <th className="num">Per month</th>
                     <th>Next due</th>
@@ -382,63 +407,51 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                   </tr>
                 </thead>
                 <tbody>
-                  {(Object.keys(CATEGORIES) as Category[]).map((cat) => {
-                    const rows = operating.filter((e) => e.category === cat);
-                    if (rows.length === 0) return null;
-                    const monthly = rows.reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0);
-                    return (
-                      <Fragment key={cat}>
-                        <tr className="group-row">
-                          <td colSpan={6}>
-                            {CATEGORIES[cat]}
-                            <span className="group-total">{ngn(monthly)} this month</span>
-                          </td>
-                        </tr>
-                        {rows.map((e) => {
-                          const due = nextDue(e, books.payments);
-                          const overdue = due !== null && due < new Date().toISOString().slice(0, 10);
-                          return (
-                            <Fragment key={e.id}>
-                              <tr className={overdue ? "row-overdue" : undefined}>
-                                <td><strong>{e.name}</strong></td>
-                                <td className="admin-muted">
-                                  {CADENCE_LABEL[e.cadence]}
-                                  {e.cadence !== "one_off" && e.end_date && <div>until {formatDate(e.end_date)}</div>}
-                                </td>
-                                <td className="num">{formatAmount(e.amount_cents, e.currency)}</td>
-                                <td className="num">{e.cadence === "one_off" ? "—" : ngn(toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates))}</td>
-                                <td className={overdue ? undefined : "admin-muted"}>
-                                  {e.cadence === "one_off" ? "—" : !due ? "ended" : overdue ? (
-                                    <>
-                                      <span className="pill-overdue">OVERDUE · {Math.max(1, Math.round((Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(due)) / 86_400_000))}d</span>
-                                      <div className="admin-muted">due {formatDate(due)}</div>
-                                    </>
-                                  ) : formatDate(due)}
-                                </td>
-                                <td className="num">
-                                  <RowMenu
-                                    label={`Actions for ${e.name}`}
-                                    items={[
-                                      { label: "Mark paid", disabled: !books.paymentsAvailable || e.cadence === "one_off" || !due, onClick: () => setPayingId(payingId === e.id ? null : e.id) },
-                                      { label: "Edit", onClick: () => startEdit(e) },
-                                      { label: "Delete", danger: true, onClick: () => void remove(e) }
-                                    ]}
-                                  />
-                                </td>
-                              </tr>
-                              {payingId === e.id && (
-                                <tr>
-                                  <td colSpan={6}>
-                                    <PaymentForm books={books} expense={e} onClose={() => setPayingId(null)} onSaved={refresh} />
-                                  </td>
-                                </tr>
-                              )}
-                            </Fragment>
-                          );
-                        })}
-                      </Fragment>
-                    );
-                  })}
+                  {operating
+                    .filter((e) => catFilter === "all" || e.category === catFilter)
+                    .map((e) => {
+                      const due = nextDue(e, books.payments);
+                      const overdue = due !== null && due < new Date().toISOString().slice(0, 10);
+                      return (
+                        <Fragment key={e.id}>
+                          <tr className={overdue ? "row-overdue" : undefined}>
+                            <td><strong>{e.name}</strong></td>
+                            <td>{CATEGORIES[e.category]}</td>
+                            <td className="admin-muted">
+                              {CADENCE_LABEL[e.cadence]}
+                              {e.cadence !== "one_off" && e.end_date && <div>until {formatDate(e.end_date)}</div>}
+                            </td>
+                            <td className="num">{formatAmount(e.amount_cents, e.currency)}</td>
+                            <td className="num">{e.cadence === "one_off" ? "—" : ngn(toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates))}</td>
+                            <td className={overdue ? undefined : "admin-muted"}>
+                              {e.cadence === "one_off" ? "—" : !due ? "ended" : overdue ? (
+                                <>
+                                  <span className="pill-overdue">OVERDUE · {Math.max(1, Math.round((Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(due)) / 86_400_000))}d</span>
+                                  <div className="admin-muted">due {formatDate(due)}</div>
+                                </>
+                              ) : formatDate(due)}
+                            </td>
+                            <td className="num">
+                              <RowMenu
+                                label={`Actions for ${e.name}`}
+                                items={[
+                                  { label: "Mark paid", disabled: !books.paymentsAvailable || e.cadence === "one_off" || !due, onClick: () => setPayingId(payingId === e.id ? null : e.id) },
+                                  { label: "Edit", onClick: () => startEdit(e) },
+                                  { label: "Delete", danger: true, onClick: () => void remove(e) }
+                                ]}
+                              />
+                            </td>
+                          </tr>
+                          {payingId === e.id && (
+                            <tr>
+                              <td colSpan={7}>
+                                <PaymentForm books={books} expense={e} onClose={() => setPayingId(null)} onSaved={refresh} />
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
