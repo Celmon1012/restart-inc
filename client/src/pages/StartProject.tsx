@@ -751,7 +751,7 @@ export default function StartProject() {
 
       <main className="scorecard-main container">
         <header className="scorecard-intro">
-          <span className="section-label teal">START A PROJECT · 4 STEPS</span>
+          <span className="section-label teal">START A PROJECT</span>
           <h1>Tell us what you're <span>building</span></h1>
           <p>
             A senior engineer reads every brief and replies within one business day.
