@@ -93,6 +93,8 @@ export function formatAmount(minorUnits: number, currency: string): string {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency,
+      // "₦25,000.00", "$12.50", "€9.99": the symbol, not the three-letter code.
+      currencyDisplay: "narrowSymbol",
     }).format(minorUnits / 100);
   } catch {
     return `${(minorUnits / 100).toFixed(2)} ${currency}`;

@@ -10,6 +10,7 @@
 
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
+import { RowMenu } from "@/components/admin/RowMenu";
 import { consoleSchema } from "@/lib/supabase";
 import { loadWorkspaceNames, loadCoolifyProjects } from "@/lib/admin";
 import { formatAmount, formatDate, formatPercent } from "@/lib/format";
@@ -313,9 +314,14 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                             <Link href="/finance/expenses" className="text-teal">Pay</Link>
                           </span>
                         )}
-                        <button className="dash-tab-btn" onClick={() => openEdit(s)}>Edit</button>
-                        {isActive(s) && !s.ended_on && <button className="dash-tab-btn" onClick={() => void end(s)}>End</button>}
-                        <button className="dash-tab-btn" onClick={() => void remove(s)}>Delete</button>
+                        <RowMenu
+                          label={`Actions for ${s.name}`}
+                          items={[
+                            { label: "Edit", onClick: () => openEdit(s) },
+                            ...(isActive(s) && !s.ended_on ? [{ label: "End today", onClick: () => void end(s) }] : []),
+                            { label: "Delete", danger: true, onClick: () => void remove(s) }
+                          ]}
+                        />
                       </div>
                       );
                     })}

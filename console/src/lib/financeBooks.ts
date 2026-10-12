@@ -11,15 +11,15 @@ export const COST_CURRENCIES: CostCurrency[] = ["NGN", "USD", "EUR"];
 export type Cadence = "monthly" | "quarterly" | "annual" | "one_off";
 
 export const EXPENSE_CATEGORIES = {
-  infrastructure: "Infrastructure & hosting",
-  software: "Software & tools",
-  utilities: "Internet, power & phone",
+  infrastructure: "Hosting",
+  software: "Software",
+  utilities: "Utilities",
   people: "People",
   marketing: "Marketing",
-  travel: "Travel & transport",
-  equipment: "Equipment & office",
-  legal_tax: "Legal, tax & accounting",
-  banking_fees: "Banking & fees",
+  travel: "Travel",
+  equipment: "Equipment",
+  legal_tax: "Legal",
+  banking_fees: "Banking",
   other: "Other"
 } as const;
 export const CADENCE_LABEL: Record<Cadence, string> = { monthly: "Monthly", quarterly: "Quarterly", annual: "Annual", one_off: "One-off" };

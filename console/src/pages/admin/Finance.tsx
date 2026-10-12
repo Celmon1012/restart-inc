@@ -15,7 +15,7 @@ export type { FinanceOverview } from "@/lib/financeOverview";
 
 const nonZero = (t: Totals | undefined) => Object.entries(t ?? {}).filter(([, v]) => v !== 0);
 
-/** "NGN 1,200,000.00 · $4,000.00", or an em dash when there's nothing. For tables and hint lines. */
+/** "₦1,200,000.00 · $4,000.00", or an em dash when there's nothing. For tables and hint lines. */
 export function formatTotals(t: Totals | undefined): string {
   const entries = nonZero(t);
   if (entries.length === 0) return "—";
