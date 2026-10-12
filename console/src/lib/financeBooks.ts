@@ -11,11 +11,14 @@ export const COST_CURRENCIES: CostCurrency[] = ["NGN", "USD", "EUR"];
 export type Cadence = "monthly" | "quarterly" | "annual" | "one_off";
 
 export const EXPENSE_CATEGORIES = {
-  infrastructure: "Infrastructure",
+  infrastructure: "Infrastructure & hosting",
   software: "Software & tools",
+  utilities: "Internet, power & phone",
   people: "People",
   marketing: "Marketing",
-  legal_tax: "Legal & tax",
+  travel: "Travel & transport",
+  equipment: "Equipment & office",
+  legal_tax: "Legal, tax & accounting",
   banking_fees: "Banking & fees",
   other: "Other"
 } as const;
@@ -24,7 +27,7 @@ export const CADENCE_LABEL: Record<Cadence, string> = { monthly: "Monthly", quar
 export interface Expense {
   id: string;
   name: string;
-  category: "infrastructure" | "software" | "people" | "marketing" | "legal_tax" | "banking_fees" | "other";
+  category: keyof typeof EXPENSE_CATEGORIES;
   amount_cents: number;
   currency: CostCurrency;
   cadence: Cadence;

@@ -207,7 +207,7 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
         </div>
       </div>
       <p className="admin-muted">
-        What was actually paid, from which account and with which reference. Recurring costs show their next due date under Overhead, with a Mark paid button. A wrong entry is voided, never edited or deleted.
+        What was actually paid, from which account and with which reference. Recurring expenses show their next due date under Expenses, with a Mark paid button. A wrong entry is voided, never edited or deleted.
       </p>
 
       {logging && <PaymentForm books={books} onClose={() => setLogging(false)} onSaved={refresh} />}
@@ -237,7 +237,7 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
       </div>
 
       {visible.length === 0 ? (
-        <div className="dash-empty-state">No payments recorded{month ? " for this month" : " yet"}. Use Mark paid on an overhead line, or Log expense for a one-off.</div>
+        <div className="dash-empty-state">No payments recorded{month ? " for this month" : " yet"}. Use Mark paid on a recurring expense, or Log expense for a one-off.</div>
       ) : (
         <div className="admin-table-wrap">
           <table className="admin-table">

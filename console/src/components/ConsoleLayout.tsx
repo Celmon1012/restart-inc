@@ -125,10 +125,10 @@ const FINANCE_NAV: NavGroup[] = [
     items: [{ href: "/finance/invoices", label: "Invoices", icon: Receipt }]
   },
   {
-    label: "Costs",
+    label: "Expenses",
     items: [
       { href: "/finance/deployments", label: "Deployments", icon: HardDrive },
-      { href: "/finance/costs", label: "Overhead", icon: Coins }
+      { href: "/finance/expenses", label: "Operating expenses", icon: Coins }
     ]
   },
   {
@@ -160,7 +160,7 @@ const ADMIN_TABS = [
 const FINANCE_TABS = [
   { href: "/finance", label: "Overview" },
   { href: "/finance/invoices", label: "Invoices" },
-  { href: "/finance/costs", label: "Costs" },
+  { href: "/finance/expenses", label: "Expenses" },
   { href: "/finance/payments", label: "Payments" }
 ];
 

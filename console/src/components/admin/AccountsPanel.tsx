@@ -116,7 +116,7 @@ export function AccountsPanel({ books, refresh }: { books: Books; refresh: () =>
       )}
 
       {books.accounts.length === 0 ? (
-        <div className="dash-empty-state">No accounts yet. Add each bank account, card and cash float you pay business costs from, with its account number.</div>
+        <div className="dash-empty-state">No accounts yet. Add each bank account, card and cash float you pay business expenses from, with its account number.</div>
       ) : (
         <div className="admin-table-wrap">
           <table className="admin-table">

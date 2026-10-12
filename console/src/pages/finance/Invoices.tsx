@@ -89,8 +89,8 @@ export default function FinanceInvoices() {
                           <td><strong>{inv.number}</strong></td>
                           <td>{inv.client}</td>
                           <td>{formatDate(inv.issuingDate)}</td>
-                          <td className={inv.overdue ? "admin-warn" : undefined}>{inv.dueDate ? formatDate(inv.dueDate) : "—"}</td>
-                          <td className={inv.overdue ? "admin-warn" : "admin-muted"}>{inv.overdue ? "overdue" : inv.paymentStatus}</td>
+                          <td className={inv.overdue ? "admin-danger" : undefined}>{inv.dueDate ? formatDate(inv.dueDate) : "—"}</td>
+                          <td>{inv.overdue ? <span className="pill-overdue">OVERDUE</span> : <span className="admin-muted">{inv.paymentStatus}</span>}</td>
                           <td className="num">
                             {formatAmount(inv.totalDueAmountCents, inv.currency)}
                             {inv.totalDueAmountCents < inv.totalAmountCents && <small className="admin-muted"> of {formatAmount(inv.totalAmountCents, inv.currency)}</small>}

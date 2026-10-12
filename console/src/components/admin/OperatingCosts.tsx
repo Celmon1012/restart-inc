@@ -33,7 +33,7 @@ const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
 
 const emptyForm = { name: "", category: "software" as Category, amount: "", currency: "NGN" as CostCurrency, cadence: "monthly" as Cadence, start: new Date().toISOString().slice(0, 10), end: "" };
 
-/** view "summary": costs vs revenue (stats and the month table). view "costs": rates and cash, and the overhead lines. */
+/** view "summary": costs vs revenue (stats and the month table). view "costs": rates and cash, and the operating expense lines. */
 export function OperatingCosts({ finance, books, refresh, view }: { finance: FinanceOverview; books: Books; refresh: () => Promise<void>; view: "summary" | "costs" }) {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -168,19 +168,19 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
     <>
       {view === "summary" && (
       <div className="admin-section">
-        <h2 className="admin-section-title">Costs vs revenue</h2>
+        <h2 className="admin-section-title">Expenses vs revenue</h2>
         <div className="cp-stats">
           <div>
-            <small>MONTHLY RUN-RATE COST</small>
+            <small>MONTHLY EXPENSES</small>
             <strong>{ngn(calc.runRate)}</strong>
-            <em>hosting + recurring overhead · {ngn(calc.costThisMonth)} this month</em>
+            <em>hosting + recurring operating · {ngn(calc.costThisMonth)} this month</em>
           </div>
           <div>
-            <small>MRR COVERS COSTS</small>
+            <small>MRR COVERS EXPENSES</small>
             <strong className={calc.mrrCoverage !== null && !covered ? "warn" : undefined}>
               {calc.mrrCoverage === null ? "—" : `${calc.mrrCoverage.toFixed(2)}×`}
             </strong>
-            <em>{calc.mrrCoverage === null ? "add costs to see this" : covered ? "recurring revenue exceeds costs" : `${ngn(calc.breakEvenGap)} MRR short of break-even`}</em>
+            <em>{calc.mrrCoverage === null ? "add expenses to see this" : covered ? "recurring revenue exceeds expenses" : `${ngn(calc.breakEvenGap)} MRR short of break-even`}</em>
           </div>
           <div>
             <small>3-MONTH MARGIN</small>
@@ -194,7 +194,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
             <strong className={calc.runwayMonths !== null && calc.runwayMonths < 6 ? "warn" : undefined}>
               {calc.burn === 0 ? "Self-funding" : calc.runwayMonths === null ? "—" : `${calc.runwayMonths.toFixed(1)} mo`}
             </strong>
-            <em>{calc.burn === 0 ? "collections ≥ costs (3-mo avg)" : `${ngn(calc.burn)} net burn / mo`}</em>
+            <em>{calc.burn === 0 ? "collections ≥ expenses (3-mo avg)" : `${ngn(calc.burn)} net burn / mo`}</em>
           </div>
         </div>
 
@@ -205,7 +205,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                 <th>Month</th>
                 <th className="num">Collected</th>
                 <th className="num">Hosting</th>
-                <th className="num">Overhead</th>
+                <th className="num">Operating</th>
                 <th className="num">Net</th>
               </tr>
             </thead>
@@ -223,7 +223,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
           </table>
         </div>
         <p className="admin-muted mt-2">
-          All in NGN at the rates set under Costs. Hosting is the server cost of client deployments; overhead is everything else. Annual and quarterly costs are spread evenly across months.
+          All in NGN at the rates set under Expenses. Hosting is the server cost of client deployments; operating expenses are everything else. Annual and quarterly expenses are spread evenly across months.
         </p>
       </div>
       )}
@@ -232,7 +232,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
       <>
       <div className="admin-section">
         <h2 className="admin-section-title">Rates and cash</h2>
-        <p className="admin-muted">The exchange rates convert dollar and euro costs and revenue into naira. Cash on hand is what runway is measured against, so update it when your balance changes.</p>
+        <p className="admin-muted">The exchange rates convert dollar and euro expenses and revenue into naira. Cash on hand is what runway is measured against, so update it when your balance changes.</p>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
           {settingField("usd_ngn", "USD → NGN")}
           {settingField("eur_ngn", "EUR → NGN")}
@@ -255,10 +255,10 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
 
       <div className="admin-section">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 className="admin-section-title">Overhead</h2>
-          <button className="dash-tab-btn active" onClick={startAdd}>Add overhead</button>
+          <h2 className="admin-section-title">Operating expenses</h2>
+          <button className="dash-tab-btn active" onClick={startAdd}>Add expense</button>
         </div>
-        <p className="admin-muted">Costs not tied to one client: tools, people, marketing, legal and tax, fees. Client servers go under Deployments instead, so they aren't counted twice.</p>
+        <p className="admin-muted">Expenses not tied to one client: tools, internet and utilities, people, marketing, legal and tax, fees. Client servers go under Deployments instead, so they aren't counted twice.</p>
 
         {showForm && (
           <form
@@ -287,7 +287,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
         )}
 
         {books.expenses.length === 0 ? (
-          <div className="dash-empty-state">No overhead yet. Add tools, salaries, fees and tax, then the ratios above fill in.</div>
+          <div className="dash-empty-state">No operating expenses yet. Add tools, internet, salaries, fees and tax, then the ratios on Overview fill in.</div>
         ) : (
           <>
             {calc.byCategory.length > 0 && (
@@ -316,7 +316,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                     const overdue = due !== null && due < new Date().toISOString().slice(0, 10);
                     return (
                     <Fragment key={e.id}>
-                    <tr>
+                    <tr className={overdue ? "row-overdue" : undefined}>
                       <td><strong>{e.name}</strong></td>
                       <td>{CATEGORIES[e.category]}</td>
                       <td>{CADENCE_LABEL[e.cadence]}</td>
@@ -325,8 +325,13 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                       <td className="admin-muted">
                         {formatDate(e.start_date)}{e.cadence !== "one_off" && ` → ${e.end_date ? formatDate(e.end_date) : "ongoing"}`}
                       </td>
-                      <td className={overdue ? "admin-warn" : "admin-muted"}>
-                        {e.cadence === "one_off" ? "—" : due ? `${overdue ? "overdue · " : ""}${formatDate(due)}` : "ended"}
+                      <td className={overdue ? undefined : "admin-muted"}>
+                        {e.cadence === "one_off" ? "—" : !due ? "ended" : overdue ? (
+                          <>
+                            <span className="pill-overdue">OVERDUE · {Math.max(1, Math.round((Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(due)) / 86_400_000))}d</span>
+                            <div className="admin-muted">due {formatDate(due)}</div>
+                          </>
+                        ) : formatDate(due)}
                       </td>
                       <td>
                         {books.paymentsAvailable && e.cadence !== "one_off" && due && (

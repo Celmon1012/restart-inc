@@ -31,7 +31,7 @@ import AdminSupport from "./pages/admin/Support";
 import AdminFinance from "./pages/admin/Finance";
 import FinanceInvoices from "./pages/finance/Invoices";
 import FinanceDeployments from "./pages/finance/Deployments";
-import FinanceCosts from "./pages/finance/Costs";
+import FinanceExpenses from "./pages/finance/Expenses";
 import FinancePayments from "./pages/finance/Payments";
 import FinanceAccounts from "./pages/finance/Accounts";
 import FinanceVat from "./pages/finance/Vat";
@@ -242,10 +242,13 @@ function Router() {
           <FinanceDeployments />
         </FinanceRoute>
       </Route>
-      <Route path="/finance/costs">
+      <Route path="/finance/expenses">
         <FinanceRoute>
-          <FinanceCosts />
+          <FinanceExpenses />
         </FinanceRoute>
+      </Route>
+      <Route path="/finance/costs">
+        <Redirect to="/finance/expenses" />
       </Route>
       <Route path="/finance/payments">
         <FinanceRoute>

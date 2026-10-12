@@ -77,7 +77,7 @@ function MonthlyBars({ monthly, currency }: { monthly: FinanceOverview["monthly"
 
 export default function AdminFinance() {
   return (
-    <FinancePage title="Overview" description="Where the business stands: revenue, costs and what needs attention." needs={["finance", "books"]}>
+    <FinancePage title="Overview" description="Where the business stands: revenue, expenses and what needs attention." needs={["finance", "books"]}>
       {({ finance: data, books, reloadBooks }) => {
         const today = new Date().toISOString().slice(0, 10);
         const overdueInvoices = data.openInvoices.filter((i) => i.overdue).length;
@@ -89,7 +89,7 @@ export default function AdminFinance() {
         const currencies = Array.from(new Set(data.monthly.flatMap((m) => Object.keys(m.collected)).concat(Object.keys(data.totals.collected))));
         const attention: Array<{ key: string; text: string; href: string; warn: boolean }> = [];
         if (overdueInvoices > 0) attention.push({ key: "inv", text: `${overdueInvoices} overdue invoice${overdueInvoices === 1 ? "" : "s"}, ${formatTotals(data.totals.overdue)} owed`, href: "/finance/invoices", warn: true });
-        if (billsDue.length > 0) attention.push({ key: "bills", text: `${billsDue.length} cost${billsDue.length === 1 ? "" : "s"} due within a week${billsOverdue ? `, ${billsOverdue} overdue` : ""}: ${billsDue.slice(0, 3).map((b) => b.e.name).join(", ")}`, href: "/finance/costs", warn: billsOverdue > 0 });
+        if (billsDue.length > 0) attention.push({ key: "bills", text: `${billsDue.length} expense${billsDue.length === 1 ? "" : "s"} due within a week${billsOverdue ? `, ${billsOverdue} overdue` : ""}: ${billsDue.slice(0, 3).map((b) => b.e.name).join(", ")}`, href: "/finance/expenses", warn: billsOverdue > 0 });
         if (books.paymentsAvailable && books.accounts.length === 0) attention.push({ key: "acc", text: "No accounts set up yet, so payments can't record where they were paid from", href: "/finance/accounts", warn: false });
 
         return (
@@ -129,7 +129,7 @@ export default function AdminFinance() {
                 <div className="admin-table-wrap">
                   {attention.map((a) => (
                     <Link key={a.key} href={a.href} className="admin-task-row" style={{ textDecoration: "none" }}>
-                      <span className={a.warn ? "admin-warn" : undefined}>{a.text}</span>
+                      <span className={a.warn ? "admin-danger" : undefined}>{a.text}</span>
                       <span className="admin-task-context"><ArrowRight size={12} /></span>
                     </Link>
                   ))}
