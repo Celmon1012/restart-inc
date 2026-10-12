@@ -2,55 +2,16 @@
 // thing holding LAGO_API_KEY for a cross-client read). Figures are per
 // currency and never summed across currencies.
 
-import { Fragment, useState } from "react";
 import { Link } from "wouter";
-import { ConsoleLayout } from "@/components/ConsoleLayout";
-import { invokeFunction } from "@/lib/functions";
 import { formatAmount, formatDate } from "@/lib/format";
-import { ExternalLink } from "lucide-react";
-import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
-import { useAsyncResource } from "@/hooks/useAsyncResource";
-import { FinanceBooks } from "@/components/admin/FinanceBooks";
+import { ArrowRight } from "lucide-react";
+import { FinancePage } from "@/components/admin/FinancePage";
+import { OperatingCosts } from "@/components/admin/OperatingCosts";
+import { nextDue } from "@/lib/financeBooks";
 
-type Totals = Record<string, number>;
-
-export interface FinanceOverview {
-  generatedAt: string;
-  totals: { collected: Totals; collectedThisMonth: Totals; outstanding: Totals; overdue: Totals; mrr: Totals; vatCollected?: Totals; vatCollectedThisMonth?: Totals };
-  activeSubscriptions: number;
-  billedClients: number;
-  unbilledClients: number;
-  invoiceCount: number;
-  invoicesTruncated: boolean;
-  monthly: Array<{ month: string; collected: Totals }>;
-  clients: Array<{
-    workspaceId: string | null;
-    name: string;
-    customerId: string;
-    collected: Totals;
-    outstanding: Totals;
-    overdue: Totals;
-    mrr: Totals;
-    invoiceCount: number;
-    lastInvoiceAt: string | null;
-  }>;
-  openInvoices: Array<{
-    id: string;
-    number: string;
-    client: string;
-    workspaceId: string | null;
-    issuingDate: string;
-    dueDate: string | null;
-    paymentStatus: string;
-    overdue: boolean;
-    totalAmountCents: number;
-    totalDueAmountCents: number;
-    currency: string;
-    fileUrl: string | null;
-  }>;
-}
-
-export const loadFinanceOverview = () => invokeFunction<FinanceOverview>("console-admin-finance");
+import type { FinanceOverview, Totals } from "@/lib/financeOverview";
+export { loadFinanceOverview } from "@/lib/financeOverview";
+export type { FinanceOverview } from "@/lib/financeOverview";
 
 const nonZero = (t: Totals | undefined) => Object.entries(t ?? {}).filter(([, v]) => v !== 0);
 
@@ -115,253 +76,86 @@ function MonthlyBars({ monthly, currency }: { monthly: FinanceOverview["monthly"
 }
 
 export default function AdminFinance() {
-  const { data, loading, error, retry, refresh, refreshing } = useAsyncResource<FinanceOverview>(
-    () => loadFinanceOverview(),
-    [],
-    { errorMessage: "Failed to load finance data" }
-  );
-
-  const today = new Date().toISOString().slice(0, 10);
-  const [payingId, setPayingId] = useState<string | null>(null);
-  const [paidOn, setPaidOn] = useState(today);
-  const [reference, setReference] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [payError, setPayError] = useState<string | null>(null);
-
-  const openPayForm = (id: string) => {
-    setPayingId(id);
-    setPaidOn(today);
-    setReference("");
-    setPayError(null);
-  };
-
-  const submitPayment = async (invoiceId: string) => {
-    setSaving(true);
-    setPayError(null);
-    try {
-      await invokeFunction("console-admin-record-payment", { body: { invoiceId, paidOn, reference, method: "bank_transfer" } });
-      setPayingId(null);
-      await refresh();
-    } catch (err) {
-      setPayError((err as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const [relinkingId, setRelinkingId] = useState<string | null>(null);
-  const [relinkResult, setRelinkResult] = useState<Record<string, { ok: boolean; text: string }>>({});
-
-  // Re-creates the customer's link to the Flutterwave integration in Lago. Needed after the
-  // integration is deleted and re-added (its code changes), or when "Pay Now" stops working.
-  const relinkPayments = async (customerId: string, name: string) => {
-    if (!window.confirm(`Re-link ${name} to the Flutterwave integration in Lago?`)) return;
-    setRelinkingId(customerId);
-    try {
-      await invokeFunction("sync-lago-payment-provider", { body: { externalCustomerId: customerId } });
-      setRelinkResult((r) => ({ ...r, [customerId]: { ok: true, text: "Linked" } }));
-    } catch (err) {
-      setRelinkResult((r) => ({ ...r, [customerId]: { ok: false, text: (err as Error).message } }));
-    } finally {
-      setRelinkingId(null);
-    }
-  };
-
-  const currencies = data
-    ? Array.from(new Set(data.monthly.flatMap((m) => Object.keys(m.collected)).concat(Object.keys(data.totals.collected))))
-    : [];
-
   return (
-    <ConsoleLayout area="finance" onRefresh={() => void refresh()} isRefreshing={refreshing}>
-      <StatusRegion message={loading ? "Loading finance data" : error ? `Could not load finance data: ${error}` : "Finance data loaded"} />
-      <div className="dash-header-row">
-        <div>
-          <span className="dash-kicker">FINANCE</span>
-          <h1>Finance</h1>
-          <p>Recurring revenue, collections, and what's still owed, across every client.</p>
-        </div>
-      </div>
+    <FinancePage title="Overview" description="Where the business stands: revenue, costs and what needs attention." needs={["finance", "books"]}>
+      {({ finance: data, books, reloadBooks }) => {
+        const today = new Date().toISOString().slice(0, 10);
+        const overdueInvoices = data.openInvoices.filter((i) => i.overdue).length;
+        const billsDue = books.expenses
+          .filter((e) => e.cadence !== "one_off")
+          .map((e) => ({ e, due: nextDue(e, books.payments) }))
+          .filter((x): x is { e: (typeof books.expenses)[number]; due: string } => x.due !== null && x.due <= new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10));
+        const billsOverdue = billsDue.filter((b) => b.due < today).length;
+        const currencies = Array.from(new Set(data.monthly.flatMap((m) => Object.keys(m.collected)).concat(Object.keys(data.totals.collected))));
+        const attention: Array<{ key: string; text: string; href: string; warn: boolean }> = [];
+        if (overdueInvoices > 0) attention.push({ key: "inv", text: `${overdueInvoices} overdue invoice${overdueInvoices === 1 ? "" : "s"}, ${formatTotals(data.totals.overdue)} owed`, href: "/finance/invoices", warn: true });
+        if (billsDue.length > 0) attention.push({ key: "bills", text: `${billsDue.length} cost${billsDue.length === 1 ? "" : "s"} due within a week${billsOverdue ? `, ${billsOverdue} overdue` : ""}: ${billsDue.slice(0, 3).map((b) => b.e.name).join(", ")}`, href: "/finance/costs", warn: billsOverdue > 0 });
+        if (books.paymentsAvailable && books.accounts.length === 0) attention.push({ key: "acc", text: "No accounts set up yet, so payments can't record where they were paid from", href: "/finance/accounts", warn: false });
 
-      {loading ? (
-        <LoadingState label="Loading finance data from Lago…" />
-      ) : error ? (
-        <ErrorAlert message={`Couldn't load finance data: ${error}`} onRetry={retry} retryLabel="Reload finance data" />
-      ) : !data ? null : (
-        <>
-          <div className="cp-stats">
-            <div>
-              <small>MRR</small>
-              <strong><TotalsValue totals={data.totals.mrr} /></strong>
-              <em>{data.activeSubscriptions} active subscription{data.activeSubscriptions === 1 ? "" : "s"}</em>
+        return (
+          <>
+            <div className="cp-stats">
+              <div>
+                <small>MRR</small>
+                <strong><TotalsValue totals={data.totals.mrr} /></strong>
+                <em>{data.activeSubscriptions} active subscription{data.activeSubscriptions === 1 ? "" : "s"}</em>
+              </div>
+              <div>
+                <small>COLLECTED THIS MONTH (EX-VAT)</small>
+                <strong><TotalsValue totals={data.totals.collectedThisMonth} /></strong>
+                <em>{formatTotals(data.totals.collected)} all-time</em>
+              </div>
+              <div>
+                <small>OUTSTANDING</small>
+                <strong className={Object.keys(data.totals.outstanding).length ? "warn" : undefined}><TotalsValue totals={data.totals.outstanding} /></strong>
+                <em>{data.openInvoices.length} unpaid invoice{data.openInvoices.length === 1 ? "" : "s"}</em>
+              </div>
+              <div>
+                <small>OVERDUE</small>
+                <strong className={Object.keys(data.totals.overdue).length ? "warn" : undefined}><TotalsValue totals={data.totals.overdue} /></strong>
+                <em>{overdueInvoices} past due date</em>
+              </div>
             </div>
-            <div>
-              <small>COLLECTED THIS MONTH (EX-VAT)</small>
-              <strong><TotalsValue totals={data.totals.collectedThisMonth} /></strong>
-              <em>{formatTotals(data.totals.collected)} all-time</em>
-            </div>
-            <div>
-              <small>OUTSTANDING</small>
-              <strong className={Object.keys(data.totals.outstanding).length ? "warn" : undefined}><TotalsValue totals={data.totals.outstanding} /></strong>
-              <em>{data.openInvoices.length} unpaid invoice{data.openInvoices.length === 1 ? "" : "s"}</em>
-            </div>
-            <div>
-              <small>OVERDUE</small>
-              <strong className={Object.keys(data.totals.overdue).length ? "warn" : undefined}><TotalsValue totals={data.totals.overdue} /></strong>
-              <em>{data.openInvoices.filter((i) => i.overdue).length} past due date</em>
-            </div>
-          </div>
 
-          {data.invoicesTruncated && (
-            <p className="admin-muted mt-2">Showing the most recent {data.invoiceCount} invoices; older ones aren't counted.</p>
-          )}
+            {data.invoicesTruncated && (
+              <p className="admin-muted mt-2">Showing the most recent {data.invoiceCount} invoices; older ones aren't counted.</p>
+            )}
 
-          {currencies.length > 0 && (
             <div className="admin-section">
-              <h2 className="admin-section-title">Collected revenue, last 12 months</h2>
-              {currencies.map((c) => (
-                <div className="cp-card mb-4" key={c}>
-                  <div className="cp-card-head">
-                    <span>{c}</span>
-                    <em>{formatAmount(data.monthly.reduce((sum, m) => sum + (m.collected[c] ?? 0), 0), c)} in 12 months</em>
-                  </div>
-                  <MonthlyBars monthly={data.monthly} currency={c} />
+              <h2 className="admin-section-title">Needs attention</h2>
+              {attention.length === 0 ? (
+                <div className="dash-empty-state">Nothing needs attention.</div>
+              ) : (
+                <div className="admin-table-wrap">
+                  {attention.map((a) => (
+                    <Link key={a.key} href={a.href} className="admin-task-row" style={{ textDecoration: "none" }}>
+                      <span className={a.warn ? "admin-warn" : undefined}>{a.text}</span>
+                      <span className="admin-task-context"><ArrowRight size={12} /></span>
+                    </Link>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
 
-          <FinanceBooks finance={data} />
+            <OperatingCosts finance={data} books={books} refresh={reloadBooks} view="summary" />
 
-          <div className="admin-section">
-            <h2 className="admin-section-title">Unpaid invoices</h2>
-            {data.openInvoices.length === 0 ? (
-              <div className="dash-empty-state">Nothing outstanding.</div>
-            ) : (
-              <div className="admin-table-wrap">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Invoice</th>
-                      <th>Client</th>
-                      <th>Issued</th>
-                      <th>Due</th>
-                      <th>Status</th>
-                      <th className="num">Amount</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.openInvoices.map((inv) => (
-                      <Fragment key={inv.number}>
-                      <tr>
-                        <td><strong>{inv.number}</strong></td>
-                        <td>{inv.client}</td>
-                        <td>{formatDate(inv.issuingDate)}</td>
-                        <td className={inv.overdue ? "admin-warn" : undefined}>{inv.dueDate ? formatDate(inv.dueDate) : "—"}</td>
-                        <td className={inv.overdue ? "admin-warn" : "admin-muted"}>{inv.overdue ? "overdue" : inv.paymentStatus}</td>
-                        <td className="num">
-                          {formatAmount(inv.totalDueAmountCents, inv.currency)}
-                          {inv.totalDueAmountCents < inv.totalAmountCents && <small className="admin-muted"> of {formatAmount(inv.totalAmountCents, inv.currency)}</small>}
-                        </td>
-                        <td>
-                          {inv.fileUrl && (
-                            <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="text-teal" aria-label={`Open ${inv.number} PDF`}>
-                              <ExternalLink size={13} />
-                            </a>
-                          )}
-                          <button className="dash-tab-btn" style={{ marginLeft: 8 }} onClick={() => openPayForm(inv.id)}>
-                            Record payment
-                          </button>
-                        </td>
-                      </tr>
-                      {payingId === inv.id && (
-                        <tr>
-                          <td colSpan={7}>
-                            <form
-                              onSubmit={(e) => { e.preventDefault(); void submitPayment(inv.id); }}
-                              style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}
-                            >
-                              <label>Paid on <input type="date" required value={paidOn} max={today} onChange={(e) => setPaidOn(e.target.value)} /></label>
-                              <label>Reference <input type="text" placeholder="Bank ref / narration" value={reference} onChange={(e) => setReference(e.target.value)} /></label>
-                              <button type="submit" className="dash-tab-btn active" disabled={saving}>
-                                {saving ? "Saving…" : `Mark ${formatAmount(inv.totalAmountCents, inv.currency)} paid`}
-                              </button>
-                              <button type="button" className="dash-tab-btn" onClick={() => setPayingId(null)} disabled={saving}>Cancel</button>
-                              {payError && <span className="admin-warn" role="alert">{payError}</span>}
-                            </form>
-                          </td>
-                        </tr>
-                      )}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
+            {currencies.length > 0 && (
+              <div className="admin-section">
+                <h2 className="admin-section-title">Collected revenue, last 12 months</h2>
+                {currencies.map((c) => (
+                  <div className="cp-card mb-4" key={c}>
+                    <div className="cp-card-head">
+                      <span>{c}</span>
+                      <em>{formatAmount(data.monthly.reduce((sum, m) => sum + (m.collected[c] ?? 0), 0), c)} in 12 months</em>
+                    </div>
+                    <MonthlyBars monthly={data.monthly} currency={c} />
+                  </div>
+                ))}
               </div>
             )}
-          </div>
-
-          <div className="admin-section">
-            <h2 className="admin-section-title">By client</h2>
-            {data.clients.length === 0 ? (
-              <EmptyState title="No billed clients yet" hint="Link a workspace to its Lago customer (workspaces.lago_customer_id) and it appears here." />
-            ) : (
-              <div className="admin-table-wrap">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Client</th>
-                      <th className="num">MRR</th>
-                      <th className="num">Collected</th>
-                      <th className="num">Outstanding</th>
-                      <th className="num">Invoices</th>
-                      <th>Last invoice</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.clients.map((c) => (
-                      <tr key={c.customerId}>
-                        <td>
-                          {c.workspaceId ? (
-                            <Link href={`/admin/projects/${c.workspaceId}`}><strong>{c.name}</strong></Link>
-                          ) : (
-                            <strong>{c.name}</strong>
-                          )}
-                        </td>
-                        <td className="num">{formatTotals(c.mrr)}</td>
-                        <td className="num">{formatTotals(c.collected)}</td>
-                        <td className={`num ${Object.keys(c.overdue).length ? "admin-warn" : ""}`}>{formatTotals(c.outstanding)}</td>
-                        <td className="num">{c.invoiceCount}</td>
-                        <td>{c.lastInvoiceAt ? formatDate(c.lastInvoiceAt) : "—"}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="dash-tab-btn"
-                            disabled={relinkingId === c.customerId}
-                            onClick={() => void relinkPayments(c.customerId, c.name)}
-                          >
-                            {relinkingId === c.customerId ? "Linking…" : "Re-link payments"}
-                          </button>
-                          {relinkResult[c.customerId] && (
-                            <small className={relinkResult[c.customerId].ok ? "admin-ok" : "admin-warn"} role="status">
-                              {" "}{relinkResult[c.customerId].text}
-                            </small>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {data.unbilledClients > 0 && (
-              <p className="admin-muted mt-2">
-                {data.unbilledClients} client workspace{data.unbilledClients === 1 ? " has" : "s have"} no Lago customer linked yet.
-              </p>
-            )}
-          </div>
-        </>
-      )}
-    </ConsoleLayout>
+          </>
+        );
+      }}
+    </FinancePage>
   );
 }

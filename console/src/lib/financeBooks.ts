@@ -59,6 +59,9 @@ export interface Account {
   currency: CostCurrency;
   note: string | null;
   active: boolean;
+  bank_name?: string | null;
+  account_name?: string | null;
+  account_number?: string | null;
 }
 
 /** A payment actually made against an expense (console.expense_payments). */
@@ -102,7 +105,7 @@ export async function loadBooks(): Promise<Books> {
 
   // Accounts and payments are additive: a missing table must not take the cost panels down.
   const [acc, pay] = await Promise.all([
-    consoleSchema().from("finance_accounts").select("id,name,kind,currency,note,active").order("name"),
+    consoleSchema().from("finance_accounts").select("*").order("name"),
     consoleSchema()
       .from("expense_payments")
       .select("id,expense_id,account_id,paid_on,period_end,amount_cents,currency,fx_rate,amount_ngn_cents,vat_cents,reference,note,created_at,voided_at,void_reason")

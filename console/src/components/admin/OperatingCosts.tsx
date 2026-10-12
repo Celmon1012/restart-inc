@@ -33,7 +33,8 @@ const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
 
 const emptyForm = { name: "", category: "software" as Category, amount: "", currency: "NGN" as CostCurrency, cadence: "monthly" as Cadence, start: new Date().toISOString().slice(0, 10), end: "" };
 
-export function OperatingCosts({ finance, books, refresh }: { finance: FinanceOverview; books: Books; refresh: () => Promise<void> }) {
+/** view "summary": costs vs revenue (stats and the month table). view "costs": rates and cash, and the overhead lines. */
+export function OperatingCosts({ finance, books, refresh, view }: { finance: FinanceOverview; books: Books; refresh: () => Promise<void>; view: "summary" | "costs" }) {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
@@ -165,6 +166,7 @@ export function OperatingCosts({ finance, books, refresh }: { finance: FinanceOv
 
   return (
     <>
+      {view === "summary" && (
       <div className="admin-section">
         <h2 className="admin-section-title">Costs vs revenue</h2>
         <div className="cp-stats">
@@ -221,10 +223,17 @@ export function OperatingCosts({ finance, books, refresh }: { finance: FinanceOv
           </table>
         </div>
         <p className="admin-muted mt-2">
-          All in NGN at the rates below. Hosting is the server cost of client deployments (above); overhead is everything else (below). Annual and quarterly costs are spread evenly across months.
+          All in NGN at the rates set under Costs. Hosting is the server cost of client deployments; overhead is everything else. Annual and quarterly costs are spread evenly across months.
         </p>
+      </div>
+      )}
 
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", marginTop: 12 }}>
+      {view === "costs" && (
+      <>
+      <div className="admin-section">
+        <h2 className="admin-section-title">Rates and cash</h2>
+        <p className="admin-muted">The exchange rates convert dollar and euro costs and revenue into naira. Cash on hand is what runway is measured against, so update it when your balance changes.</p>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
           {settingField("usd_ngn", "USD → NGN")}
           {settingField("eur_ngn", "EUR → NGN")}
           <label>
@@ -343,6 +352,8 @@ export function OperatingCosts({ finance, books, refresh }: { finance: FinanceOv
           </>
         )}
       </div>
+      </>
+      )}
     </>
   );
 }

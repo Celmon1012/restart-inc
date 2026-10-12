@@ -32,6 +32,11 @@ import {
   Gauge,
   KanbanSquare,
   ListChecks,
+  Receipt,
+  Coins,
+  Banknote,
+  Landmark,
+  Percent,
   Inbox,
   Wallet,
   HardDrive,
@@ -114,6 +119,28 @@ const FINANCE_NAV: NavGroup[] = [
   {
     label: null,
     items: [{ href: "/finance", label: "Overview", icon: Wallet }]
+  },
+  {
+    label: "Money in",
+    items: [{ href: "/finance/invoices", label: "Invoices", icon: Receipt }]
+  },
+  {
+    label: "Costs",
+    items: [
+      { href: "/finance/deployments", label: "Deployments", icon: HardDrive },
+      { href: "/finance/costs", label: "Overhead", icon: Coins }
+    ]
+  },
+  {
+    label: "Money out",
+    items: [
+      { href: "/finance/payments", label: "Payments", icon: Banknote },
+      { href: "/finance/accounts", label: "Accounts", icon: Landmark }
+    ]
+  },
+  {
+    label: "Tax",
+    items: [{ href: "/finance/vat", label: "VAT", icon: Percent }]
   }
 ];
 
@@ -130,7 +157,12 @@ const ADMIN_TABS = [
   { href: "/admin/support", label: "Support" }
 ];
 
-const FINANCE_TABS = [{ href: "/finance", label: "Overview" }];
+const FINANCE_TABS = [
+  { href: "/finance", label: "Overview" },
+  { href: "/finance/invoices", label: "Invoices" },
+  { href: "/finance/costs", label: "Costs" },
+  { href: "/finance/payments", label: "Payments" }
+];
 
 export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area = "console" }: ConsoleLayoutProps) {
   const [location, setLocation] = useLocation();
@@ -411,7 +443,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
                   key={href}
                   href={href}
                   title={label}
-                  className={`console-sidebar-link ${location === href || (href !== "/admin" && location.startsWith(`${href}/`)) ? "active" : ""}`}
+                  className={`console-sidebar-link ${location === href || (href !== "/admin" && href !== "/finance" && location.startsWith(`${href}/`)) ? "active" : ""}`}
                 >
                   <Icon size={15} />
                   <span>{label}</span>

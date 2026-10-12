@@ -169,7 +169,7 @@ export function buildAttention(s: ReturnType<typeof useAdminSources>): Attention
       key: `i-${client}`,
       category: "billing" as const,
       text: n === 1 ? `${client} has an overdue invoice` : `${client} has ${n} overdue invoices`,
-      href: "/finance"
+      href: "/finance/invoices"
     }))
   ];
 }

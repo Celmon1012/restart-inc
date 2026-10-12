@@ -29,6 +29,12 @@ import AdminTasks from "./pages/admin/Tasks";
 import AdminServerRequests from "./pages/admin/ServerRequests";
 import AdminSupport from "./pages/admin/Support";
 import AdminFinance from "./pages/admin/Finance";
+import FinanceInvoices from "./pages/finance/Invoices";
+import FinanceDeployments from "./pages/finance/Deployments";
+import FinanceCosts from "./pages/finance/Costs";
+import FinancePayments from "./pages/finance/Payments";
+import FinanceAccounts from "./pages/finance/Accounts";
+import FinanceVat from "./pages/finance/Vat";
 import AdminAttention from "./pages/admin/Attention";
 import { lazy, Suspense } from "react";
 
@@ -44,6 +50,15 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   if (loading) return null;
   if (!isAdmin) return <Redirect to="/overview" />;
   return <>{children}</>;
+}
+
+// A page in the Finance area: signed in, and an admin (RLS is the real boundary).
+function FinanceRoute({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <AdminRoute>{children}</AdminRoute>
+    </ProtectedRoute>
+  );
 }
 
 function Router() {
@@ -216,6 +231,36 @@ function Router() {
             <AdminFinance />
           </AdminRoute>
         </ProtectedRoute>
+      </Route>
+      <Route path="/finance/invoices">
+        <FinanceRoute>
+          <FinanceInvoices />
+        </FinanceRoute>
+      </Route>
+      <Route path="/finance/deployments">
+        <FinanceRoute>
+          <FinanceDeployments />
+        </FinanceRoute>
+      </Route>
+      <Route path="/finance/costs">
+        <FinanceRoute>
+          <FinanceCosts />
+        </FinanceRoute>
+      </Route>
+      <Route path="/finance/payments">
+        <FinanceRoute>
+          <FinancePayments />
+        </FinanceRoute>
+      </Route>
+      <Route path="/finance/accounts">
+        <FinanceRoute>
+          <FinanceAccounts />
+        </FinanceRoute>
+      </Route>
+      <Route path="/finance/vat">
+        <FinanceRoute>
+          <FinanceVat />
+        </FinanceRoute>
       </Route>
       {/* Root and any unmatched path land on the overview, which bounces to
           /login when signed out. This app has nothing else to serve. */}

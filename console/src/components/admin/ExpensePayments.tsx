@@ -14,7 +14,6 @@ import {
   EXPENSE_CATEGORIES,
   nextDue,
   periodEndFor,
-  type Account,
   type Books,
   type CostCurrency,
   type Expense,
@@ -23,7 +22,6 @@ import {
 
 const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
 const today = () => new Date().toISOString().slice(0, 10);
-const KIND_LABEL: Record<Account["kind"], string> = { bank: "Bank", card: "Card", cash: "Cash", wallet: "Wallet" };
 
 /** Mark a recurring expense paid (pass `expense`), or log a one-off expense (omit it). */
 export function PaymentForm({ books, expense, onClose, onSaved }: { books: Books; expense?: Expense; onClose: () => void; onSaved: () => Promise<void> }) {
@@ -155,14 +153,9 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
   const [logging, setLogging] = useState(false);
   const [showVoided, setShowVoided] = useState(false);
   const [month, setMonth] = useState("");
-  const [acctForm, setAcctForm] = useState({ name: "", kind: "bank" as Account["kind"], currency: "NGN" as CostCurrency });
-  const [addingAccount, setAddingAccount] = useState(false);
-  const [acctError, setAcctError] = useState<string | null>(null);
-
   if (!books.paymentsAvailable) {
     return (
       <div className="admin-section">
-        <h2 className="admin-section-title">Payments</h2>
         <p className="admin-muted">Payment records aren't set up yet. Run the expense payments migration (20261012120000) and reload.</p>
       </div>
     );
@@ -180,22 +173,6 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
     const reason = window.prompt(`Void this ${ngn(p.amount_ngn_cents)} payment of ${formatDate(p.paid_on)}? It stays on record, marked void. Reason:`);
     if (!reason || !reason.trim()) return;
     const { error } = await consoleSchema().from("expense_payments").update({ voided_at: new Date().toISOString(), void_reason: reason.trim() }).eq("id", p.id);
-    if (error) window.alert(error.message);
-    else await refresh();
-  };
-
-  const addAccount = async () => {
-    if (!acctForm.name.trim()) return;
-    setAcctError(null);
-    const { error } = await consoleSchema().from("finance_accounts").insert({ name: acctForm.name.trim(), kind: acctForm.kind, currency: acctForm.currency });
-    if (error) return setAcctError(error.message);
-    setAcctForm({ name: "", kind: "bank", currency: "NGN" });
-    setAddingAccount(false);
-    await refresh();
-  };
-
-  const toggleAccount = async (a: Account) => {
-    const { error } = await consoleSchema().from("finance_accounts").update({ active: !a.active }).eq("id", a.id);
     if (error) window.alert(error.message);
     else await refresh();
   };
@@ -223,8 +200,7 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
 
   return (
     <div className="admin-section">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <h2 className="admin-section-title">Payments</h2>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="dash-tab-btn" onClick={exportCsv} disabled={books.payments.length === 0}>Export CSV</button>
           <button className="dash-tab-btn active" onClick={() => setLogging(true)}>Log expense</button>
@@ -300,44 +276,6 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
         </div>
       )}
 
-      <div style={{ marginTop: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 className="admin-section-title" style={{ fontSize: "1rem" }}>Accounts paid from</h3>
-          <button className="dash-tab-btn" onClick={() => setAddingAccount(true)}>Add account</button>
-        </div>
-        {addingAccount && (
-          <form onSubmit={(e) => { e.preventDefault(); void addAccount(); }} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "8px 0" }}>
-            <input type="text" required placeholder="Name (e.g. GTBank NGN current)" value={acctForm.name} onChange={(e) => setAcctForm({ ...acctForm, name: e.target.value })} />
-            <select value={acctForm.kind} onChange={(e) => setAcctForm({ ...acctForm, kind: e.target.value as Account["kind"] })} aria-label="Kind">
-              {Object.entries(KIND_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-            <select value={acctForm.currency} onChange={(e) => setAcctForm({ ...acctForm, currency: e.target.value as CostCurrency })} aria-label="Currency">
-              {COST_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <button type="submit" className="dash-tab-btn active">Save</button>
-            <button type="button" className="dash-tab-btn" onClick={() => { setAddingAccount(false); setAcctError(null); }}>Cancel</button>
-            {acctError && <span className="admin-warn" role="alert">{acctError}</span>}
-          </form>
-        )}
-        {books.accounts.length === 0 ? (
-          <p className="admin-muted">No accounts yet. Add each bank account, card and cash float you pay business costs from.</p>
-        ) : (
-          <div className="admin-table-wrap">
-            <table className="admin-table">
-              <tbody>
-                {books.accounts.map((a) => (
-                  <tr key={a.id} style={a.active ? undefined : { opacity: 0.55 }}>
-                    <td><strong>{a.name}</strong></td>
-                    <td className="admin-muted">{KIND_LABEL[a.kind]} · {a.currency}</td>
-                    <td className="num">{ngn(live.filter((p) => p.account_id === a.id).reduce((s, p) => s + p.amount_ngn_cents, 0))} paid out</td>
-                    <td><button className="dash-tab-btn" onClick={() => void toggleAccount(a)}>{a.active ? "Retire" : "Restore"}</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
