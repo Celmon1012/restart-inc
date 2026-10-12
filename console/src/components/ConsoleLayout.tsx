@@ -40,13 +40,16 @@ import {
   Inbox,
   Wallet,
   HardDrive,
-  Send
+  Send,
+  Sun,
+  Moon
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { MARKETING_URL } from "@/lib/site";
 import { getDisplayName } from "@/lib/utils";
+import { useTheme } from "@/lib/theme";
 import { getResources, statusMeta } from "@/lib/resources";
 import { ConsoleFooter } from "./ConsoleFooter";
 
@@ -175,6 +178,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
   const navGroups = area === "finance" ? FINANCE_NAV : isAdminArea ? ADMIN_NAV : CONSOLE_NAV;
   const topTabs = area === "finance" ? FINANCE_TABS : isAdminArea ? ADMIN_TABS : CONSOLE_TABS;
   const { user, signOut } = useAuth();
+  const { theme, toggle: toggleTheme } = useTheme();
   const { workspaces, activeWorkspace, isAdmin, loading: workspaceLoading, setActiveWorkspaceId } = useWorkspace();
   const displayName = getDisplayName(user);
   const displayEmail = user?.email || "";
@@ -548,6 +552,10 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
                     <span>{isAdminArea ? "Client console" : "Ops"}</span>
                   </Link>
                 )}
+                <button role="menuitem" className="ws-menu-item" onClick={toggleTheme}>
+                  {theme === "light" ? <Moon size={14} /> : <Sun size={14} />}
+                  <span>{theme === "light" ? "Dark theme" : "Light theme"}</span>
+                </button>
                 <div className="ws-menu-sep" />
                 <button
                   role="menuitem"

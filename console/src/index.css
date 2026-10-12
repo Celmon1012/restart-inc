@@ -2977,3 +2977,27 @@
 .group-chevron{ flex-shrink: 0; transition: transform .15s ease; opacity: .7; }
 .group-chevron.folded{ transform: rotate(-90deg); }
 .console-sidebar.collapsed .group-chevron{ display: none; }
+
+/* ==========================================================================
+   Light theme. The console is authored dark-first with literal colours, so the
+   light theme is the exact same UI with lightness flipped: invert + hue-rotate(180)
+   keeps hues (teal stays teal) while swapping dark for light. Media that must keep
+   its real colours is flipped back. Toggled by data-theme="light" on <html>
+   (see src/lib/theme.ts).
+   ========================================================================== */
+html[data-theme="light"]{ filter: invert(1) hue-rotate(180deg); background: #fff; color-scheme: light; }
+html[data-theme="light"] img:not(.site-logo-img):not(.console-sidebar-mark-img),
+html[data-theme="light"] video,
+html[data-theme="light"] canvas,
+html[data-theme="light"] .mfa-qr-box{ filter: invert(1) hue-rotate(180deg); }
+html[data-theme="light"] .sidebar-account-avatar,
+html[data-theme="light"] .dash-user-avatar{ filter: none; }
+
+/* Controls that look like text until you hover or focus them: change a task's assignee or
+   deadline in place. */
+.inline-edit{ background: transparent; border: 1px solid transparent; border-radius: 6px; color: #8a91a3; font: inherit; font-size: 0.75rem; padding: 2px 4px; cursor: pointer; color-scheme: dark; max-width: 150px; }
+.inline-edit:hover, .inline-edit:focus{ border-color: rgba(255, 255, 255, .16); background: rgba(255, 255, 255, .04); outline: none; }
+.inline-edit:disabled{ opacity: .5; cursor: wait; }
+.inline-edit.overdue{ color: #ff7b7b; font-weight: 600; }
+.inline-edit.client{ color: var(--amber); }
+.inline-edit option{ background: #14161d; color: #e6e9f2; }
