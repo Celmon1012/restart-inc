@@ -2973,8 +2973,7 @@
 .admin-table tr.row-overdue > td:first-child{ box-shadow: inset 3px 0 0 #ff6b6b; }
 
 /* Collapsible sidebar groups: the label is a button that folds its links away. */
-.console-sidebar-group-label.group-toggle{ display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: 0; cursor: pointer; text-align: left; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; }
-.console-sidebar-group-label.group-toggle:hover{ color: #c4c9d6; }
+.console-sidebar-group-label.group-toggle{ display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 0; background: none; border: 0; cursor: pointer; text-align: left; font-family: inherit; line-height: inherit; }
 .group-chevron{ flex-shrink: 0; transition: transform .15s ease; opacity: .7; }
 .group-chevron.folded{ transform: rotate(-90deg); }
 .console-sidebar.collapsed .group-chevron{ display: none; }
