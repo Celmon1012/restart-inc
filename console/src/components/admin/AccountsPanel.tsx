@@ -4,6 +4,7 @@
 // their payment history and drop out of the "Paid from" list). Admin-only (RLS).
 
 import { useState } from "react";
+import { RowMenu } from "@/components/admin/RowMenu";
 import { consoleSchema } from "@/lib/supabase";
 import { formatAmount } from "@/lib/format";
 import { COST_CURRENCIES, type Account, type Books, type CostCurrency } from "@/lib/financeBooks";
@@ -142,9 +143,14 @@ export function AccountsPanel({ books, refresh }: { books: Books; refresh: () =>
                   <td>{a.account_name ?? <span className="admin-muted">—</span>}</td>
                   <td style={{ fontVariantNumeric: "tabular-nums" }}>{a.account_number ?? <span className="admin-muted">—</span>}</td>
                   <td className="num">{ngn(paidOut(a.id))}</td>
-                  <td>
-                    <button className="dash-tab-btn" onClick={() => openEdit(a)}>Edit</button>{" "}
-                    <button className="dash-tab-btn" onClick={() => void toggle(a)}>{a.active ? "Retire" : "Restore"}</button>
+                  <td className="num">
+                    <RowMenu
+                      label={`Actions for ${a.name}`}
+                      items={[
+                        { label: "Edit", onClick: () => openEdit(a) },
+                        { label: a.active ? "Retire" : "Restore", danger: a.active, onClick: () => void toggle(a) }
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}
