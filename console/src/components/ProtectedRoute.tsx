@@ -40,14 +40,17 @@ export function ProtectedRoute({
     }
   }, [allowWithoutWorkspace, needsOnboarding, setLocation]);
 
+  // Keyed on the user, not the session object: a token refresh or a tab regaining focus gives a
+  // new session for the same person and must not send the page back to "Verifying session…".
+  const userId = session?.user?.id ?? null;
   useEffect(() => {
-    if (!session) return;
+    if (!userId) return;
     setAalChecked(false);
     supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data, error }) => {
       setNeedsMfa(!error && data.currentLevel !== data.nextLevel && data.nextLevel === "aal2");
       setAalChecked(true);
     });
-  }, [session]);
+  }, [userId]);
 
   if (loading || (session && !aalChecked)) {
     return (

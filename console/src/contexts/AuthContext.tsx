@@ -25,7 +25,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
+      // supabase-js announces SIGNED_IN again whenever the tab regains focus, with the same
+      // session. Keep the existing object when nothing changed: a new one makes everything that
+      // depends on the session (the MFA check, the workspace load) start over, which blanked the
+      // page and refetched it every time you came back to the tab.
+      setSession((prev) =>
+        prev && newSession && prev.access_token === newSession.access_token && prev.user.id === newSession.user.id ? prev : newSession
+      );
     });
 
     return () => listener.subscription.unsubscribe();

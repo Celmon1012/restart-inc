@@ -73,9 +73,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session?.user?.id]);
 
+  // Reload when the signed-in user (or the chosen project) changes, not every time the session
+  // object is replaced by a token refresh or a tab regaining focus.
+  const userId = session?.user?.id ?? null;
   useEffect(() => {
     if (authLoading) return;
-    if (!session) {
+    if (!userId) {
       setWorkspaces([]);
       setActiveWorkspace(null);
       setIsAdmin(false);
@@ -84,7 +87,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     load(requestedId);
-  }, [authLoading, session, requestedId, load]);
+  }, [authLoading, userId, requestedId, load]);
 
   return (
     <WorkspaceContext.Provider
