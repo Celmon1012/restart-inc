@@ -3024,3 +3024,21 @@ html[data-theme="light"] .dash-user-avatar{ filter: none; }
 .tip.tip-warn{ color: var(--amber); }
 .tip::after{ content: attr(data-tip); position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); white-space: nowrap; background: #1a1d27; color: #e6e9f2; border: 1px solid rgba(255, 255, 255, .16); padding: 6px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 500; z-index: 40; opacity: 0; pointer-events: none; transition: opacity .12s ease; }
 .tip:hover::after, .tip:focus::after{ opacity: 1; }
+
+/* Form controls in the admin and console pages. Plain <input>, <select> and <textarea> had no
+   styling of their own: Tailwind's reset made them transparent and inherit the page's 16px light
+   text, so the controls looked bigger than the 13px tables around them, and a select's native
+   dropdown opened white with white text, unreadable on the dark theme. This gives them the
+   console's size and colours, and tells the browser to draw its own parts (dropdown list, date
+   picker, scrollbars) dark. It is written with :where() so it has no weight of its own: any
+   control that already has a class with its own styling keeps it. */
+:where(.dash-main) :where(select, textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"])){
+  font: inherit; font-size: 0.8125rem; line-height: 1.35; color: #e6e9f2; background-color: #0d0f14;
+  border: 1px solid rgba(255, 255, 255, .13); border-radius: 8px; padding: 7px 10px; color-scheme: dark;
+}
+:where(.dash-main) :where(select, textarea, input):focus{ outline: none; border-color: rgba(46, 229, 193, .55); }
+:where(.dash-main) :where(select, textarea, input)::placeholder{ color: #5c6273; }
+:where(.dash-main) :where(select, textarea, input):disabled{ opacity: .55; cursor: not-allowed; }
+:where(.dash-main) :where(select option, select optgroup){ background-color: #14161d; color: #e6e9f2; }
+:where(.dash-main) select{ cursor: pointer; }
+.dash-main .workspace-search-box input{ padding: 0; border: none; }
