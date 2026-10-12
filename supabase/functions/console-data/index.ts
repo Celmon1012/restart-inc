@@ -54,17 +54,34 @@ interface WorkspaceRow {
   coolify_project_uuid: string | null;
 }
 
-async function getUser(jwt: string): Promise<{ id: string; isAdmin: boolean } | null> {
+async function getUser(jwt: string): Promise<{ id: string; email?: string; isAdmin: boolean; roles: string[] } | null> {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: { Authorization: `Bearer ${jwt}`, apikey: SUPABASE_ANON_KEY },
   });
   if (!res.ok) return null;
   const user = await res.json();
   if (!user?.id) return null;
-  // app_metadata, not user_metadata -- only settable via the service-role
-  // Admin API, never via the user's own auth.updateUser() call, so a client
-  // account can never grant itself this by editing its own profile.
-  return { id: user.id, isAdmin: Boolean(user.app_metadata?.is_admin) };
+  // app_metadata, not user_metadata -- only settable via the service-role Admin API, never via
+  // the user's own auth.updateUser() call, so an account can never grant itself this by editing
+  // its own profile.
+  let roles: string[] = user.app_metadata?.is_admin ? ["owner"] : [];
+  // Staff roles (owner / ops / finance) are rows in console.staff_roles; my_roles() returns the
+  // caller's own. If it can't be reached, fall back to the admin claim alone (the old behaviour).
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/my_roles`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${jwt}`, apikey: SUPABASE_ANON_KEY, "Content-Profile": "console", "Content-Type": "application/json" },
+      body: "{}",
+    });
+    if (r.ok) {
+      const list = await r.json();
+      if (Array.isArray(list)) roles = [...new Set([...roles, ...list.filter((x: unknown) => typeof x === "string")])];
+    }
+  } catch {
+    // keep the claim-only result
+  }
+  // "isAdmin" for this function means: holds one of "owner".
+  return { id: user.id, email: user.email, isAdmin: roles.some((r) => ["owner"].includes(r)), roles };
 }
 
 // Runs as the caller's own JWT, not service_role -- console.workspace_members'
@@ -295,7 +312,7 @@ Deno.serve(async (req) => {
     return json({ error: (err as Error).message }, 500);
   }
 
-  if (workspaces.length === 0) return json({ workspaces: [], active: null, isAdmin: caller.isAdmin });
+  if (workspaces.length === 0) return json({ workspaces: [], active: null, isAdmin: caller.isAdmin, roles: caller.roles });
 
   const requestedId = new URL(req.url).searchParams.get("workspace_id");
   // Belt-and-suspenders: getMyWorkspaces() already only returns rows RLS
@@ -318,6 +335,7 @@ Deno.serve(async (req) => {
         ...live,
       },
       isAdmin: caller.isAdmin,
+      roles: caller.roles,
     });
   } catch (err) {
     return json({ error: `Failed to load Coolify data: ${(err as Error).message}` }, 502);

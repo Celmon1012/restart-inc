@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { LayoutGrid, ShieldCheck, Wallet } from "lucide-react";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 type Dashboard = "console" | "admin" | "finance";
 
@@ -16,6 +17,7 @@ const DASHBOARDS: Array<{ key: Dashboard; label: string; href: string; icon: typ
 ];
 
 export function DashboardSwitcher({ current }: { current: Dashboard }) {
+  const { isOwner, canOps, canFinance, workspaces } = useWorkspace();
   const [open, setOpen] = useState(false);
   const [location] = useLocation();
   const ref = useRef<HTMLDivElement>(null);
@@ -54,7 +56,9 @@ export function DashboardSwitcher({ current }: { current: Dashboard }) {
           <div className="dash-dropdown-header">
             <span className="dropdown-user-name">Switch dashboard</span>
           </div>
-          {DASHBOARDS.map(({ key, label, href, icon: Icon }) => (
+          {DASHBOARDS.filter((d) =>
+            d.key === "console" ? isOwner || workspaces.length > 0 : d.key === "admin" ? canOps : canFinance
+          ).map(({ key, label, href, icon: Icon }) => (
             <Link
               key={key}
               href={href}

@@ -8,6 +8,7 @@ import { Search } from "lucide-react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { formatDate } from "@/lib/format";
 import {
   ENGAGEMENT_LABEL,
@@ -143,6 +144,7 @@ function UnlinkedCoolifyProjects({ clientEmails, onImported }: { clientEmails: s
 }
 
 export default function AdminProjects() {
+  const { isOwner } = useWorkspace();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -263,7 +265,7 @@ export default function AdminProjects() {
         </div>
       )}
 
-      {!loading && !error && (
+      {isOwner && !loading && !error && (
         <UnlinkedCoolifyProjects
           clientEmails={(data?.clients ?? []).map((c) => c.email).filter((e): e is string => Boolean(e))}
           onImported={() => void refresh()}

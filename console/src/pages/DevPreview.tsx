@@ -166,6 +166,11 @@ const ws: WorkspaceContextType = {
   activeWorkspace: workspace,
   // ?admin=1 previews the console as an admin (shows the Admin area button).
   isAdmin: new URLSearchParams(window.location.search).get("admin") === "1",
+  roles: new URLSearchParams(window.location.search).get("admin") === "1" ? ["owner"] : [],
+  isOwner: new URLSearchParams(window.location.search).get("admin") === "1",
+  canOps: new URLSearchParams(window.location.search).get("admin") === "1",
+  canFinance: new URLSearchParams(window.location.search).get("admin") === "1",
+  isStaff: new URLSearchParams(window.location.search).get("admin") === "1",
   needsOnboarding: false,
   loaded: true,
   loading: false,

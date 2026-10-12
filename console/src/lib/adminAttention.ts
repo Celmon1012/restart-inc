@@ -12,6 +12,7 @@ import { invokeFunction } from "./functions";
 import { formatDate, formatRelative } from "./format";
 import { loadWorkspaceNames, OPEN_STAGES, type PipelineStage } from "./admin";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import type { Status as RequestStatus } from "@/components/ServerRequests";
 import type { FinanceOverview } from "@/pages/admin/Finance";
 
@@ -90,12 +91,15 @@ const loadSupport = () =>
 
 const loadFinance = () => cached("finance", () => invokeFunction<FinanceOverview>("console-admin-finance"));
 
+// Each source loads only for the roles that may read it: leads for the owner, delivery and
+// support for Ops, finance for Finance. Others get an empty result without a request.
 export function useAdminSources() {
+  const { isOwner, canOps, canFinance } = useWorkspace();
   return {
-    leads: useAsyncResource(() => loadLeads(), []),
-    delivery: useAsyncResource(() => loadDelivery(), []),
-    support: useAsyncResource(() => loadSupport(), []),
-    finance: useAsyncResource(() => loadFinance(), [])
+    leads: useAsyncResource(() => (isOwner ? loadLeads() : Promise.resolve([] as LeadRow[])), [isOwner]),
+    delivery: useAsyncResource(() => (canOps ? loadDelivery() : Promise.resolve(null)), [canOps]),
+    support: useAsyncResource(() => (canOps ? loadSupport() : Promise.resolve([] as ConversationSummary[])), [canOps]),
+    finance: useAsyncResource(() => (canFinance ? loadFinance() : Promise.resolve(null)), [canFinance])
   };
 }
 

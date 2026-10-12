@@ -42,7 +42,8 @@ import {
   HardDrive,
   Send,
   Sun,
-  Moon
+  Moon,
+  UserCog
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -115,8 +116,15 @@ const ADMIN_NAV: NavGroup[] = [
       { href: "/admin/requests", label: "Server Requests", icon: HardDrive },
       { href: "/admin/support", label: "Support Desk", icon: Inbox }
     ]
+  },
+  {
+    label: "Settings",
+    items: [{ href: "/admin/team", label: "Team", icon: UserCog }]
   }
 ];
+
+// Pages only the owner may open. Ops staff don't see these in the sidebar.
+const OWNER_ONLY_NAV = ["/admin/leads", "/admin/outreach", "/admin/team"];
 
 const FINANCE_NAV: NavGroup[] = [
   {
@@ -170,11 +178,17 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
   // True for both staff areas (Ops and Finance): cross-workspace, no workspace switcher.
   const isAdminArea = area !== "console";
   const areaLabel = area === "finance" ? "Finance" : "Ops";
-  const navGroups = area === "finance" ? FINANCE_NAV : isAdminArea ? ADMIN_NAV : CONSOLE_NAV;
+  const baseNavGroups = area === "finance" ? FINANCE_NAV : isAdminArea ? ADMIN_NAV : CONSOLE_NAV;
   const topTabs = area === "finance" ? FINANCE_TABS : isAdminArea ? ADMIN_TABS : CONSOLE_TABS;
   const { user, signOut } = useAuth();
   const { theme, toggle: toggleTheme } = useTheme();
-  const { workspaces, activeWorkspace, isAdmin, loading: workspaceLoading, setActiveWorkspaceId } = useWorkspace();
+  const { workspaces, activeWorkspace, isAdmin, isOwner, canOps, canFinance, loading: workspaceLoading, setActiveWorkspaceId } = useWorkspace();
+  const navGroups = isOwner
+    ? baseNavGroups
+    : baseNavGroups
+        .map((g) => ({ ...g, items: g.items.filter((i) => !OWNER_ONLY_NAV.includes(i.href)) }))
+        .filter((g) => g.items.length > 0);
+  const staffHome = canOps ? "/admin" : canFinance ? "/finance" : "/overview";
   const displayName = getDisplayName(user);
   const displayEmail = user?.email || "";
   // Resources whose current status is not healthy. Computed here so the top-bar
@@ -517,7 +531,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
               <span className="sidebar-account-avatar" aria-hidden="true">{initials}</span>
               <span className="sidebar-account-text">
                 <span className="sidebar-account-name">{displayName}</span>
-                <span className="sidebar-account-role">{isAdmin ? "Restart admin" : "Client workspace"}</span>
+                <span className="sidebar-account-role">{isOwner ? "Restart admin" : canOps || canFinance ? `Restart ${[canOps && "Ops", canFinance && "Finance"].filter(Boolean).join(" & ")}` : "Client workspace"}</span>
               </span>
               <MoreHorizontal size={16} className="sidebar-account-more" />
             </button>
@@ -536,10 +550,10 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
                   <Settings size={14} />
                   <span>Settings</span>
                 </Link>
-                {isAdmin && (
+                {(canOps || canFinance) && (
                   <Link
                     role="menuitem"
-                    href={isAdminArea ? "/overview" : "/admin"}
+                    href={isAdminArea ? "/overview" : staffHome}
                     className="ws-menu-item"
                     onClick={() => setAccountMenuOpen(false)}
                   >
@@ -637,7 +651,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
                 console-data's server-side read of app_metadata). The area
                 itself is still enforced by AdminRoute + RLS, not this button.
                 Icon-only in both areas, sitting just before the account menu. */}
-            {isAdmin && <DashboardSwitcher current={area} />}
+            {(canOps || canFinance) && <DashboardSwitcher current={area} />}
 
             <div className="dash-user-menu-wrapper" ref={userMenuRef}>
               <button

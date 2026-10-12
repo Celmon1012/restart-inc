@@ -12,6 +12,14 @@ export interface WorkspaceContextType {
   // rather than re-derived -- this is a UX-only gate for nav/routes, never
   // the real authorization boundary (RLS on console.* tables is).
   isAdmin: boolean;
+  // Staff roles from console.staff_roles ("owner", "ops", "finance"); isAdmin above is the
+  // owner. A UX gate for nav and routes, never the real boundary (RLS and the edge functions are).
+  roles: string[];
+  isOwner: boolean;
+  canOps: boolean;
+  canFinance: boolean;
+  /** Has any staff role at all. */
+  isStaff: boolean;
   // A signed-in, non-admin account with no workspace membership at all --
   // routed to /onboarding to create one instead of an empty console.
   needsOnboarding: boolean;
@@ -29,6 +37,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [workspaces, setWorkspaces] = useState<WorkspaceSummary[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [roles, setRoles] = useState<string[]>([]);
   const [requestedId, setRequestedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
@@ -65,6 +74,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setWorkspaces(data?.workspaces ?? []);
       setActiveWorkspace(data?.active ?? null);
       setIsAdmin(Boolean(data?.isAdmin));
+      // Older console-data builds don't send roles: fall back to the admin flag alone.
+      setRoles(Array.isArray(data?.roles) ? data.roles.filter((x: unknown) => typeof x === "string") : data?.isAdmin ? ["owner"] : []);
       setLoaded(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load workspace data");
@@ -82,6 +93,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setWorkspaces([]);
       setActiveWorkspace(null);
       setIsAdmin(false);
+      setRoles([]);
       setLoaded(false);
       setLoading(false);
       return;
@@ -95,7 +107,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         workspaces,
         activeWorkspace,
         isAdmin,
-        needsOnboarding: loaded && !error && !isAdmin && workspaces.length === 0,
+        roles,
+        isOwner: isAdmin || roles.includes("owner"),
+        canOps: isAdmin || roles.includes("owner") || roles.includes("ops"),
+        canFinance: isAdmin || roles.includes("owner") || roles.includes("finance"),
+        isStaff: isAdmin || roles.length > 0,
+        // Staff (ops, finance) have no client project of their own; they are not new clients.
+        needsOnboarding: loaded && !error && !isAdmin && roles.length === 0 && workspaces.length === 0,
         loaded,
         loading,
         error,

@@ -37,6 +37,8 @@ import FinanceAccounts from "./pages/finance/Accounts";
 import FinanceVat from "./pages/finance/Vat";
 import FinanceRates from "./pages/finance/Rates";
 import AdminAttention from "./pages/admin/Attention";
+import AdminTeam from "./pages/admin/Team";
+import { StaffMfaGate } from "./components/StaffMfaGate";
 import { lazy, Suspense } from "react";
 
 // Dev-only fixture page (see pages/DevPreview.tsx); tree-shaken from production.
@@ -46,18 +48,28 @@ const DevPreview = import.meta.env.DEV ? lazy(() => import("./pages/DevPreview")
 // console.* table, and the is_admin check in the admin edge functions, are the
 // real boundary. This just avoids flashing the page at a non-admin
 // before bouncing them, same spirit as ProtectedRoute's own session check.
-function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAdmin, loading } = useWorkspace();
-  if (loading) return null;
-  if (!isAdmin) return <Redirect to="/overview" />;
-  return <>{children}</>;
+// "ops" for the Ops area, "finance" for Finance, "owner" for owner-only pages (sales, the Team page).
+// Staff who aren't owners must have two-factor sign-in set up before they get in.
+function AdminRoute({ children, need = "ops" }: { children: React.ReactNode; need?: "ops" | "finance" | "owner" }) {
+  const { loaded, isOwner, canOps, canFinance } = useWorkspace();
+  if (!loaded) return null;
+  const allowed = need === "owner" ? isOwner : need === "finance" ? canFinance : canOps;
+  if (!allowed) return <Redirect to={canOps ? "/admin" : canFinance ? "/finance" : "/overview"} />;
+  return <StaffMfaGate>{children}</StaffMfaGate>;
+}
+
+// Where someone with a staff role but no client project of their own lands from the root.
+function Home() {
+  const { loaded, isOwner, canOps, canFinance, isStaff, workspaces } = useWorkspace();
+  if (loaded && isStaff && !isOwner && workspaces.length === 0) return <Redirect to={canOps ? "/admin" : canFinance ? "/finance" : "/profile"} replace />;
+  return <Overview />;
 }
 
 // A page in the Finance area: signed in, and an admin (RLS is the real boundary).
 function FinanceRoute({ children }: { children: React.ReactNode }) {
   return (
     <ProtectedRoute>
-      <AdminRoute>{children}</AdminRoute>
+      <AdminRoute need="finance">{children}</AdminRoute>
     </ProtectedRoute>
   );
 }
@@ -169,14 +181,14 @@ function Router() {
       </Route>
       <Route path="/admin/leads">
         <ProtectedRoute>
-          <AdminRoute>
+          <AdminRoute need="owner">
             <AdminLeads />
           </AdminRoute>
         </ProtectedRoute>
       </Route>
       <Route path="/admin/outreach">
         <ProtectedRoute>
-          <AdminRoute>
+          <AdminRoute need="owner">
             <AdminProspects />
           </AdminRoute>
         </ProtectedRoute>
@@ -213,6 +225,13 @@ function Router() {
         <ProtectedRoute>
           <AdminRoute>
             <AdminSupport />
+          </AdminRoute>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/team">
+        <ProtectedRoute>
+          <AdminRoute need="owner">
+            <AdminTeam />
           </AdminRoute>
         </ProtectedRoute>
       </Route>
@@ -278,7 +297,7 @@ function Router() {
           /login when signed out. This app has nothing else to serve. */}
       <Route>
         <ProtectedRoute>
-          <Overview />
+          <Home />
         </ProtectedRoute>
       </Route>
     </Switch>

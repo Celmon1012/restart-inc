@@ -9,6 +9,7 @@ import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { MilestoneEditor } from "@/components/admin/MilestoneEditor";
 import { InfraCard } from "@/components/admin/InfraCard";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { RequestRow, type ServerRequest } from "@/components/ServerRequests";
 import { EmptyState, ErrorAlert, LoadingState } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
@@ -48,6 +49,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 export default function AdminProjectDetail(props: { id?: string }) {
   const params = useParams<{ id: string }>();
+  const { isOwner, canFinance } = useWorkspace();
   const id = props.id ?? params.id;
   const [tab, setTab] = useState<Tab>(() => {
     const t = queryParam("tab");
@@ -136,7 +138,7 @@ export default function AdminProjectDetail(props: { id?: string }) {
     { key: "milestones", label: `Milestones (${project.milestones})` },
     { key: "requests", label: `Server requests${project.openRequests ? ` (${project.openRequests} open)` : ""}` },
     { key: "support", label: "Support" },
-    { key: "billing", label: "Billing" }
+    ...(canFinance ? [{ key: "billing" as Tab, label: "Billing" }] : [])
   ];
 
   return (
@@ -260,12 +262,14 @@ export default function AdminProjectDetail(props: { id?: string }) {
             )}
           </div>
 
-          <InfraCard
-            workspaceId={project.id}
-            workspaceName={project.name}
-            coolifyProjectUuid={project.coolify_project_uuid}
-            onChanged={() => void portfolio.refresh()}
-          />
+          {isOwner && (
+            <InfraCard
+              workspaceId={project.id}
+              workspaceName={project.name}
+              coolifyProjectUuid={project.coolify_project_uuid}
+              onChanged={() => void portfolio.refresh()}
+            />
+          )}
         </div>
       )}
 

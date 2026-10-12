@@ -9,6 +9,7 @@ import { OPEN_STAGES, PIPELINE_STAGES } from "@/lib/admin";
 import { OPEN as OPEN_REQUEST_STATUSES, STATUS_LABEL as REQUEST_STATUS_LABEL } from "@/components/ServerRequests";
 import { formatRelative } from "@/lib/format";
 import { useAdminAttention } from "@/lib/adminAttention";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { formatTotals, TotalsValue } from "./Finance";
 
 // The full list lives on /admin/attention and in the top-bar bell.
@@ -25,6 +26,7 @@ function Tile({ label, value, hint, warn, href }: { label: string; value: React.
 }
 
 export default function AdminOverview() {
+  const { isOwner, canFinance } = useWorkspace();
   const { sources, items: attention, loading: attentionLoading } = useAdminAttention();
   const { leads, delivery, support, finance } = sources;
 
@@ -53,13 +55,15 @@ export default function AdminOverview() {
       </div>
 
       <div className="cp-stats">
-        <Tile
-          label="OPEN LEADS"
-          href="/admin/leads"
-          value={dash(leads.loading, leads.error, openLeads.length)}
-          hint={leads.error ? `Couldn't load leads: ${leads.error}` : `${newLeads.length} new · ${followUpsDue.length} follow-ups due`}
-          warn={followUpsDue.length > 0}
-        />
+        {isOwner && (
+          <Tile
+            label="OPEN LEADS"
+            href="/admin/leads"
+            value={dash(leads.loading, leads.error, openLeads.length)}
+            hint={leads.error ? `Couldn't load leads: ${leads.error}` : `${newLeads.length} new · ${followUpsDue.length} follow-ups due`}
+            warn={followUpsDue.length > 0}
+          />
+        )}
         <Tile
           label="ACTIVE MILESTONES"
           href="/admin/projects"
@@ -74,13 +78,15 @@ export default function AdminOverview() {
           hint={support.error ? "Couldn't reach support desk" : `${convs.length} conversations total`}
           warn={openTickets.length > 0}
         />
-        <Tile
-          label="MRR"
-          href="/finance"
-          value={dash(finance.loading, finance.error, <TotalsValue totals={finance.data?.totals.mrr} />)}
-          hint={finance.error ? "Couldn't reach billing" : `${formatTotals(finance.data?.totals.outstanding)} outstanding`}
-          warn={Boolean(finance.data && Object.keys(finance.data.totals.overdue).length)}
-        />
+        {canFinance && (
+          <Tile
+            label="MRR"
+            href="/finance"
+            value={dash(finance.loading, finance.error, <TotalsValue totals={finance.data?.totals.mrr} />)}
+            hint={finance.error ? "Couldn't reach billing" : `${formatTotals(finance.data?.totals.outstanding)} outstanding`}
+            warn={Boolean(finance.data && Object.keys(finance.data.totals.overdue).length)}
+          />
+        )}
       </div>
 
       <div className="admin-section">
@@ -109,6 +115,7 @@ export default function AdminOverview() {
       </div>
 
       <div className="cp-grid admin-section">
+        {isOwner && (
         <div className="cp-card">
           <div className="cp-card-head">
             <span>Pipeline</span>
@@ -138,6 +145,7 @@ export default function AdminOverview() {
           ))}
           {leadRows.length === 0 && !leads.loading && <p className="cp-empty">No leads yet.</p>}
         </div>
+        )}
 
         <div className="cp-card">
           <div className="cp-card-head">
@@ -158,6 +166,7 @@ export default function AdminOverview() {
             ))
           )}
 
+          {canFinance && (<>
           <div className="cp-card-head cp-sub">
             <span>Collections</span>
             <Link href="/finance" className="cp-head-link">Finance <ArrowRight size={11} /></Link>
@@ -171,6 +180,7 @@ export default function AdminOverview() {
               <div className="cp-milestone"><span>Overdue</span><span>{finance.loading ? "…" : formatTotals(finance.data?.totals.overdue)}</span></div>
             </>
           )}
+          </>)}
         </div>
       </div>
     </ConsoleLayout>

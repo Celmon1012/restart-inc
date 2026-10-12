@@ -12,6 +12,7 @@ import { formatAmount, formatDate, formatRelative } from "@/lib/format";
 import { CLIENT_TYPE_LABEL, ENGAGEMENT_LABEL, loadPortfolio } from "@/lib/admin";
 import { moneyFor, statusFor } from "@/lib/adminClients";
 import { formatTotals, loadFinanceOverview, TotalsValue } from "./Finance";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { ClientStatusPill, loadTickets } from "./Clients";
 import { ProjectStatusPill, ProgressCell } from "./Projects";
 
@@ -30,7 +31,8 @@ export default function AdminClientDetail(props: { clientKey?: string }) {
   const [, setLocation] = useLocation();
 
   const portfolio = useAsyncResource(() => loadPortfolio(), [], { errorMessage: "Failed to load client" });
-  const finance = useAsyncResource(() => loadFinanceOverview(), []);
+  const { canFinance } = useWorkspace();
+  const finance = useAsyncResource(() => loadFinanceOverview(), [], { enabled: canFinance });
   const tickets = useAsyncResource(() => loadTickets(), []);
   const client = portfolio.data?.clients.find((c) => c.key === key) ?? null;
 

@@ -13,6 +13,7 @@ import { formatDate } from "@/lib/format";
 import { CLIENT_TYPE_LABEL, loadPortfolio } from "@/lib/admin";
 import { CLIENT_STATUS_LABEL, moneyFor, statusFor, type ClientStatus } from "@/lib/adminClients";
 import { formatTotals, loadFinanceOverview } from "./Finance";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { AddClient } from "@/components/admin/AddClient";
 
 const STATUS_TONE: Record<ClientStatus, string> = { active: "", scoping: "warning", idle: "neutral" };
@@ -34,7 +35,8 @@ export default function AdminClients() {
   const portfolio = useAsyncResource(() => loadPortfolio(), [], { errorMessage: "Failed to load clients" });
   // Money and tickets are enrichment from external systems; the list renders
   // without them and fills in when they arrive.
-  const finance = useAsyncResource(() => loadFinanceOverview(), []);
+  const { canFinance } = useWorkspace();
+  const finance = useAsyncResource(() => loadFinanceOverview(), [], { enabled: canFinance });
   const tickets = useAsyncResource(() => loadTickets(), []);
 
   const rows = (portfolio.data?.clients ?? []).map((c) => {
