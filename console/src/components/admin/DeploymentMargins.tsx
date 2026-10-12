@@ -9,10 +9,11 @@
 // tracked server Coolify no longer sees is offered for ending. Contabo servers are kept by hand.
 
 import { useMemo, useState } from "react";
+import { Link } from "wouter";
 import { consoleSchema } from "@/lib/supabase";
 import { loadWorkspaceNames, loadCoolifyProjects } from "@/lib/admin";
 import { formatAmount, formatDate, formatPercent } from "@/lib/format";
-import { COST_CURRENCIES, toNgn, totalsToNgn, type Books, type CostCurrency, type Service } from "@/lib/financeBooks";
+import { COST_CURRENCIES, nextDue, toNgn, totalsToNgn, type Books, type CostCurrency, type Service } from "@/lib/financeBooks";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import type { FinanceOverview } from "@/pages/admin/Finance";
 
@@ -295,17 +296,29 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                   </td>
                   <td style={{ maxWidth: 380 }}>
                     {r.services.length === 0 && r.hostingSale > 0 && <span className="admin-warn">hosting is billed but no server cost is recorded</span>}
-                    {r.services.map((s) => (
+                    {r.services.map((s) => {
+                      // Payment is recorded on the Expenses page; show where this server stands.
+                      const expense = s.expense_id ? books.expenses.find((e) => e.id === s.expense_id) : undefined;
+                      const due = expense ? nextDue(expense, books.payments) : null;
+                      const overdue = due !== null && due < today();
+                      return (
                       <div key={s.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                         <span className={isActive(s) ? undefined : "admin-muted"}>
                           {s.name} · {PROVIDER_LABEL[s.provider]} · {formatAmount(s.monthly_cost_cents, s.currency)}/mo
                           {s.ended_on ? ` · ended ${formatDate(s.ended_on)}` : ""}
                         </span>
+                        {due && (
+                          <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                            {overdue ? <span className="pill-overdue">OVERDUE</span> : <span className="admin-muted">due {formatDate(due)}</span>}
+                            <Link href="/finance/expenses" className="text-teal">Pay</Link>
+                          </span>
+                        )}
                         <button className="dash-tab-btn" onClick={() => openEdit(s)}>Edit</button>
                         {isActive(s) && !s.ended_on && <button className="dash-tab-btn" onClick={() => void end(s)}>End</button>}
                         <button className="dash-tab-btn" onClick={() => void remove(s)}>Delete</button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </td>
                 </tr>
               ))}
