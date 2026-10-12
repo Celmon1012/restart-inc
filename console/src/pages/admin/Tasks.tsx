@@ -1,19 +1,19 @@
-// Every checklist item across every client, grouped by client and milestone --
-// the "what's on our plate" view Projects can't give, since Projects is one
-// client at a time. Tasks are console.deliverable_tasks; embedding the parent
+// Every checklist item across every client in one table (task, project, assignee, due, status)
+// -- the "what's on our plate" view Projects can't give, since Projects is one client at a time. Tasks are console.deliverable_tasks; embedding the parent
 // deliverable and its workspace works because both FKs exist, and RLS lets an
 // admin read every row.
 
 import { Fragment, useState } from "react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
-import { HealthBadge } from "@/components/HealthBadge";
 import { consoleSchema } from "@/lib/supabase";
 import { loadTeamMembers, loadWorkspaceNames } from "@/lib/admin";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddTask } from "@/components/admin/AddTask";
-import { TaskEditForm, TaskInlineMeta } from "@/components/admin/TaskEdit";
-import { Check, ArrowRight, Search } from "lucide-react";
+import { RowMenu } from "@/components/admin/RowMenu";
+import { TaskEditForm, assigneeLabel } from "@/components/admin/TaskEdit";
+import { formatDate } from "@/lib/format";
+import { Check, Search } from "lucide-react";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { toast } from "sonner";
@@ -39,12 +39,15 @@ interface TaskRow {
 }
 
 type Filter = "open" | "overdue" | "done" | "all";
-type Who = "anyone" | "mine" | "client" | "unassigned";
+// "anyone", "mine", "unassigned", "client", or a team member's user id.
+type Who = string;
 
 export default function AdminTasks() {
   const [filter, setFilter] = useState<Filter>("open");
   const [search, setSearch] = useState("");
   const [who, setWho] = useState<Who>("anyone");
+  const [project, setProject] = useState("all");
+  const [, setLocation] = useLocation();
   const [editingId, setEditingId] = useState<string | null>(null);
   const { user } = useAuth();
   const team = useAsyncResource(() => loadTeamMembers(), []);
@@ -83,9 +86,15 @@ export default function AdminTasks() {
   const tasks = data ?? [];
 
   const toggle = async (task: TaskRow) => {
-    const { error: updateError } = await consoleSchema().from("deliverable_tasks").update({ is_done: !task.is_done }).eq("id", task.id);
+    const write = () => consoleSchema().from("deliverable_tasks").update({ is_done: !task.is_done }).eq("id", task.id);
+    let { error: updateError } = await write();
+    // A dropped connection ("Failed to fetch") is worth one more try before bothering anyone.
+    if (updateError && /fetch|network/i.test(updateError.message)) {
+      await new Promise((r) => setTimeout(r, 700));
+      ({ error: updateError } = await write());
+    }
     if (updateError) {
-      toast.error(updateError.message);
+      toast.error(/fetch|network/i.test(updateError.message) ? "Couldn't reach the server. Check your connection and try again." : updateError.message);
       return;
     }
     await refresh();
@@ -96,35 +105,42 @@ export default function AdminTasks() {
   const overdueTasks = tasks.filter(isOverdue).length;
 
   const needle = search.trim().toLowerCase();
-  const visible = tasks.filter(
-    (t) =>
-      (filter === "all" ||
-        (filter === "open" ? !t.is_done : filter === "overdue" ? isOverdue(t) : t.is_done)) &&
-      (who === "anyone" ||
-        (who === "client" ? t.owner === "client" : who === "mine" ? t.owner === "team" && t.assignee_id === user?.id : t.owner === "team" && !t.assignee_id)) &&
-      (!needle ||
-        [t.title, t.deliverable?.title, t.deliverable?.workspace?.name].some((v) => v?.toLowerCase().includes(needle)))
-  );
+  const visible = tasks
+    .filter(
+      (t) =>
+        (filter === "all" || (filter === "open" ? !t.is_done : filter === "overdue" ? isOverdue(t) : t.is_done)) &&
+        (project === "all" || t.deliverable?.workspace?.id === project) &&
+        (who === "anyone" ||
+          (who === "client"
+            ? t.owner === "client"
+            : who === "mine"
+              ? t.owner === "team" && t.assignee_id === user?.id
+              : who === "unassigned"
+                ? t.owner === "team" && !t.assignee_id
+                : t.owner === "team" && t.assignee_id === who)) &&
+        (!needle || [t.title, t.deliverable?.title, t.deliverable?.workspace?.name].some((v) => v?.toLowerCase().includes(needle)))
+    )
+    // Soonest deadline first, tasks without one last; ties by project then milestone order.
+    .sort(
+      (a, b) =>
+        (a.due_at ?? "9999").localeCompare(b.due_at ?? "9999") ||
+        (a.deliverable?.workspace?.name ?? "").localeCompare(b.deliverable?.workspace?.name ?? "") ||
+        (a.deliverable?.sort_order ?? 0) - (b.deliverable?.sort_order ?? 0) ||
+        a.sort_order - b.sort_order
+    );
+  const projects = Array.from(
+    new Map(tasks.filter((t) => t.deliverable?.workspace).map((t) => [t.deliverable!.workspace!.id, t.deliverable!.workspace!.name])).entries()
+  ).sort((a, b) => a[1].localeCompare(b[1]));
 
-  // client -> milestone -> tasks, preserving each milestone's own order.
-  const groups = new Map<string, { name: string; workspaceId: string | null; milestones: Map<string, { title: string; order: number; status: string; dueAt: string | null; tasks: TaskRow[] }> }>();
-  for (const t of visible) {
-    const ws = t.deliverable?.workspace;
-    const key = ws?.id ?? "none";
-    if (!groups.has(key)) groups.set(key, { name: ws?.name ?? "Unassigned", workspaceId: ws?.id ?? null, milestones: new Map() });
-    const g = groups.get(key)!;
-    const mKey = t.deliverable?.id ?? "none";
-    if (!g.milestones.has(mKey))
-      g.milestones.set(mKey, {
-        title: t.deliverable?.title ?? "Milestone",
-        order: t.deliverable?.sort_order ?? 0,
-        status: t.deliverable?.status ?? "",
-        dueAt: t.deliverable?.due_at ?? null,
-        tasks: []
-      });
-    g.milestones.get(mKey)!.tasks.push(t);
-  }
-  const sortedGroups = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
+  const statusOf = (t: TaskRow): { label: string; tone: "" | "warning" | "down" } =>
+    t.is_done
+      ? { label: "DONE", tone: "" }
+      : isOverdue(t)
+        ? { label: "OVERDUE", tone: "down" }
+        : t.deliverable?.status === "blocked"
+          ? { label: "BLOCKED", tone: "warning" }
+          : { label: "OPEN", tone: "" };
+
 
   const openCount = tasks.filter((t) => !t.is_done).length;
   const blockedOpen = tasks.filter((t) => !t.is_done && t.deliverable?.status === "blocked").length;
@@ -172,21 +188,27 @@ export default function AdminTasks() {
       )}
 
       <div className="admin-toolbar">
-        {(["open", "overdue", "done", "all"] as Filter[]).map((f) => (
-          <button key={f} className={`dash-tab-btn ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>
-            {f === "open" ? "Open" : f === "overdue" ? `Overdue (${overdueTasks})` : f === "done" ? "Done" : "All"}
-          </button>
-        ))}
-        <select value={who} onChange={(e) => setWho(e.target.value as Who)} aria-label="Assigned to">
+        <select value={filter} onChange={(e) => setFilter(e.target.value as Filter)} aria-label="Status">
+          <option value="open">Open</option>
+          <option value="overdue">Overdue ({overdueTasks})</option>
+          <option value="done">Done</option>
+          <option value="all">All statuses</option>
+        </select>
+        <select value={project} onChange={(e) => setProject(e.target.value)} aria-label="Project">
+          <option value="all">All projects</option>
+          {projects.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+        </select>
+        <select value={who} onChange={(e) => setWho(e.target.value)} aria-label="Assigned to">
           <option value="anyone">Anyone</option>
           <option value="mine">Mine</option>
           <option value="unassigned">Team, unassigned</option>
           <option value="client">Waiting on client</option>
+          {(team.data ?? []).map((m) => <option key={m.user_id} value={m.user_id}>{m.email.split("@")[0]}</option>)}
         </select>
         <span className="admin-toolbar-spacer" />
         <div className="workspace-search-box">
           <Search size={13} />
-          <input type="text" placeholder="Search tasks, milestones, clients…" aria-label="Search tasks" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input type="text" placeholder="Search tasks, milestones, projects…" aria-label="Search tasks" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       </div>
 
@@ -194,55 +216,74 @@ export default function AdminTasks() {
         <LoadingState label="Loading tasks…" />
       ) : error ? null : tasks.length === 0 ? (
         <EmptyState title="No checklist items yet" hint="Add checklist items to milestones from Projects and they appear here." />
-      ) : sortedGroups.length === 0 ? (
+      ) : visible.length === 0 ? (
         <div className="dash-empty-state">No tasks match this view.</div>
       ) : (
-        sortedGroups.map((g) => (
-          <div className="admin-group" key={g.workspaceId ?? "none"}>
-            <div className="admin-group-head">
-              <span>{g.name}</span>
-              {g.workspaceId && (
-                <Link href={`/admin/projects/${g.workspaceId}`} className="overview-section-link">
-                  Open project <ArrowRight size={12} />
-                </Link>
-              )}
-            </div>
-            {Array.from(g.milestones.values())
-              .sort((a, b) => a.order - b.order)
-              .map((m) =>
-                m.tasks.map((t) => (
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th style={{ width: 36 }} />
+                <th>Task</th>
+                <th>Project</th>
+                <th>Assignee</th>
+                <th>Due</th>
+                <th>Status</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((t) => {
+                const st = statusOf(t);
+                const ws = t.deliverable?.workspace;
+                return (
                   <Fragment key={t.id}>
-                  <div className="admin-task-row">
-                    <button
-                      className={`deliverable-task-check ${t.is_done ? "done" : ""}`}
-                      onClick={() => toggle(t)}
-                      aria-label={t.is_done ? "Mark not done" : "Mark done"}
-                    >
-                      {t.is_done && <Check size={12} />}
-                    </button>
-                    <span className={t.is_done ? "done" : ""}>{t.title}</span>
-                    <TaskInlineMeta task={t} team={team.data ?? []} onSaved={refresh} />
-                    <button className="dash-tab-btn" onClick={() => setEditingId(editingId === t.id ? null : t.id)}>Edit</button>
-                    <span className={`admin-task-context ${m.status === "blocked" ? "admin-warn" : ""}`}>
-                      {m.title}
-                      {m.status === "blocked" ? " · blocked" : ""}
-                      {!t.is_done && <HealthBadge status={m.status} dueAt={m.dueAt} />}
-                    </span>
-                  </div>
-                  {editingId === t.id && (
-                    <div className="admin-task-row">
-                      <TaskEditForm
-                        task={t}
-                        team={team.data ?? []}
-                        onDone={async (saved) => { setEditingId(null); if (saved) await refresh(); }}
-                      />
-                    </div>
-                  )}
+                    <tr className={isOverdue(t) ? "row-overdue" : undefined}>
+                      <td>
+                        <button
+                          className={`deliverable-task-check ${t.is_done ? "done" : ""}`}
+                          onClick={() => void toggle(t)}
+                          aria-label={t.is_done ? "Mark not done" : "Mark done"}
+                        >
+                          {t.is_done && <Check size={12} />}
+                        </button>
+                      </td>
+                      <td className="wrap">
+                        <strong className={t.is_done ? "done" : undefined}>{t.title}</strong>
+                        {t.deliverable && <div className="admin-muted">{t.deliverable.title}</div>}
+                      </td>
+                      <td>{ws?.name ?? "—"}</td>
+                      <td>{assigneeLabel(t, team.data ?? [])}</td>
+                      <td>{t.due_at ? formatDate(t.due_at) : "—"}</td>
+                      <td><span className={`cp-status ${st.tone}`}>{st.label}</span></td>
+                      <td className="num">
+                        <RowMenu
+                          label={`Actions for ${t.title}`}
+                          items={[
+                            { label: "Edit", onClick: () => setEditingId(editingId === t.id ? null : t.id) },
+                            { label: t.is_done ? "Mark not done" : "Mark done", onClick: () => void toggle(t) },
+                            ...(ws ? [{ label: "Open project", onClick: () => setLocation(`/admin/projects/${ws.id}`) }] : [])
+                          ]}
+                        />
+                      </td>
+                    </tr>
+                    {editingId === t.id && (
+                      <tr>
+                        <td colSpan={7}>
+                          <TaskEditForm
+                            task={t}
+                            team={team.data ?? []}
+                            onDone={async (saved) => { setEditingId(null); if (saved) await refresh(); }}
+                          />
+                        </td>
+                      </tr>
+                    )}
                   </Fragment>
-                ))
-              )}
-          </div>
-        ))
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </ConsoleLayout>
   );
