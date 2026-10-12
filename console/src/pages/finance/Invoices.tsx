@@ -96,15 +96,24 @@ export default function FinanceInvoices() {
                             {formatAmount(inv.totalDueAmountCents, inv.currency)}
                             {inv.totalDueAmountCents < inv.totalAmountCents && <small className="admin-muted"> of {formatAmount(inv.totalAmountCents, inv.currency)}</small>}
                           </td>
-                          <td>
-                            {inv.fileUrl && (
-                              <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="text-teal" aria-label={`Open ${inv.number} PDF`}>
-                                <ExternalLink size={13} />
-                              </a>
-                            )}
-                            <button className="dash-tab-btn" style={{ marginLeft: 8 }} onClick={() => openPayForm(inv.id)}>
-                              Record payment
-                            </button>
+                          <td className="num">
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+                              {inv.fileUrl && (
+                                <a
+                                  href={inv.fileUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-teal"
+                                  aria-label={`Open ${inv.number} PDF`}
+                                  style={{ display: "inline-flex", alignItems: "center" }}
+                                >
+                                  <ExternalLink size={14} />
+                                </a>
+                              )}
+                              <button className="dash-tab-btn" onClick={() => openPayForm(inv.id)}>
+                                Record payment
+                              </button>
+                            </div>
                           </td>
                         </tr>
                         {payingId === inv.id && (
@@ -166,7 +175,13 @@ export default function FinanceInvoices() {
                         <td className={`num ${Object.keys(c.overdue).length ? "admin-warn" : ""}`}>{formatTotals(c.outstanding)}</td>
                         <td className="num">{c.invoiceCount}</td>
                         <td>{c.lastInvoiceAt ? formatDate(c.lastInvoiceAt) : "—"}</td>
-                        <td>
+                        <td className="num">
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+                          {relinkResult[c.customerId] && (
+                            <small className={relinkResult[c.customerId].ok ? "admin-ok" : "admin-warn"} role="status">
+                              {relinkResult[c.customerId].text}
+                            </small>
+                          )}
                           <RowMenu
                             label={`More actions for ${c.name}`}
                             items={[
@@ -177,11 +192,7 @@ export default function FinanceInvoices() {
                               }
                             ]}
                           />
-                          {relinkResult[c.customerId] && (
-                            <small className={relinkResult[c.customerId].ok ? "admin-ok" : "admin-warn"} role="status">
-                              {" "}{relinkResult[c.customerId].text}
-                            </small>
-                          )}
+                          </div>
                         </td>
                       </tr>
                     ))}
