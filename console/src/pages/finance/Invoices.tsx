@@ -1,14 +1,57 @@
 // Money in: unpaid invoices (record a payment received by bank transfer) and the revenue
 // position of every billed client. Data comes from Lago through console-admin-finance.
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, MoreHorizontal } from "lucide-react";
 import { FinancePage } from "@/components/admin/FinancePage";
 import { EmptyState } from "@/components/AsyncStates";
 import { invokeFunction } from "@/lib/functions";
 import { formatAmount, formatDate } from "@/lib/format";
 import { formatTotals } from "@/pages/admin/Finance";
+
+/** A small "more actions" menu for a table row, closed by an outside click or Escape. */
+function RowMenu({ label, items }: { label: string; items: Array<{ label: string; disabled?: boolean; onClick: () => void }> }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="dash-user-menu-wrapper" ref={ref} style={{ display: "inline-block" }}>
+      <button type="button" className="dash-tab-btn" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        <MoreHorizontal size={14} />
+      </button>
+      {open && (
+        <div className="dash-dropdown-menu" role="menu" style={{ right: 0, left: "auto", minWidth: 190 }}>
+          {items.map((i) => (
+            <button
+              key={i.label}
+              type="button"
+              role="menuitem"
+              className="dash-dropdown-item"
+              disabled={i.disabled}
+              onClick={() => { setOpen(false); i.onClick(); }}
+            >
+              <span>{i.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function FinanceInvoices() {
   const today = new Date().toISOString().slice(0, 10);
@@ -166,9 +209,16 @@ export default function FinanceInvoices() {
                         <td className="num">{c.invoiceCount}</td>
                         <td>{c.lastInvoiceAt ? formatDate(c.lastInvoiceAt) : "—"}</td>
                         <td>
-                          <button type="button" className="dash-tab-btn" disabled={relinkingId === c.customerId} onClick={() => void relinkPayments(c.customerId, c.name)}>
-                            {relinkingId === c.customerId ? "Linking…" : "Re-link payments"}
-                          </button>
+                          <RowMenu
+                            label={`More actions for ${c.name}`}
+                            items={[
+                              {
+                                label: relinkingId === c.customerId ? "Linking…" : "Re-link payments",
+                                disabled: relinkingId === c.customerId,
+                                onClick: () => void relinkPayments(c.customerId, c.name)
+                              }
+                            ]}
+                          />
                           {relinkResult[c.customerId] && (
                             <small className={relinkResult[c.customerId].ok ? "admin-ok" : "admin-warn"} role="status">
                               {" "}{relinkResult[c.customerId].text}

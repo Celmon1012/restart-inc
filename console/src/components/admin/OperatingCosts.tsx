@@ -196,14 +196,20 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
             <strong className={calc.margin3m !== null && calc.margin3m < 0 ? "warn" : undefined}>
               {calc.margin3m === null ? "—" : formatPercent(calc.margin3m, 1)}
             </strong>
-            <em>collected {ngn(calc.avgCollected)} vs cost {ngn(calc.avgCost)} / mo</em>
+            <em>collected {ngn(calc.avgCollected)} vs expenses {ngn(calc.avgCost)} a month, including one-off payments</em>
           </div>
           <div>
             <small>RUNWAY</small>
             <strong className={calc.runwayMonths !== null && calc.runwayMonths < 6 ? "warn" : undefined}>
-              {calc.burn === 0 ? "Self-funding" : calc.runwayMonths === null ? "—" : `${calc.runwayMonths.toFixed(1)} mo`}
+              {rates.cash_ngn_cents === 0 ? "Cash not set" : calc.burn === 0 ? "Self-funding" : calc.runwayMonths === null ? "—" : `${calc.runwayMonths.toFixed(1)} mo`}
             </strong>
-            <em>{calc.burn === 0 ? "collections ≥ expenses (3-mo avg)" : `${ngn(calc.burn)} net burn / mo`}</em>
+            <em>
+              {rates.cash_ngn_cents === 0
+                ? "set cash on hand under Settings, Rates & cash"
+                : calc.burn === 0
+                  ? "collections ≥ expenses (3-mo avg, includes one-off payments)"
+                  : `${ngn(calc.burn)} net burn / mo`}
+            </em>
           </div>
         </div>
 
@@ -265,7 +271,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
       <>
       <div className="admin-section">
         <h2 className="admin-section-title">Client hosting</h2>
-        <p className="admin-muted">Servers run for clients. Their monthly cost is an expense like any other, so you pay and record it here. Add, edit or end a server on the Hosting page.</p>
         {books.services.filter((sv) => sv.expense_id).length === 0 ? (
           <div className="dash-empty-state">No client servers yet. <Link href="/finance/hosting" className="text-teal">Add one on Hosting</Link>.</div>
         ) : (

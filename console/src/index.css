@@ -2610,7 +2610,7 @@
 .cp-stats strong{ display: block; margin-top: 8px; color: #f2f5ff; font-size: 1.75rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 .cp-stats strong span{ color: #5c6273; font-size: .6em; }
 .cp-stats strong.warn{ color: var(--amber); }
-.cp-stats em{ display: block; margin-top: 8px; color: #6e7485; font-size: 0.75rem; font-style: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cp-stats em{ display: block; margin-top: 8px; color: #6e7485; font-size: 0.75rem; font-style: normal; white-space: normal; overflow-wrap: anywhere; line-height: 1.4; }
 .cp-grid{ display: grid; grid-template-columns: 1.15fr 1fr; gap: 12px; margin-top: 12px; }
 .cp-card{ padding: 18px; border: 1px solid rgba(255,255,255,.07); border-radius: 10px; background: rgba(255,255,255,.015); min-width: 0; }
 .cp-card-head{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; color: #c4c9d6; font-size: 0.8125rem; font-weight: 600; }

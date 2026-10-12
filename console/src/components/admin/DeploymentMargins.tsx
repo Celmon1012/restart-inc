@@ -266,7 +266,6 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                 <th className="num">Hosting sale</th>
                 <th className="num">Server cost</th>
                 <th className="num">Margin</th>
-                <th className="num">%</th>
                 <th className="num">Services</th>
                 <th>Servers</th>
               </tr>
@@ -282,16 +281,20 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                       </div>
                     )}
                   </td>
-                  <td className="num">{r.hostingSale > 0 ? ngn(r.hostingSale) : <span className="admin-muted">—</span>}</td>
+                  <td className="num">
+                    {r.hostingSale > 0 ? ngn(r.hostingSale) : r.cost > 0 ? <span className="admin-danger">not billed</span> : <span className="admin-muted">—</span>}
+                  </td>
                   <td className="num">{ngn(r.cost)}</td>
-                  <td className={`num ${r.margin < 0 ? "admin-danger" : ""}`}>{r.hostingSale > 0 || r.cost > 0 ? ngn(r.margin) : "—"}</td>
-                  <td className={`num ${r.pct !== null && r.pct < 0 ? "admin-danger" : ""}`}>{r.pct === null ? "—" : formatPercent(r.pct, 0)}</td>
+                  <td className={`num ${r.margin < 0 ? "admin-danger" : ""}`}>
+                    {r.hostingSale > 0 || r.cost > 0 ? ngn(r.margin) : "—"}
+                    {r.pct !== null && <div className={r.pct < 0 ? "admin-danger" : "admin-muted"}>{formatPercent(r.pct, 0)}</div>}
+                  </td>
                   <td className="num">
                     {r.serviceRevenue > 0 ? ngn(r.serviceRevenue) : <span className="admin-muted">—</span>}
                     {r.serviceNames.length > 0 && <div className="admin-muted">{r.serviceNames.join(", ")}</div>}
                   </td>
-                  <td>
-                    {r.services.length === 0 && <span className="admin-warn">no server cost recorded</span>}
+                  <td style={{ maxWidth: 380 }}>
+                    {r.services.length === 0 && r.hostingSale > 0 && <span className="admin-warn">hosting is billed but no server cost is recorded</span>}
                     {r.services.map((s) => (
                       <div key={s.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                         <span className={isActive(s) ? undefined : "admin-muted"}>
@@ -312,8 +315,10 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                 <td><strong>Hosting margin</strong></td>
                 <td className="num">{ngn(totals.sale)}</td>
                 <td className="num">{ngn(totals.cost)}</td>
-                <td className="num"><strong>{ngn(totals.sale - totals.cost)}</strong></td>
-                <td className="num">{totals.sale > 0 ? formatPercent(((totals.sale - totals.cost) / totals.sale) * 100, 0) : "—"}</td>
+                <td className="num">
+                  <strong>{ngn(totals.sale - totals.cost)}</strong>
+                  {totals.sale > 0 && <div className="admin-muted">{formatPercent(((totals.sale - totals.cost) / totals.sale) * 100, 0)}</div>}
+                </td>
                 <td className="num"><strong>{ngn(totals.service)}</strong></td>
                 <td />
               </tr>
@@ -322,7 +327,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
         </div>
       )}
       <p className="admin-muted mt-2">
-        Hosting sale is a client's dedicated-server plans from billing; server cost is their active servers at the current rates. Services (retainers, maintenance, pods) are revenue only, because their cost is your time and isn't tracked, so they carry no margin. Prices are the contracted amounts: a coupon can mean less is billed for a while. A server ended mid-month is prorated by day. Contabo servers aren't in Coolify, so end them here by hand.
+        Services (retainers, maintenance) are revenue only: their cost is your time. Sale is the contracted price, so a coupon means less is billed for a while.
       </p>
     </div>
   );
