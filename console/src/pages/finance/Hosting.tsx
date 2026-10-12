@@ -7,7 +7,7 @@ import { DeploymentMargins } from "@/components/admin/DeploymentMargins";
 
 export default function FinanceHosting() {
   return (
-    <FinancePage title="Hosting" description="What clients pay for hosting against what their servers cost, and the services you sell alongside." needs={["finance", "books"]}>
+    <FinancePage title="Hosting" description="What clients pay for hosting against what their servers cost." needs={["finance", "books"]}>
       {({ finance, books, reloadBooks }) => <DeploymentMargins finance={finance} books={books} refresh={reloadBooks} />}
     </FinancePage>
   );

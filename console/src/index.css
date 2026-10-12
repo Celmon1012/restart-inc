@@ -3014,3 +3014,6 @@ html[data-theme="light"] .dash-user-avatar{ filter: none; }
 /* A category heading inside a table: a quiet band that the rows beneath it belong to. */
 .admin-table tr.group-row > td{ background: rgba(255, 255, 255, .04); color: #8a91a3; font-size: 0.6875rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding-top: 8px; padding-bottom: 8px; }
 .admin-table tr.group-row > td .group-total{ float: right; letter-spacing: 0; text-transform: none; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* A client with several servers stacks one line per server; the server, due date and menu cells use the same height so they line up. */
+.srv-line{ display: flex; align-items: center; min-height: 44px; }

@@ -8,9 +8,9 @@
 // from Coolify: a server running a client's resources with no record is offered for tracking, and a
 // tracked server Coolify no longer sees is offered for ending. Contabo servers are kept by hand.
 
-import { useMemo, useState } from "react";
-import { Link } from "wouter";
+import { Fragment, useMemo, useState } from "react";
 import { RowMenu } from "@/components/admin/RowMenu";
+import { PaymentForm } from "@/components/admin/ExpensePayments";
 import { consoleSchema } from "@/lib/supabase";
 import { loadWorkspaceNames, loadCoolifyProjects } from "@/lib/admin";
 import { formatAmount, formatDate, formatPercent } from "@/lib/format";
@@ -44,6 +44,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
   const [form, setForm] = useState<Form | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [payingId, setPayingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   const rates = books.settings;
@@ -62,25 +63,23 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
         const hostingSale = lines
           ? lines.filter((l) => l.workspaceId === id && l.kind === "hosting").reduce((sum, l) => sum + toNgn(l.monthlyCents, l.currency, rates), 0)
           : mrrTotal;
-        const serviceRevenue = lines
-          ? lines.filter((l) => l.workspaceId === id && l.kind === "service").reduce((sum, l) => sum + toNgn(l.monthlyCents, l.currency, rates), 0)
-          : 0;
-        const serviceNames = lines ? lines.filter((l) => l.workspaceId === id && l.kind === "service").map((l) => l.subscriptionName ?? l.planName) : [];
         const discount = clientRows.reduce((sum, c) => sum + totalsToNgn(c.discount, rates), 0);
         const couponLeft = clientRows.reduce<number | null>((m, c) => (c.couponInvoicesLeft == null ? m : m === null ? c.couponInvoicesLeft : Math.min(m, c.couponInvoicesLeft)), null);
         const services = books.services.filter((s) => s.workspace_id === id);
         const cost = services.filter(isActive).reduce((sum, s) => sum + toNgn(s.monthly_cost_cents, s.currency, rates), 0);
         return {
-          id, hostingSale, serviceRevenue, serviceNames, discount, couponLeft, cost, services,
+          id, hostingSale, discount, couponLeft, cost, services,
           margin: hostingSale - cost,
           pct: hostingSale > 0 ? ((hostingSale - cost) / hostingSale) * 100 : null
         };
       })
+      // Services (retainers, maintenance) aren't hosting, so a client with only those isn't listed here.
+      .filter((r) => r.hostingSale > 0 || r.services.length > 0)
       .sort((a, b) => a.margin - b.margin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [books, finance, rates]);
 
-  const totals = rows.reduce((t, r) => ({ sale: t.sale + r.hostingSale, cost: t.cost + r.cost, service: t.service + r.serviceRevenue }), { sale: 0, cost: 0, service: 0 });
+  const totals = rows.reduce((t, r) => ({ sale: t.sale + r.hostingSale, cost: t.cost + r.cost }), { sale: 0, cost: 0 });
 
   // Coolify sync hints.
   const liveServers = useMemo(() => {
@@ -265,89 +264,109 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
             <thead>
               <tr>
                 <th>Client / project</th>
+                <th>Server</th>
                 <th className="num">Hosting sale</th>
                 <th className="num">Server cost</th>
                 <th className="num">Margin</th>
-                <th className="num">Services</th>
-                <th>Servers</th>
+                <th>Next due</th>
+                <th />
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    <strong>{nameOf(r.id)}</strong>
-                    {r.discount > 0 && (
-                      <div className="admin-warn">
-                        coupon: {ngn(r.discount)}/mo not billed{r.couponLeft !== null ? ` · ${r.couponLeft} invoice${r.couponLeft === 1 ? "" : "s"} left` : ""}
-                      </div>
-                    )}
-                  </td>
-                  <td className="num">
-                    {r.hostingSale > 0 ? ngn(r.hostingSale) : r.cost > 0 ? <span className="admin-danger">not billed</span> : <span className="admin-muted">—</span>}
-                  </td>
-                  <td className="num">{ngn(r.cost)}</td>
-                  <td className={`num ${r.margin < 0 ? "admin-danger" : ""}`}>
-                    {r.hostingSale > 0 || r.cost > 0 ? ngn(r.margin) : "—"}
-                    {r.pct !== null && <div className={r.pct < 0 ? "admin-danger" : "admin-muted"}>{formatPercent(r.pct, 0)}</div>}
-                  </td>
-                  <td className="num">
-                    {r.serviceRevenue > 0 ? ngn(r.serviceRevenue) : <span className="admin-muted">—</span>}
-                    {r.serviceNames.length > 0 && <div className="admin-muted">{r.serviceNames.join(", ")}</div>}
-                  </td>
-                  <td style={{ maxWidth: 380 }}>
-                    {r.services.length === 0 && r.hostingSale > 0 && <span className="admin-warn">hosting is billed but no server cost is recorded</span>}
-                    {r.services.map((s) => {
-                      // Payment is recorded on the Expenses page; show where this server stands.
-                      const expense = s.expense_id ? books.expenses.find((e) => e.id === s.expense_id) : undefined;
-                      const due = expense ? nextDue(expense, books.payments) : null;
-                      const overdue = due !== null && due < today();
-                      return (
-                      <div key={s.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                        <span className={isActive(s) ? undefined : "admin-muted"}>
-                          {s.name} · {PROVIDER_LABEL[s.provider]} · {formatAmount(s.monthly_cost_cents, s.currency)}/mo
-                          {s.ended_on ? ` · ended ${formatDate(s.ended_on)}` : ""}
-                        </span>
-                        {due && (
-                          <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                            {overdue ? <span className="pill-overdue">OVERDUE</span> : <span className="admin-muted">due {formatDate(due)}</span>}
-                            <Link href="/finance/expenses" className="text-teal">Pay</Link>
-                          </span>
+              {rows.map((r) => {
+                const lines = r.services.map((sv) => {
+                  const expense = sv.expense_id ? books.expenses.find((e) => e.id === sv.expense_id) : undefined;
+                  const due = expense ? nextDue(expense, books.payments) : null;
+                  return { sv, expense, due, overdue: due !== null && due < today() };
+                });
+                const paying = lines.find((l) => l.expense && l.expense.id === payingId);
+                return (
+                  <Fragment key={r.id}>
+                    <tr className={lines.some((l) => l.overdue) ? "row-overdue" : undefined}>
+                      <td>
+                        <strong>{nameOf(r.id)}</strong>
+                        {r.discount > 0 && (
+                          <div className="admin-warn">
+                            coupon: {ngn(r.discount)}/mo not billed{r.couponLeft !== null ? ` · ${r.couponLeft} invoice${r.couponLeft === 1 ? "" : "s"} left` : ""}
+                          </div>
                         )}
-                        <RowMenu
-                          label={`Actions for ${s.name}`}
-                          items={[
-                            { label: "Edit", onClick: () => openEdit(s) },
-                            ...(isActive(s) && !s.ended_on ? [{ label: "End today", onClick: () => void end(s) }] : []),
-                            { label: "Delete", danger: true, onClick: () => void remove(s) }
-                          ]}
-                        />
-                      </div>
-                      );
-                    })}
-                  </td>
-                </tr>
-              ))}
+                      </td>
+                      <td>
+                        {lines.length === 0 && <span className="admin-warn">no server cost recorded</span>}
+                        {lines.map((l) => (
+                          <div key={l.sv.id} className="srv-line">
+                            <span className={isActive(l.sv) ? undefined : "admin-muted"}>
+                              <strong style={{ fontWeight: 600 }}>{l.sv.name}</strong>
+                              <div className="admin-muted">{PROVIDER_LABEL[l.sv.provider]} · {formatAmount(l.sv.monthly_cost_cents, l.sv.currency)}/mo</div>
+                            </span>
+                          </div>
+                        ))}
+                      </td>
+                      <td className="num">
+                        {r.hostingSale > 0 ? ngn(r.hostingSale) : r.cost > 0 ? <span className="admin-danger">not billed</span> : <span className="admin-muted">—</span>}
+                      </td>
+                      <td className="num">{ngn(r.cost)}</td>
+                      <td className={`num ${r.margin < 0 ? "admin-danger" : ""}`}>
+                        {r.hostingSale > 0 || r.cost > 0 ? ngn(r.margin) : "—"}
+                        {r.pct !== null && <div className={r.pct < 0 ? "admin-danger" : "admin-muted"}>{formatPercent(r.pct, 0)}</div>}
+                      </td>
+                      <td>
+                        {lines.map((l) => (
+                          <div key={l.sv.id} className="srv-line">
+                            {l.sv.ended_on && l.due === null ? (
+                              <span className="admin-muted">ended {formatDate(l.sv.ended_on)}</span>
+                            ) : l.overdue ? (
+                              <span><span className="pill-overdue">OVERDUE</span><div className="admin-muted">{formatDate(l.due as string)}</div></span>
+                            ) : l.due ? (
+                              <span className="admin-muted">{formatDate(l.due)}</span>
+                            ) : (
+                              <span className="admin-muted">—</span>
+                            )}
+                          </div>
+                        ))}
+                      </td>
+                      <td className="num">
+                        {lines.map((l) => (
+                          <div key={l.sv.id} className="srv-line" style={{ justifyContent: "flex-end" }}>
+                            <RowMenu
+                              label={`Actions for ${l.sv.name}`}
+                              items={[
+                                { label: "Mark paid", disabled: !books.paymentsAvailable || !l.expense || l.due === null, onClick: () => l.expense && setPayingId(payingId === l.expense.id ? null : l.expense.id) },
+                                { label: "Edit", onClick: () => openEdit(l.sv) },
+                                ...(isActive(l.sv) && !l.sv.ended_on ? [{ label: "End today", onClick: () => void end(l.sv) }] : []),
+                                { label: "Delete", danger: true, onClick: () => void remove(l.sv) }
+                              ]}
+                            />
+                          </div>
+                        ))}
+                      </td>
+                    </tr>
+                    {paying?.expense && (
+                      <tr>
+                        <td colSpan={7}>
+                          <PaymentForm books={books} expense={paying.expense} onClose={() => setPayingId(null)} onSaved={refresh} />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr>
-                <td><strong>Hosting margin</strong></td>
+                <td colSpan={2}><strong>Hosting margin</strong></td>
                 <td className="num">{ngn(totals.sale)}</td>
                 <td className="num">{ngn(totals.cost)}</td>
                 <td className="num">
                   <strong>{ngn(totals.sale - totals.cost)}</strong>
                   {totals.sale > 0 && <div className="admin-muted">{formatPercent(((totals.sale - totals.cost) / totals.sale) * 100, 0)}</div>}
                 </td>
-                <td className="num"><strong>{ngn(totals.service)}</strong></td>
-                <td />
+                <td colSpan={2} />
               </tr>
             </tfoot>
           </table>
         </div>
       )}
-      <p className="admin-muted mt-2">
-        Services (retainers, maintenance) are revenue only: their cost is your time. Sale is the contracted price, so a coupon means less is billed for a while.
-      </p>
     </div>
   );
 }
