@@ -43,7 +43,8 @@ import {
   Send,
   Sun,
   Moon,
-  UserCog
+  UserCog,
+  TrendingUp
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -129,7 +130,10 @@ const OWNER_ONLY_NAV = ["/admin/leads", "/admin/outreach", "/admin/team"];
 const FINANCE_NAV: NavGroup[] = [
   {
     label: null,
-    items: [{ href: "/finance", label: "Overview", icon: Wallet }]
+    items: [
+      { href: "/finance", label: "Overview", icon: Wallet },
+      { href: "/finance/cashflow", label: "Cashflow", icon: TrendingUp }
+    ]
   },
   {
     label: "Income",
