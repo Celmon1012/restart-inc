@@ -76,7 +76,7 @@ export default function Home() {
   useEffect(() => {
     applyPageSeo({
       title: "Restart Inc.",
-      description: "As a technology firm we help ambitious builders and operators turn complex workflows and product ideas into reliable, scalable production systems.",
+      description: "We help ambitious businesses turn complex workflows and product ideas into reliable, scalable production systems.",
       path: "/",
     });
     return () => resetSeoToDefault();
@@ -144,7 +144,7 @@ export default function Home() {
         <div className="hero-shell">
           <div className="hero-content">
             <h1>Build systems <span>your growth depends on.</span></h1>
-            <p>As a technology firm we help ambitious builders and operators turn complex workflows<br />and product ideas into reliable, scalable production systems.</p>
+            <p>We help ambitious businesses turn complex workflows and product ideas into reliable, scalable production systems.</p>
             <div className="hero-buttons">
               <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
               <Link href="/platform" className="button outline">See how we build <ChevronRight size={15} /></Link>
