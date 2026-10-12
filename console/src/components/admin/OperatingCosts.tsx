@@ -303,10 +303,10 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                         <td className="num">{formatAmount(e.amount_cents, e.currency)}</td>
                         <td className={overdue ? undefined : "admin-muted"}>
                           {!due ? "ended" : overdue ? (
-                            <>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+                              <span className="admin-muted">{formatDate(due)}</span>
                               <span className="pill-overdue">OVERDUE · {Math.max(1, Math.round((Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(due)) / 86_400_000))}d</span>
-                              <div className="admin-muted">due {formatDate(due)}</div>
-                            </>
+                            </span>
                           ) : formatDate(due)}
                         </td>
                         <td className="num">
@@ -425,10 +425,10 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                             <td className="num">{e.cadence === "one_off" ? "—" : ngn(toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates))}</td>
                             <td className={overdue ? undefined : "admin-muted"}>
                               {e.cadence === "one_off" ? "—" : !due ? "ended" : overdue ? (
-                                <>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+                                  <span className="admin-muted">{formatDate(due)}</span>
                                   <span className="pill-overdue">OVERDUE · {Math.max(1, Math.round((Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(due)) / 86_400_000))}d</span>
-                                  <div className="admin-muted">due {formatDate(due)}</div>
-                                </>
+                                </span>
                               ) : formatDate(due)}
                             </td>
                             <td className="num">
