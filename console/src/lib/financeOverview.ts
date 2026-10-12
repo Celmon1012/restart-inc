@@ -5,9 +5,20 @@ import { invokeFunction } from "@/lib/functions";
 
 export type Totals = Record<string, number>;
 
+export interface SubscriptionLine {
+  customerId: string;
+  workspaceId: string | null;
+  planCode: string;
+  planName: string;
+  subscriptionName: string | null;
+  kind: "hosting" | "service";
+  monthlyCents: number;
+  currency: string;
+}
+
 export interface FinanceOverview {
   generatedAt: string;
-  totals: { collected: Totals; collectedThisMonth: Totals; outstanding: Totals; overdue: Totals; mrr: Totals; vatCollected?: Totals; vatCollectedThisMonth?: Totals };
+  totals: { collected: Totals; collectedThisMonth: Totals; outstanding: Totals; overdue: Totals; /** Recurring revenue given away by active coupons, so billed MRR = mrr - discount. */ discount?: Totals; mrr: Totals; vatCollected?: Totals; vatCollectedThisMonth?: Totals };
   activeSubscriptions: number;
   billedClients: number;
   unbilledClients: number;
@@ -22,9 +33,14 @@ export interface FinanceOverview {
     outstanding: Totals;
     overdue: Totals;
     mrr: Totals;
+    /** Monthly amount an active coupon is giving away, and how many invoices it still covers (null = no end). */
+    discount?: Totals;
+    couponInvoicesLeft?: number | null;
     invoiceCount: number;
     lastInvoiceAt: string | null;
   }>;
+  /** Every active subscription as a line: hosting plans (dedicated-server-*) or services (retainers, maintenance, pods). */
+  subscriptions?: SubscriptionLine[];
   openInvoices: Array<{
     id: string;
     number: string;

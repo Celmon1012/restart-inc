@@ -88,3 +88,53 @@ export function TaskEditForm({
     </form>
   );
 }
+
+/**
+ * Who a task is for and when it's due, as controls you change in place: pick a different
+ * assignee or date and it saves at once. The title (and everything else) still goes through
+ * the Edit form. A task is "for the client" or for a team member, never both.
+ */
+export function TaskInlineMeta({ task, team, onSaved }: { task: EditableTask; team: TeamMember[]; onSaved: () => Promise<void> | void }) {
+  const [busy, setBusy] = useState(false);
+  const current = task.owner === "client" ? "client" : task.assignee_id ?? "";
+  const overdue = dueInfo(task)?.overdue ?? false;
+
+  const save = async (patch: { owner?: "team" | "client"; assignee_id?: string | null; due_at?: string | null }) => {
+    setBusy(true);
+    const { error } = await consoleSchema().from("deliverable_tasks").update(patch).eq("id", task.id);
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await onSaved();
+  };
+
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+      <input
+        type="date"
+        className={`inline-edit ${overdue ? "overdue" : ""}`}
+        value={task.due_at ?? ""}
+        disabled={busy}
+        aria-label={`Deadline for ${task.title}`}
+        title={task.due_at ? (overdue ? "Overdue" : "Deadline") : "Set a deadline"}
+        onChange={(e) => void save({ due_at: e.target.value || null })}
+      />
+      <select
+        className={`inline-edit ${task.owner === "client" ? "client" : ""}`}
+        value={current}
+        disabled={busy}
+        aria-label={`Assigned to for ${task.title}`}
+        onChange={(e) => {
+          const v = e.target.value;
+          void save(v === "client" ? { owner: "client", assignee_id: null } : { owner: "team", assignee_id: v || null });
+        }}
+      >
+        <option value="">Unassigned</option>
+        {team.map((m) => <option key={m.user_id} value={m.user_id}>{m.email.split("@")[0]}</option>)}
+        <option value="client">Client to do</option>
+      </select>
+    </span>
+  );
+}

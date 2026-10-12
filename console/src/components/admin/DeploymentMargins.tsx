@@ -1,8 +1,12 @@
-// Margin per client deployment: what the workspace pays (Lago MRR) against what
-// its servers cost Restart (console.services). Hetzner servers are synced from
-// Coolify: a server running a client's resources with no service row is offered
-// for tracking, and a tracked server Coolify no longer sees is offered for
-// ending. Contabo servers have no Coolify link and are kept by hand.
+// Hosting: what a client pays for hosting against what their servers cost Restart.
+//   - Hosting margin compares a client's hosting plans (dedicated-server-*) with the monthly cost
+//     of their servers. That is the only place a margin means something.
+//   - Services (retainers, maintenance, pods) are revenue only: their cost is people's time, which
+//     isn't tracked, so they get no margin.
+// A server's cost is an expense (console.expenses) linked from console.services, so it is paid,
+// recorded and audited like any other expense on the Expenses page. Hetzner servers are synced
+// from Coolify: a server running a client's resources with no record is offered for tracking, and a
+// tracked server Coolify no longer sees is offered for ending. Contabo servers are kept by hand.
 
 import { useMemo, useState } from "react";
 import { consoleSchema } from "@/lib/supabase";
@@ -45,20 +49,36 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
   const isActive = (s: Service) => !s.ended_on || s.ended_on >= today();
 
   const rows = useMemo(() => {
+    const lines = finance.subscriptions;
     const ids = new Set<string>(books.services.map((s) => s.workspace_id));
     for (const c of finance.clients) if (c.workspaceId && Object.keys(c.mrr).length) ids.add(c.workspaceId);
     return Array.from(ids)
       .map((id) => {
-        const revenue = finance.clients.filter((c) => c.workspaceId === id).reduce((sum, c) => sum + totalsToNgn(c.mrr, rates), 0);
+        const clientRows = finance.clients.filter((c) => c.workspaceId === id);
+        const mrrTotal = clientRows.reduce((sum, c) => sum + totalsToNgn(c.mrr, rates), 0);
+        // Without subscription lines (an older billing function) all revenue counts as hosting, as before.
+        const hostingSale = lines
+          ? lines.filter((l) => l.workspaceId === id && l.kind === "hosting").reduce((sum, l) => sum + toNgn(l.monthlyCents, l.currency, rates), 0)
+          : mrrTotal;
+        const serviceRevenue = lines
+          ? lines.filter((l) => l.workspaceId === id && l.kind === "service").reduce((sum, l) => sum + toNgn(l.monthlyCents, l.currency, rates), 0)
+          : 0;
+        const serviceNames = lines ? lines.filter((l) => l.workspaceId === id && l.kind === "service").map((l) => l.subscriptionName ?? l.planName) : [];
+        const discount = clientRows.reduce((sum, c) => sum + totalsToNgn(c.discount, rates), 0);
+        const couponLeft = clientRows.reduce<number | null>((m, c) => (c.couponInvoicesLeft == null ? m : m === null ? c.couponInvoicesLeft : Math.min(m, c.couponInvoicesLeft)), null);
         const services = books.services.filter((s) => s.workspace_id === id);
         const cost = services.filter(isActive).reduce((sum, s) => sum + toNgn(s.monthly_cost_cents, s.currency, rates), 0);
-        return { id, revenue, cost, margin: revenue - cost, pct: revenue > 0 ? ((revenue - cost) / revenue) * 100 : null, services };
+        return {
+          id, hostingSale, serviceRevenue, serviceNames, discount, couponLeft, cost, services,
+          margin: hostingSale - cost,
+          pct: hostingSale > 0 ? ((hostingSale - cost) / hostingSale) * 100 : null
+        };
       })
       .sort((a, b) => a.margin - b.margin);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [books, finance, rates]);
 
-  const totals = rows.reduce((t, r) => ({ revenue: t.revenue + r.revenue, cost: t.cost + r.cost }), { revenue: 0, cost: 0 });
+  const totals = rows.reduce((t, r) => ({ sale: t.sale + r.hostingSale, cost: t.cost + r.cost, service: t.service + r.serviceRevenue }), { sale: 0, cost: 0, service: 0 });
 
   // Coolify sync hints.
   const liveServers = useMemo(() => {
@@ -113,10 +133,35 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
       started_on: form.start,
       ended_on: form.end || null
     };
+    // The cost itself lives on a linked expense, so the server can be paid and audited like any other.
+    const expenseRow = {
+      name: `${form.name.trim()} (${PROVIDER_LABEL[form.provider]})`,
+      category: "infrastructure",
+      amount_cents: row.monthly_cost_cents,
+      currency: form.currency,
+      cadence: "monthly",
+      start_date: form.start,
+      end_date: form.end || null
+    };
     try {
-      const q = editingId ? consoleSchema().from("services").update(row).eq("id", editingId) : consoleSchema().from("services").insert(row);
-      const { error } = await q;
-      if (error) throw error;
+      if (editingId) {
+        const existing = books.services.find((x) => x.id === editingId);
+        if (existing?.expense_id) {
+          const { error: eErr } = await consoleSchema().from("expenses").update(expenseRow).eq("id", existing.expense_id);
+          if (eErr) throw eErr;
+        }
+        const { error } = await consoleSchema().from("services").update(row).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { data: exp, error: eErr } = await consoleSchema().from("expenses").insert(expenseRow).select("id").single();
+        if (eErr) throw eErr;
+        const { error } = await consoleSchema().from("services").insert({ ...row, expense_id: exp.id });
+        if (error) {
+          // Don't leave an expense behind for a server that wasn't saved.
+          await consoleSchema().from("expenses").delete().eq("id", exp.id);
+          throw error;
+        }
+      }
       setForm(null);
       await refresh();
     } catch (err) {
@@ -127,21 +172,31 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
   };
 
   const end = async (s: Service) => {
+    if (s.expense_id) {
+      const { error: eErr } = await consoleSchema().from("expenses").update({ end_date: today() }).eq("id", s.expense_id);
+      if (eErr) return window.alert(eErr.message);
+    }
     const { error } = await consoleSchema().from("services").update({ ended_on: today() }).eq("id", s.id);
     if (error) window.alert(error.message);
     else await refresh();
   };
   const remove = async (s: Service) => {
+    // Payments recorded against its expense are kept for the audit trail, so a paid server can only be ended.
+    if (s.expense_id && books.payments.some((p) => p.expense_id === s.expense_id)) {
+      window.alert("This server has payments recorded against it, which are kept for the audit trail. Use End instead of Delete.");
+      return;
+    }
     if (!window.confirm(`Delete "${s.name}" entirely? Past months will lose its cost. Use End to keep history.`)) return;
     const { error } = await consoleSchema().from("services").delete().eq("id", s.id);
-    if (error) window.alert(error.message);
-    else await refresh();
+    if (error) return window.alert(error.message);
+    if (s.expense_id) await consoleSchema().from("expenses").delete().eq("id", s.expense_id);
+    await refresh();
   };
 
   return (
     <div className="admin-section">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 className="admin-section-title">Deployments: sale vs server cost</h2>
+        <h2 className="admin-section-title">Hosting: sale vs server cost</h2>
         <button className="dash-tab-btn active" onClick={() => openAdd()}>Add server</button>
       </div>
 
@@ -201,28 +256,40 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
       )}
 
       {rows.length === 0 ? (
-        <div className="dash-empty-state">No deployments tracked yet. Add each client's server with its monthly cost and margin appears here.</div>
+        <div className="dash-empty-state">No hosting tracked yet. Add each client's server with its monthly cost and the margin appears here.</div>
       ) : (
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
                 <th>Client / project</th>
-                <th className="num">Sale (MRR)</th>
+                <th className="num">Hosting sale</th>
                 <th className="num">Server cost</th>
                 <th className="num">Margin</th>
                 <th className="num">%</th>
+                <th className="num">Services</th>
                 <th>Servers</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td><strong>{nameOf(r.id)}</strong></td>
-                  <td className="num">{ngn(r.revenue)}</td>
+                  <td>
+                    <strong>{nameOf(r.id)}</strong>
+                    {r.discount > 0 && (
+                      <div className="admin-warn">
+                        coupon: {ngn(r.discount)}/mo not billed{r.couponLeft !== null ? ` · ${r.couponLeft} invoice${r.couponLeft === 1 ? "" : "s"} left` : ""}
+                      </div>
+                    )}
+                  </td>
+                  <td className="num">{r.hostingSale > 0 ? ngn(r.hostingSale) : <span className="admin-muted">—</span>}</td>
                   <td className="num">{ngn(r.cost)}</td>
-                  <td className={`num ${r.margin < 0 ? "admin-warn" : ""}`}>{ngn(r.margin)}</td>
-                  <td className={`num ${r.pct !== null && r.pct < 0 ? "admin-warn" : ""}`}>{r.pct === null ? "—" : formatPercent(r.pct, 0)}</td>
+                  <td className={`num ${r.margin < 0 ? "admin-danger" : ""}`}>{r.hostingSale > 0 || r.cost > 0 ? ngn(r.margin) : "—"}</td>
+                  <td className={`num ${r.pct !== null && r.pct < 0 ? "admin-danger" : ""}`}>{r.pct === null ? "—" : formatPercent(r.pct, 0)}</td>
+                  <td className="num">
+                    {r.serviceRevenue > 0 ? ngn(r.serviceRevenue) : <span className="admin-muted">—</span>}
+                    {r.serviceNames.length > 0 && <div className="admin-muted">{r.serviceNames.join(", ")}</div>}
+                  </td>
                   <td>
                     {r.services.length === 0 && <span className="admin-warn">no server cost recorded</span>}
                     {r.services.map((s) => (
@@ -242,11 +309,12 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
             </tbody>
             <tfoot>
               <tr>
-                <td><strong>Gross profit</strong></td>
-                <td className="num">{ngn(totals.revenue)}</td>
+                <td><strong>Hosting margin</strong></td>
+                <td className="num">{ngn(totals.sale)}</td>
                 <td className="num">{ngn(totals.cost)}</td>
-                <td className="num"><strong>{ngn(totals.revenue - totals.cost)}</strong></td>
-                <td className="num">{totals.revenue > 0 ? formatPercent(((totals.revenue - totals.cost) / totals.revenue) * 100, 0) : "—"}</td>
+                <td className="num"><strong>{ngn(totals.sale - totals.cost)}</strong></td>
+                <td className="num">{totals.sale > 0 ? formatPercent(((totals.sale - totals.cost) / totals.sale) * 100, 0) : "—"}</td>
+                <td className="num"><strong>{ngn(totals.service)}</strong></td>
                 <td />
               </tr>
             </tfoot>
@@ -254,7 +322,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
         </div>
       )}
       <p className="admin-muted mt-2">
-        Sale is each client's monthly recurring revenue from billing; cost is their active servers at the current rates. A server ended mid-month is prorated by day in the monthly figures. Contabo servers aren't in Coolify, so end them here by hand.
+        Hosting sale is a client's dedicated-server plans from billing; server cost is their active servers at the current rates. Services (retainers, maintenance, pods) are revenue only, because their cost is your time and isn't tracked, so they carry no margin. Prices are the contracted amounts: a coupon can mean less is billed for a while. A server ended mid-month is prorated by day. Contabo servers aren't in Coolify, so end them here by hand.
       </p>
     </div>
   );

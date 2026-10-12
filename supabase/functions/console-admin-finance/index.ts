@@ -77,6 +77,7 @@ interface LagoInvoice {
 
 interface LagoSubscription {
   external_id: string;
+  name?: string | null;
   plan_code: string;
   status: string;
   // The price of the plan this subscription actually runs on. A per-customer
@@ -84,6 +85,18 @@ interface LagoSubscription {
   // so the plan looked up by code carries the standard price, not the agreed one.
   plan_amount_cents?: number;
   plan_amount_currency?: string;
+}
+
+// A coupon applied to a customer. Recurring ones take a percentage or a fixed amount off each
+// invoice until frequency_duration_remaining runs out ("forever" has no end).
+interface LagoAppliedCoupon {
+  status: string;
+  coupon_code?: string;
+  percentage_rate?: string | number | null;
+  amount_cents?: number | null;
+  amount_currency?: string | null;
+  frequency?: string;
+  frequency_duration_remaining?: number | null;
 }
 
 interface LagoPlan {
@@ -165,7 +178,7 @@ Deno.serve(async (req) => {
     const workspaces = await getWorkspaces(jwt);
     const byCustomer = new Map(workspaces.filter((w) => w.lago_customer_id && !isBreadmaker(w.lago_customer_id)).map((w) => [w.lago_customer_id!, w]));
 
-    const [invoices, plansRes, subsByCustomer] = await Promise.all([
+    const [invoices, plansRes, subsByCustomer, couponsByCustomer] = await Promise.all([
       fetchAllInvoices(),
       lagoFetch(`/plans?per_page=100`),
       Promise.all(
@@ -174,6 +187,14 @@ Deno.serve(async (req) => {
             `/subscriptions?external_customer_id=${encodeURIComponent(customerId)}&status[]=active&status[]=pending`
           ).catch(() => null);
           return [customerId, (res?.subscriptions ?? []) as LagoSubscription[]] as const;
+        })
+      ),
+      Promise.all(
+        [...byCustomer.keys()].map(async (customerId) => {
+          const res = await lagoFetch(
+            `/applied_coupons?external_customer_id=${encodeURIComponent(customerId)}&status=active`
+          ).catch(() => null);
+          return [customerId, (res?.applied_coupons ?? []) as LagoAppliedCoupon[]] as const;
         })
       ),
     ]);
@@ -207,6 +228,10 @@ Deno.serve(async (req) => {
       outstanding: Totals;
       overdue: Totals;
       mrr: Totals;
+      // Recurring revenue given away by active coupons each month (same currencies as mrr),
+      // and how many more invoices the shortest-lived one covers (null = no end).
+      discount: Totals;
+      couponInvoicesLeft: number | null;
       invoiceCount: number;
       lastInvoiceAt: string | null;
     };
@@ -222,6 +247,8 @@ Deno.serve(async (req) => {
           outstanding: {},
           overdue: {},
           mrr: {},
+          discount: {},
+          couponInvoicesLeft: null,
           invoiceCount: 0,
           lastInvoiceAt: null,
         });
@@ -276,6 +303,20 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Each active subscription as a line, classified by what it sells. Hosting plans are matched
+    // with server costs; everything else is a service (labour) and is shown as revenue only.
+    const isHostingPlan = (code: string) => code.startsWith("dedicated-server");
+    const subscriptionLines: Array<{
+      customerId: string;
+      workspaceId: string | null;
+      planCode: string;
+      planName: string;
+      subscriptionName: string | null;
+      kind: "hosting" | "service";
+      monthlyCents: number;
+      currency: string;
+    }> = [];
+
     let activeSubscriptions = 0;
     for (const [customerId, subs] of subsByCustomer) {
       for (const sub of subs) {
@@ -293,7 +334,40 @@ Deno.serve(async (req) => {
         const cents = monthlyCents(plan);
         add(mrr, plan.amount_currency, cents);
         add(clientFor(customerId).mrr, plan.amount_currency, cents);
+        subscriptionLines.push({
+          customerId,
+          workspaceId: byCustomer.get(customerId)?.id ?? null,
+          planCode: sub.plan_code,
+          planName: catalogPlan.name,
+          subscriptionName: sub.name ?? null,
+          kind: isHostingPlan(sub.plan_code) ? "hosting" : "service",
+          monthlyCents: cents,
+          currency: plan.amount_currency,
+        });
       }
+    }
+
+    // MRR is the contracted price. A coupon can give some or all of it away for a while (a free
+    // support period, say), so work out what is actually billed: recurring coupons only, a
+    // percentage off every currency or a fixed amount in the coupon's currency, never below zero.
+    const discount: Totals = {};
+    for (const [customerId, coupons] of couponsByCustomer) {
+      const client = clientFor(customerId);
+      for (const c of coupons) {
+        if (c.status !== "active" || c.frequency === "once") continue;
+        const left = c.frequency === "forever" ? null : c.frequency_duration_remaining ?? null;
+        if (left !== null && left <= 0) continue;
+        const pct = Number(c.percentage_rate ?? 0);
+        const take = (currency: string, cents: number) => {
+          const room = (client.mrr[currency] ?? 0) - (client.discount[currency] ?? 0);
+          const amount = Math.max(0, Math.min(Math.round(cents), room));
+          if (amount > 0) add(client.discount, currency, amount);
+        };
+        if (pct > 0) for (const [currency, cents] of Object.entries(client.mrr)) take(currency, (cents * Math.min(pct, 100)) / 100);
+        else if (c.amount_cents && c.amount_currency) take(c.amount_currency, c.amount_cents);
+        if (left !== null) client.couponInvoicesLeft = client.couponInvoicesLeft === null ? left : Math.min(client.couponInvoicesLeft, left);
+      }
+      for (const [currency, cents] of Object.entries(client.discount)) add(discount, currency, cents);
     }
 
     const openInvoices = invoices
@@ -316,7 +390,7 @@ Deno.serve(async (req) => {
 
     return json({
       generatedAt: now.toISOString(),
-      totals: { collected, collectedThisMonth, outstanding, overdue, mrr, vatCollected, vatCollectedThisMonth },
+      totals: { collected, collectedThisMonth, outstanding, overdue, mrr, discount, vatCollected, vatCollectedThisMonth },
       activeSubscriptions,
       billedClients: byCustomer.size,
       unbilledClients: workspaces.length - byCustomer.size,
@@ -324,6 +398,7 @@ Deno.serve(async (req) => {
       invoicesTruncated: invoices.length >= MAX_INVOICE_PAGES * 100,
       monthly: months.map((m) => ({ month: m, collected: monthly[m] })),
       clients: [...clients.values()].sort((a, b) => a.name.localeCompare(b.name)),
+      subscriptions: subscriptionLines,
       openInvoices,
     });
   } catch (err) {

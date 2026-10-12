@@ -24,7 +24,7 @@ import { EmptyState, ErrorAlert, LoadingState } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { toast } from "sonner";
 import { loadTeamMembers } from "@/lib/admin";
-import { TaskEditForm, assigneeLabel, dueInfo, type TeamMember } from "@/components/admin/TaskEdit";
+import { TaskEditForm, TaskInlineMeta, type TeamMember } from "@/components/admin/TaskEdit";
 
 interface DeliverableTask {
   id: string;
@@ -142,8 +142,7 @@ function MilestoneCard({
                   </button>
                   <span className="task-body">
                     <span className={task.is_done ? "done" : ""}>{task.title}</span>
-                    {dueInfo(task) && <span className={dueInfo(task)!.overdue ? "admin-warn" : "admin-muted"}>{dueInfo(task)!.text}</span>}
-                    <span className={task.owner === "client" ? "admin-warn" : "admin-muted"}>{assigneeLabel(task, team)}</span>
+                    <TaskInlineMeta task={task} team={team} onSaved={onTaskSaved} />
                   </span>
                   <button className="dash-tab-btn" onClick={() => setEditingTaskId(task.id)}>Edit</button>
                   <button className="deliverable-task-remove" onClick={() => onDeleteTask(task)} aria-label="Remove item">

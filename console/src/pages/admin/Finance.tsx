@@ -75,6 +75,13 @@ function MonthlyBars({ monthly, currency }: { monthly: FinanceOverview["monthly"
   );
 }
 
+/** Contracted MRR less what coupons give away, per currency (never below zero). */
+function netOf(mrr: Totals, discount: Totals | undefined): Totals {
+  const out: Totals = {};
+  for (const [c, v] of Object.entries(mrr)) out[c] = Math.max(0, v - (discount?.[c] ?? 0));
+  return out;
+}
+
 export default function AdminFinance() {
   return (
     <FinancePage title="Overview" description="Where the business stands: revenue, expenses and what needs attention." needs={["finance", "books"]}>
@@ -98,7 +105,10 @@ export default function AdminFinance() {
               <div>
                 <small>MRR</small>
                 <strong><TotalsValue totals={data.totals.mrr} /></strong>
-                <em>{data.activeSubscriptions} active subscription{data.activeSubscriptions === 1 ? "" : "s"}</em>
+                <em>
+                  {data.activeSubscriptions} active subscription{data.activeSubscriptions === 1 ? "" : "s"}
+                  {Object.keys(data.totals.discount ?? {}).length > 0 ? ` · ${formatTotals(netOf(data.totals.mrr, data.totals.discount))} billed after coupons` : ""}
+                </em>
               </div>
               <div>
                 <small>COLLECTED THIS MONTH (EX-VAT)</small>

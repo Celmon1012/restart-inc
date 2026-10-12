@@ -4,6 +4,9 @@
 // (home currency); revenue in currencies other than NGN/USD/EUR is left out.
 
 import { Fragment, useMemo, useState } from "react";
+import { Link } from "wouter";
+import { loadWorkspaceNames } from "@/lib/admin";
+import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { consoleSchema } from "@/lib/supabase";
 import { formatAmount, formatDate, formatPercent } from "@/lib/format";
 import {
@@ -11,6 +14,7 @@ import {
   COST_CURRENCIES,
   EXPENSE_CATEGORIES,
   expenseInMonth,
+  hostingExpenseIds,
   hostingInMonth,
   nextDue,
   monthKey,
@@ -44,6 +48,10 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
   const [edits, setEdits] = useState<Partial<Record<keyof Settings, string>>>({});
 
   const rates = books.settings;
+  // Expenses that hold a client server's cost are hosting (cost of sales); the rest are operating expenses.
+  const hostingIds = hostingExpenseIds(books);
+  const operating = books.expenses.filter((e) => !hostingIds.has(e.id));
+  const names = useAsyncResource(() => loadWorkspaceNames(), [], { enabled: view === "costs" });
 
   const calc = useMemo(() => {
     const now = new Date();
@@ -59,7 +67,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
       return { key, collected, hosting, overhead, cost: hosting + overhead, net: collected - hosting - overhead };
     });
 
-    const recurringOverhead = books.expenses
+    const recurringOverhead = operating
       .filter((e) => e.cadence !== "one_off")
       .reduce((s, e) => s + toNgn(expenseInMonth(e, thisMonth), e.currency, rates), 0);
     const runRate = hostingInMonth(books, thisMonth) + recurringOverhead;
@@ -67,10 +75,11 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
     const last3 = months.slice(-3);
     const avgCollected = last3.reduce((s, m) => s + m.collected, 0) / 3;
     const avgCost = last3.reduce((s, m) => s + m.cost, 0) / 3;
-    const mrr = totalsToNgn(finance.totals.mrr, rates);
+    // What is actually billed: contracted MRR less recurring coupons (a free support period, say).
+    const mrr = totalsToNgn(finance.totals.mrr, rates) - totalsToNgn(finance.totals.discount, rates);
     const burn = Math.max(0, avgCost - avgCollected);
     const byCategory = (Object.keys(CATEGORIES) as Category[])
-      .map((c) => ({ c, v: books.expenses.filter((e) => e.category === c).reduce((s, e) => s + toNgn(expenseInMonth(e, thisMonth), e.currency, rates), 0) }))
+      .map((c) => ({ c, v: operating.filter((e) => e.category === c).reduce((s, e) => s + toNgn(expenseInMonth(e, thisMonth), e.currency, rates), 0) }))
       .filter((r) => r.v > 0)
       .sort((a, b) => b.v - a.v);
 
@@ -88,7 +97,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
       runwayMonths: burn > 0 ? books.settings.cash_ngn_cents / burn : null,
       byCategory
     };
-  }, [books, finance, rates]);
+  }, [books, finance, rates, operating]);
 
   const startEdit = (e: Expense) => {
     setEditingId(e.id);
@@ -253,6 +262,64 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
       )}
 
       {view === "costs" && (
+      <>
+      <div className="admin-section">
+        <h2 className="admin-section-title">Client hosting</h2>
+        <p className="admin-muted">Servers run for clients. Their monthly cost is an expense like any other, so you pay and record it here. Add, edit or end a server on the Hosting page.</p>
+        {books.services.filter((sv) => sv.expense_id).length === 0 ? (
+          <div className="dash-empty-state">No client servers yet. <Link href="/finance/hosting" className="text-teal">Add one on Hosting</Link>.</div>
+        ) : (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Server</th>
+                  <th>Client</th>
+                  <th className="num">Amount</th>
+                  <th>Next due</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {books.services.filter((sv) => sv.expense_id).map((sv) => {
+                  const e = books.expenses.find((x) => x.id === sv.expense_id);
+                  if (!e) return null;
+                  const due = nextDue(e, books.payments);
+                  const overdue = due !== null && due < new Date().toISOString().slice(0, 10);
+                  return (
+                    <Fragment key={sv.id}>
+                      <tr className={overdue ? "row-overdue" : undefined} style={due === null ? { opacity: 0.6 } : undefined}>
+                        <td><strong>{sv.name}</strong><div className="admin-muted">{sv.provider === "hetzner" ? "Hetzner" : sv.provider === "contabo" ? "Contabo" : "Other"}</div></td>
+                        <td>{names.data?.get(sv.workspace_id) ?? "—"}</td>
+                        <td className="num">{formatAmount(e.amount_cents, e.currency)}</td>
+                        <td className={overdue ? undefined : "admin-muted"}>
+                          {!due ? "ended" : overdue ? (
+                            <>
+                              <span className="pill-overdue">OVERDUE · {Math.max(1, Math.round((Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(due)) / 86_400_000))}d</span>
+                              <div className="admin-muted">due {formatDate(due)}</div>
+                            </>
+                          ) : formatDate(due)}
+                        </td>
+                        <td>
+                          {books.paymentsAvailable && due && <button className="dash-tab-btn active" onClick={() => setPayingId(payingId === e.id ? null : e.id)}>Mark paid</button>}
+                        </td>
+                      </tr>
+                      {payingId === e.id && (
+                        <tr>
+                          <td colSpan={5}>
+                            <PaymentForm books={books} expense={e} onClose={() => setPayingId(null)} onSaved={refresh} />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       <div className="admin-section">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 className="admin-section-title">Operating expenses</h2>
@@ -285,7 +352,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
           </form>
         )}
 
-        {books.expenses.length === 0 ? (
+        {operating.length === 0 ? (
           <div className="dash-empty-state">No operating expenses yet. Add tools, internet, salaries, fees and tax, then the ratios on Overview fill in.</div>
         ) : (
           <>
@@ -310,7 +377,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                   </tr>
                 </thead>
                 <tbody>
-                  {books.expenses.map((e) => {
+                  {operating.map((e) => {
                     const due = nextDue(e, books.payments);
                     const overdue = due !== null && due < new Date().toISOString().slice(0, 10);
                     return (
@@ -356,6 +423,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
           </>
         )}
       </div>
+      </>
       )}
     </>
   );

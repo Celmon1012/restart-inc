@@ -12,7 +12,7 @@ import { consoleSchema } from "@/lib/supabase";
 import { loadTeamMembers, loadWorkspaceNames } from "@/lib/admin";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddTask } from "@/components/admin/AddTask";
-import { TaskEditForm, assigneeLabel, dueInfo } from "@/components/admin/TaskEdit";
+import { TaskEditForm, TaskInlineMeta } from "@/components/admin/TaskEdit";
 import { Check, ArrowRight, Search } from "lucide-react";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
@@ -221,8 +221,7 @@ export default function AdminTasks() {
                       {t.is_done && <Check size={12} />}
                     </button>
                     <span className={t.is_done ? "done" : ""}>{t.title}</span>
-                    {dueInfo(t) && <span className={dueInfo(t)!.overdue ? "admin-warn" : "admin-muted"}>{dueInfo(t)!.text}</span>}
-                    <span className={t.owner === "client" ? "admin-warn" : "admin-muted"}>{assigneeLabel(t, team.data ?? [])}</span>
+                    <TaskInlineMeta task={t} team={team.data ?? []} onSaved={refresh} />
                     <button className="dash-tab-btn" onClick={() => setEditingId(editingId === t.id ? null : t.id)}>Edit</button>
                     <span className={`admin-task-context ${m.status === "blocked" ? "admin-warn" : ""}`}>
                       {m.title}

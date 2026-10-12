@@ -30,7 +30,7 @@ import AdminServerRequests from "./pages/admin/ServerRequests";
 import AdminSupport from "./pages/admin/Support";
 import AdminFinance from "./pages/admin/Finance";
 import FinanceInvoices from "./pages/finance/Invoices";
-import FinanceDeployments from "./pages/finance/Deployments";
+import FinanceHosting from "./pages/finance/Hosting";
 import FinanceExpenses from "./pages/finance/Expenses";
 import FinancePayments from "./pages/finance/Payments";
 import FinanceAccounts from "./pages/finance/Accounts";
@@ -238,10 +238,13 @@ function Router() {
           <FinanceInvoices />
         </FinanceRoute>
       </Route>
-      <Route path="/finance/deployments">
+      <Route path="/finance/hosting">
         <FinanceRoute>
-          <FinanceDeployments />
+          <FinanceHosting />
         </FinanceRoute>
+      </Route>
+      <Route path="/finance/deployments">
+        <Redirect to="/finance/hosting" />
       </Route>
       <Route path="/finance/expenses">
         <FinanceRoute>

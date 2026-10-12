@@ -124,26 +124,21 @@ const FINANCE_NAV: NavGroup[] = [
     items: [{ href: "/finance", label: "Overview", icon: Wallet }]
   },
   {
-    label: "Money in",
+    label: "Income",
     items: [{ href: "/finance/invoices", label: "Invoices", icon: Receipt }]
   },
   {
     label: "Expenses",
     items: [
-      { href: "/finance/deployments", label: "Deployments", icon: HardDrive },
-      { href: "/finance/expenses", label: "Expenses", icon: Coins }
-    ]
-  },
-  {
-    label: "Money out",
-    items: [
-      { href: "/finance/payments", label: "Payments", icon: Banknote },
-      { href: "/finance/accounts", label: "Accounts", icon: Landmark }
+      { href: "/finance/expenses", label: "Expenses", icon: Coins },
+      { href: "/finance/hosting", label: "Hosting", icon: HardDrive },
+      { href: "/finance/payments", label: "Payments", icon: Banknote }
     ]
   },
   {
     label: "Settings",
     items: [
+      { href: "/finance/accounts", label: "Accounts", icon: Landmark },
       { href: "/finance/vat", label: "VAT", icon: Percent },
       { href: "/finance/rates", label: "Rates & cash", icon: Settings }
     ]

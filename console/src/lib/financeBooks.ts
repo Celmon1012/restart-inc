@@ -47,6 +47,8 @@ export interface Service {
   started_on: string;
   ended_on: string | null;
   notes: string | null;
+  /** The expense that holds this server's cost (amount, currency, dates). The cost fields above mirror it. */
+  expense_id?: string | null;
 }
 
 export interface Settings {
@@ -99,7 +101,7 @@ export interface Books {
 export async function loadBooks(): Promise<Books> {
   const [exp, svc, set] = await Promise.all([
     consoleSchema().from("expenses").select("id,name,category,amount_cents,currency,cadence,start_date,end_date,notes").order("start_date", { ascending: false }),
-    consoleSchema().from("services").select("id,workspace_id,name,provider,coolify_server_uuid,monthly_cost_cents,currency,started_on,ended_on,notes").order("started_on", { ascending: false }),
+    consoleSchema().from("services").select("*").order("started_on", { ascending: false }),
     consoleSchema().from("finance_settings").select("usd_ngn,eur_ngn,cash_ngn_cents").eq("id", true).maybeSingle()
   ]);
   if (exp.error) throw exp.error;
@@ -116,6 +118,8 @@ export async function loadBooks(): Promise<Books> {
       .order("created_at", { ascending: false })
   ]);
   const paymentsAvailable = !acc.error && !pay.error;
+  const expenses = (exp.data ?? []).map((e) => ({ ...e, amount_cents: Number(e.amount_cents) })) as Expense[];
+  const expenseById = new Map(expenses.map((e) => [e.id, e]));
   return {
     accounts: (paymentsAvailable ? acc.data ?? [] : []) as Account[],
     payments: (paymentsAvailable ? pay.data ?? [] : []).map((p) => ({
@@ -127,8 +131,19 @@ export async function loadBooks(): Promise<Books> {
     })) as ExpensePayment[],
     paymentsAvailable,
     // bigint comes back as a number from PostgREST; numeric may arrive as a string.
-    expenses: (exp.data ?? []).map((e) => ({ ...e, amount_cents: Number(e.amount_cents) })) as Expense[],
-    services: (svc.data ?? []).map((s) => ({ ...s, monthly_cost_cents: Number(s.monthly_cost_cents) })) as Service[],
+    expenses,
+    // A server's cost lives on its linked expense (so it can be paid and audited like any other);
+    // overlay it so everything that reads a service's cost, dates and currency sees the expense's.
+    services: (svc.data ?? []).map((sv) => {
+      const exp = sv.expense_id ? expenseById.get(sv.expense_id as string) : undefined;
+      return {
+        ...sv,
+        monthly_cost_cents: exp ? exp.amount_cents : Number(sv.monthly_cost_cents),
+        currency: exp ? exp.currency : sv.currency,
+        started_on: exp ? exp.start_date : sv.started_on,
+        ended_on: exp ? exp.end_date : sv.ended_on
+      };
+    }) as Service[],
     settings: {
       usd_ngn: Number(set.data?.usd_ngn ?? 1500),
       eur_ngn: Number(set.data?.eur_ngn ?? 1650),
@@ -182,8 +197,16 @@ export function serviceInMonth(s: Service, month: string): number {
 export const hostingInMonth = (b: Books, month: string) =>
   b.services.reduce((sum, s) => sum + toNgn(serviceInMonth(s, month), s.currency, b.settings), 0);
 
-export const overheadInMonth = (b: Books, month: string) =>
-  b.expenses.reduce((sum, e) => sum + toNgn(expenseInMonth(e, month), e.currency, b.settings), 0);
+/** Expenses that hold a client server's cost: counted as hosting, not as operating expenses. */
+export const hostingExpenseIds = (b: Books): Set<string> =>
+  new Set(b.services.map((sv) => sv.expense_id).filter((id): id is string => Boolean(id)));
+
+export const overheadInMonth = (b: Books, month: string) => {
+  const hosting = hostingExpenseIds(b);
+  return b.expenses
+    .filter((e) => !hosting.has(e.id))
+    .reduce((sum, e) => sum + toNgn(expenseInMonth(e, month), e.currency, b.settings), 0);
+};
 
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 const todayIso = () => isoDate(new Date());
