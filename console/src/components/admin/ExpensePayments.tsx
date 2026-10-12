@@ -206,10 +206,6 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
           <button className="dash-tab-btn active" onClick={() => setLogging(true)}>Log expense</button>
         </div>
       </div>
-      <p className="admin-muted">
-        What was actually paid, from which account and with which reference. Recurring expenses show their next due date under Expenses, with a Mark paid button. A wrong entry is voided, never edited or deleted.
-      </p>
-
       {logging && <PaymentForm books={books} onClose={() => setLogging(false)} onSaved={refresh} />}
 
       <p style={{ margin: "8px 0" }}>

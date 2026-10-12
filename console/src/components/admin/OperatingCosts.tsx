@@ -33,8 +33,8 @@ const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
 
 const emptyForm = { name: "", category: "software" as Category, amount: "", currency: "NGN" as CostCurrency, cadence: "monthly" as Cadence, start: new Date().toISOString().slice(0, 10), end: "" };
 
-/** view "summary": costs vs revenue (stats and the month table). view "costs": rates and cash, and the operating expense lines. */
-export function OperatingCosts({ finance, books, refresh, view }: { finance: FinanceOverview; books: Books; refresh: () => Promise<void>; view: "summary" | "costs" }) {
+/** view "summary": expenses vs revenue (stats and the month table). view "costs": the operating expense lines. view "rates": exchange rates and cash on hand. */
+export function OperatingCosts({ finance, books, refresh, view }: { finance: FinanceOverview; books: Books; refresh: () => Promise<void>; view: "summary" | "costs" | "rates" }) {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
@@ -223,15 +223,13 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
           </table>
         </div>
         <p className="admin-muted mt-2">
-          All in NGN at the rates set under Expenses. Hosting is the server cost of client deployments; operating expenses are everything else. Annual and quarterly expenses are spread evenly across months.
+          All in NGN at the rates set under Settings, Rates & cash. Hosting is the server cost of client deployments; operating expenses are everything else. Annual and quarterly expenses are spread evenly across months.
         </p>
       </div>
       )}
 
-      {view === "costs" && (
-      <>
+      {view === "rates" && (
       <div className="admin-section">
-        <h2 className="admin-section-title">Rates and cash</h2>
         <p className="admin-muted">The exchange rates convert dollar and euro expenses and revenue into naira. Cash on hand is what runway is measured against, so update it when your balance changes.</p>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
           {settingField("usd_ngn", "USD → NGN")}
@@ -252,13 +250,14 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
           )}
         </div>
       </div>
+      )}
 
+      {view === "costs" && (
       <div className="admin-section">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 className="admin-section-title">Operating expenses</h2>
           <button className="dash-tab-btn active" onClick={startAdd}>Add expense</button>
         </div>
-        <p className="admin-muted">Expenses not tied to one client: tools, internet and utilities, people, marketing, legal and tax, fees. Client servers go under Deployments instead, so they aren't counted twice.</p>
 
         {showForm && (
           <form
@@ -357,7 +356,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
           </>
         )}
       </div>
-      </>
       )}
     </>
   );

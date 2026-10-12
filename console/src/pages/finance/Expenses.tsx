@@ -7,7 +7,7 @@ import { OperatingCosts } from "@/components/admin/OperatingCosts";
 
 export default function FinanceExpenses() {
   return (
-    <FinancePage title="Expenses" description="Operating expenses, what's due next, and the rates and cash the figures use." needs={["finance", "books"]}>
+    <FinancePage title="Expenses" description="Operating expenses and what's due next." needs={["finance", "books"]}>
       {({ finance, books, reloadBooks }) => <OperatingCosts finance={finance} books={books} refresh={reloadBooks} view="costs" />}
     </FinancePage>
   );

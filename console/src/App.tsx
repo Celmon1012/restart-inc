@@ -35,6 +35,7 @@ import FinanceExpenses from "./pages/finance/Expenses";
 import FinancePayments from "./pages/finance/Payments";
 import FinanceAccounts from "./pages/finance/Accounts";
 import FinanceVat from "./pages/finance/Vat";
+import FinanceRates from "./pages/finance/Rates";
 import AdminAttention from "./pages/admin/Attention";
 import { lazy, Suspense } from "react";
 
@@ -258,6 +259,11 @@ function Router() {
       <Route path="/finance/accounts">
         <FinanceRoute>
           <FinanceAccounts />
+        </FinanceRoute>
+      </Route>
+      <Route path="/finance/rates">
+        <FinanceRoute>
+          <FinanceRates />
         </FinanceRoute>
       </Route>
       <Route path="/finance/vat">

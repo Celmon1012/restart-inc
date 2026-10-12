@@ -128,7 +128,7 @@ const FINANCE_NAV: NavGroup[] = [
     label: "Expenses",
     items: [
       { href: "/finance/deployments", label: "Deployments", icon: HardDrive },
-      { href: "/finance/expenses", label: "Operating expenses", icon: Coins }
+      { href: "/finance/expenses", label: "Expenses", icon: Coins }
     ]
   },
   {
@@ -139,8 +139,11 @@ const FINANCE_NAV: NavGroup[] = [
     ]
   },
   {
-    label: "Tax",
-    items: [{ href: "/finance/vat", label: "VAT", icon: Percent }]
+    label: "Settings",
+    items: [
+      { href: "/finance/vat", label: "VAT", icon: Percent },
+      { href: "/finance/rates", label: "Rates & cash", icon: Settings }
+    ]
   }
 ];
 
@@ -195,6 +198,23 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
     }
   });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  // Sidebar groups the user has folded away, remembered per area. A per-viewer convenience only:
+  // it can come back empty (private window, blocked storage), so reads and writes are guarded.
+  const navKey = `console.navCollapsed.${area}`;
+  const [foldedGroups, setFoldedGroups] = useState<string[]>(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(navKey) ?? "[]");
+      return Array.isArray(raw) ? raw.filter((v): v is string => typeof v === "string") : [];
+    } catch {
+      return [];
+    }
+  });
+  const setFolded = (next: string[]) => {
+    setFoldedGroups(next);
+    try {
+      localStorage.setItem(navKey, JSON.stringify(next));
+    } catch {}
+  };
   // Per-viewer convenience only (which promo they've already dismissed) --
   // bump the key if the promo copy changes so it resurfaces once.
   const [aiPromoDismissed, setAiPromoDismissed] = useState(() => {
@@ -435,22 +455,35 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
         )}
 
         <nav className="console-sidebar-nav" aria-label={isAdminArea ? areaLabel : "Console"}>
-          {navGroups.map((group, idx) => (
-            <div className="console-sidebar-group" key={group.label ?? `group-${idx}`}>
-              {group.label && <span className="console-sidebar-group-label">{group.label}</span>}
-              {group.items.map(({ href, label, icon: Icon }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  title={label}
-                  className={`console-sidebar-link ${location === href || (href !== "/admin" && href !== "/finance" && location.startsWith(`${href}/`)) ? "active" : ""}`}
-                >
-                  <Icon size={15} />
-                  <span>{label}</span>
-                </Link>
-              ))}
-            </div>
-          ))}
+          {navGroups.map((group, idx) => {
+            const isActive = (href: string) => location === href || (href !== "/admin" && href !== "/finance" && location.startsWith(`${href}/`));
+            const hasActive = group.items.some((i) => isActive(i.href));
+            // A group is shown if it isn't folded, if it holds the page you're on (so the current
+            // page is never hidden), or while the sidebar is the icon-only rail (no labels to fold under).
+            const folded = Boolean(group.label) && foldedGroups.includes(group.label as string) && !hasActive && !sidebarCollapsed;
+            return (
+              <div className="console-sidebar-group" key={group.label ?? `group-${idx}`}>
+                {group.label && (
+                  <button
+                    type="button"
+                    className="console-sidebar-group-label group-toggle"
+                    aria-expanded={!folded}
+                    onClick={() => setFolded(foldedGroups.includes(group.label as string) ? foldedGroups.filter((g) => g !== group.label) : [...foldedGroups, group.label as string])}
+                  >
+                    <span>{group.label}</span>
+                    <ChevronDown size={12} className={`group-chevron ${folded ? "folded" : ""}`} />
+                  </button>
+                )}
+                {!folded &&
+                  group.items.map(({ href, label, icon: Icon }) => (
+                    <Link key={href} href={href} title={label} className={`console-sidebar-link ${isActive(href) ? "active" : ""}`}>
+                      <Icon size={15} />
+                      <span>{label}</span>
+                    </Link>
+                  ))}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="console-sidebar-footer">
