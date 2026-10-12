@@ -3001,3 +3001,11 @@ html[data-theme="light"] .dash-user-avatar{ filter: none; }
 .inline-edit.overdue{ color: #ff7b7b; font-weight: 600; }
 .inline-edit.client{ color: var(--amber); }
 .inline-edit option{ background: #14161d; color: #e6e9f2; }
+
+/* Table rows: a faint alternate shade and a light hover, so wide rows are easy to follow across.
+   One rule for every .admin-table (Ops and Finance). Overdue rows keep their own tint, and a row
+   that holds an open form isn't highlighted while you type in it. Footer rows are left alone. */
+.admin-table tbody td{ transition: background-color .12s ease; }
+.admin-table tbody tr:nth-child(even):not(.row-overdue) > td{ background: rgba(255, 255, 255, .022); }
+.admin-table tbody tr:hover:not(.row-overdue):not(:has(form)) > td{ background: rgba(255, 255, 255, .05); }
+.admin-table tbody tr.row-overdue:hover > td{ background: rgba(255, 90, 90, .09); }
