@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { consoleSchema } from "@/lib/supabase";
+import { downloadCsv } from "@/lib/csv";
 import { formatAmount, formatDate } from "@/lib/format";
 import {
   COST_CURRENCIES,
@@ -144,11 +145,6 @@ export function PaymentForm({ books, expense, onClose, onSaved }: { books: Books
   );
 }
 
-function csvCell(v: unknown): string {
-  const s = v === null || v === undefined ? "" : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
 export function ExpensePayments({ books, refresh }: { books: Books; refresh: () => Promise<void> }) {
   const [logging, setLogging] = useState(false);
   const [showVoided, setShowVoided] = useState(false);
@@ -177,26 +173,21 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
     else await refresh();
   };
 
-  const exportCsv = () => {
-    const header = ["paid_on", "expense", "category", "amount", "currency", "fx_rate", "amount_ngn", "vat", "account", "reference", "period_end", "note", "recorded_at", "status", "void_reason"];
-    const rows = books.payments
-      .slice()
-      .sort((a, b) => a.paid_on.localeCompare(b.paid_on))
-      .map((p) => {
-        const e = expenseById.get(p.expense_id);
-        return [
-          p.paid_on, e?.name, e ? EXPENSE_CATEGORIES[e.category] : "", p.amount_cents / 100, p.currency, p.fx_rate, p.amount_ngn_cents / 100, p.vat_cents / 100,
-          p.account_id ? accountById.get(p.account_id)?.name : "", p.reference, p.period_end, p.note, p.created_at, p.voided_at ? "void" : "paid", p.void_reason
-        ].map(csvCell).join(",");
-      });
-    const blob = new Blob([[header.join(","), ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `restart-expense-payments-${today()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const exportCsv = () =>
+    downloadCsv(
+      `restart-expense-payments-${today()}.csv`,
+      ["paid_on", "expense", "category", "amount", "currency", "fx_rate", "amount_ngn", "vat", "account", "reference", "period_end", "note", "recorded_by", "recorded_at", "status", "void_reason", "voided_by"],
+      books.payments
+        .slice()
+        .sort((a, b) => a.paid_on.localeCompare(b.paid_on))
+        .map((p) => {
+          const e = expenseById.get(p.expense_id);
+          return [
+            p.paid_on, e?.name, e ? EXPENSE_CATEGORIES[e.category] : "", p.amount_cents / 100, p.currency, p.fx_rate, p.amount_ngn_cents / 100, p.vat_cents / 100,
+            p.account_id ? accountById.get(p.account_id)?.name : "", p.reference, p.period_end, p.note, p.created_by_email, p.created_at, p.voided_at ? "void" : "paid", p.void_reason, p.voided_by_email
+          ];
+        })
+    );
 
   return (
     <div className="admin-section">
@@ -243,6 +234,7 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
                 <th>Expense</th>
                 <th>Account</th>
                 <th>Reference</th>
+                <th>Recorded by</th>
                 <th className="num">Amount</th>
                 <th className="num">₦ cost</th>
                 <th />
@@ -256,11 +248,12 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
                     <td>{formatDate(p.paid_on)}</td>
                     <td>
                       <strong style={p.voided_at ? { textDecoration: "line-through" } : undefined}>{e?.name ?? "Expense"}</strong>
-                      {p.voided_at && <div className="admin-warn">void · {p.void_reason}</div>}
+                      {p.voided_at && <div className="admin-warn">void · {p.void_reason}{p.voided_by_email ? ` · by ${p.voided_by_email.split("@")[0]}` : ""}</div>}
                       {p.period_end && !p.voided_at && <div className="admin-muted">covers to {formatDate(p.period_end)}</div>}
                     </td>
                     <td className="admin-muted">{p.account_id ? accountById.get(p.account_id)?.name ?? "—" : "—"}</td>
                     <td className="admin-muted">{p.reference ?? "—"}</td>
+                    <td className="admin-muted">{p.created_by_email?.split("@")[0] ?? "—"}</td>
                     <td className="num">{formatAmount(p.amount_cents, p.currency)}{p.vat_cents > 0 && <small className="admin-muted"> incl. VAT {formatAmount(p.vat_cents, p.currency)}</small>}</td>
                     <td className="num">{ngn(p.amount_ngn_cents)}</td>
                     <td>{!p.voided_at && <button className="dash-tab-btn" onClick={() => void voidPayment(p)}>Void</button>}</td>

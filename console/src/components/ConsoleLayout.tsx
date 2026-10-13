@@ -44,7 +44,8 @@ import {
   Sun,
   Moon,
   UserCog,
-  TrendingUp
+  TrendingUp,
+  FileBarChart
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -132,7 +133,8 @@ const FINANCE_NAV: NavGroup[] = [
     label: null,
     items: [
       { href: "/finance", label: "Overview", icon: Wallet },
-      { href: "/finance/cashflow", label: "Cashflow", icon: TrendingUp }
+      { href: "/finance/cashflow", label: "Cashflow", icon: TrendingUp },
+      { href: "/finance/reports", label: "Reports", icon: FileBarChart }
     ]
   },
   {

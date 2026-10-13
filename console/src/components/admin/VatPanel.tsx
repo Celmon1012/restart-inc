@@ -16,6 +16,7 @@ interface Remittance {
   amount_cents: number;
   reference: string | null;
   note: string | null;
+  created_by_email?: string | null;
 }
 
 const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
@@ -24,7 +25,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 export function VatPanel({ finance }: { finance: FinanceOverview }) {
   const { data, loading, error, retry, refresh } = useAsyncResource<Remittance[]>(
     async () => {
-      const { data: rows, error: err } = await consoleSchema().from("vat_remittances").select("id,paid_on,amount_cents,reference,note").order("paid_on", { ascending: false });
+      const { data: rows, error: err } = await consoleSchema().from("vat_remittances").select("*").order("paid_on", { ascending: false });
       if (err) throw err;
       return (rows ?? []).map((r) => ({ ...r, amount_cents: Number(r.amount_cents) })) as Remittance[];
     },
@@ -114,12 +115,13 @@ export function VatPanel({ finance }: { finance: FinanceOverview }) {
       {(data ?? []).length > 0 && (
         <div className="admin-table-wrap mt-4">
           <table className="admin-table">
-            <thead><tr><th>Paid on</th><th>Reference</th><th className="num">Amount</th><th /></tr></thead>
+            <thead><tr><th>Paid on</th><th>Reference</th><th>Logged by</th><th className="num">Amount</th><th /></tr></thead>
             <tbody>
               {(data ?? []).map((r) => (
                 <tr key={r.id}>
                   <td>{formatDate(r.paid_on)}</td>
                   <td className="admin-muted">{r.reference ?? "—"}</td>
+                  <td className="admin-muted">{r.created_by_email?.split("@")[0] ?? "—"}</td>
                   <td className="num">{ngn(r.amount_cents)}</td>
                   <td><button className="dash-tab-btn" onClick={() => void remove(r)}>Delete</button></td>
                 </tr>
