@@ -19,12 +19,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { consoleSchema, supabase } from "@/lib/supabase";
 import type { Deliverable } from "@/lib/deliverables";
 import { formatDate } from "@/lib/format";
-import { Check, Plus, Send, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Plus, Send, X } from "lucide-react";
 import { EmptyState, ErrorAlert, LoadingState } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { toast } from "sonner";
 import { loadTeamMembers } from "@/lib/admin";
-import { TaskEditForm, TaskInlineMeta, type TeamMember } from "@/components/admin/TaskEdit";
+import { TaskEditForm, assigneeLabel, dueInfo, type TeamMember } from "@/components/admin/TaskEdit";
+import { RowMenu } from "@/components/admin/RowMenu";
+import { PROJECT_TEMPLATES, applyTemplate, templateFor } from "@/lib/projectTemplates";
 
 interface DeliverableTask {
   id: string;
@@ -50,6 +52,40 @@ const STATUS_LABEL: Record<Deliverable["status"], string> = {
 
 const STATUS_CYCLE: Deliverable["status"][] = ["not-started", "in-progress", "completed", "blocked"];
 
+type MilestonePatch = Partial<Pick<Deliverable, "title" | "description" | "due_at" | "meta">>;
+
+function EditMilestoneForm({ milestone, onSave, onCancel }: { milestone: Deliverable; onSave: (patch: MilestonePatch) => Promise<void>; onCancel: () => void }) {
+  const [title, setTitle] = useState(milestone.title);
+  const [description, setDescription] = useState(milestone.description ?? "");
+  const [dueAt, setDueAt] = useState(milestone.due_at ? milestone.due_at.slice(0, 10) : "");
+  const [meta, setMeta] = useState(milestone.meta ?? "");
+  const [saving, setSaving] = useState(false);
+  return (
+    <form
+      className="admin-new-form"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (!title.trim()) return;
+        setSaving(true);
+        try {
+          await onSave({ title: title.trim(), description: description.trim() || null, due_at: dueAt ? new Date(dueAt).toISOString() : null, meta: meta.trim() || null });
+        } finally {
+          setSaving(false);
+        }
+      }}
+    >
+      <input className="console-input wide" value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Title" autoFocus />
+      <textarea className="wide" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What this milestone delivers (the client sees this)" aria-label="Description" />
+      <input className="console-input" type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} aria-label="Due date" />
+      <input className="console-input wide" value={meta} onChange={(e) => setMeta(e.target.value)} placeholder="Meta line (optional)" aria-label="Meta line" />
+      <div className="admin-form-actions">
+        <button type="button" className="console-btn-secondary" onClick={onCancel} disabled={saving}>Cancel</button>
+        <button type="submit" className="dash-action-btn" disabled={saving || !title.trim()}>Save</button>
+      </div>
+    </form>
+  );
+}
+
 function MilestoneCard({
   milestone,
   order,
@@ -59,6 +95,7 @@ function MilestoneCard({
   team,
   onTaskSaved,
   onStatusChange,
+  onUpdate,
   onAddTask,
   onToggleTask,
   onDeleteTask,
@@ -75,6 +112,7 @@ function MilestoneCard({
   team: TeamMember[];
   onTaskSaved: () => Promise<void> | void;
   onStatusChange: (id: string, status: Deliverable["status"]) => void;
+  onUpdate: (id: string, patch: MilestonePatch) => Promise<void>;
   onAddTask: (deliverableId: string, title: string) => Promise<void>;
   onToggleTask: (task: DeliverableTask) => Promise<void>;
   onDeleteTask: (task: DeliverableTask) => Promise<void>;
@@ -86,6 +124,10 @@ function MilestoneCard({
   const [newTask, setNewTask] = useState("");
   const [noteDraft, setNoteDraft] = useState("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  // Finished milestones fold away so the page stays about what is still to do.
+  const [open, setOpen] = useState(milestone.status !== "completed");
+  const [showActivity, setShowActivity] = useState(false);
   const doneCount = tasks.filter((t) => t.is_done).length;
 
   const addTask = async () => {
@@ -96,97 +138,156 @@ function MilestoneCard({
 
   return (
     <div className={`sprint-card ${milestone.status === "in-progress" ? "in-progress" : ""}`}>
-      <div className={`sprint-status-tag ${milestone.status === "in-progress" ? "active" : ""}`}>
-        {STATUS_LABEL[milestone.status]} · MILESTONE {String(order).padStart(2, "0")}
-        {milestone.due_at && ` · DUE ${formatDate(milestone.due_at).toUpperCase()}`}
-        <HealthBadge status={milestone.status} dueAt={milestone.due_at} />
-      </div>
-      <h4>{milestone.title}</h4>
-      {milestone.description && <p>{milestone.description}</p>}
-      {milestone.meta && <div className="sprint-meta">{milestone.meta}</div>}
-
-      <div className="lead-stage-buttons mt-4">
-        {STATUS_CYCLE.filter((s) => s !== milestone.status).map((s) => (
-          <button key={s} className="dash-tab-btn" onClick={() => onStatusChange(milestone.id, s)}>
-            {STATUS_LABEL[s].toLowerCase()}
-          </button>
-        ))}
-        <button className="dash-tab-btn" onClick={() => onDelete(milestone)} aria-label={`Delete ${milestone.title}`}>
-          <Trash2 size={13} />
-          <span>delete</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <button
+          type="button"
+          className="deliverable-task-remove"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-label={open ? "Fold milestone" : "Open milestone"}
+          title={open ? "Fold" : "Open"}
+        >
+          <ChevronDown size={14} style={{ transform: open ? undefined : "rotate(-90deg)", transition: "transform .15s" }} />
         </button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className={`sprint-status-tag ${milestone.status === "in-progress" ? "active" : ""}`}>
+            MILESTONE {String(order).padStart(2, "0")}
+            {milestone.due_at && ` · DUE ${formatDate(milestone.due_at).toUpperCase()}`}
+            {tasks.length > 0 && ` · ${doneCount}/${tasks.length} DONE`}
+            <HealthBadge status={milestone.status} dueAt={milestone.due_at} />
+          </div>
+          <h4>{milestone.title}</h4>
+        </div>
+        <select
+          className="console-select"
+          value={milestone.status}
+          onChange={(e) => onStatusChange(milestone.id, e.target.value as Deliverable["status"])}
+          aria-label={`Status of ${milestone.title}`}
+        >
+          {STATUS_CYCLE.map((st) => <option key={st} value={st}>{STATUS_LABEL[st].toLowerCase()}</option>)}
+        </select>
+        <RowMenu
+          label={`Actions for ${milestone.title}`}
+          items={[
+            { label: "Edit milestone", onClick: () => { setEditing(true); setOpen(true); } },
+            { label: "Delete milestone", danger: true, onClick: () => onDelete(milestone) }
+          ]}
+        />
       </div>
 
-      <div className="deliverable-tasklist-section">
-        <span className="meta-k">Checklist {tasks.length > 0 && `(${doneCount}/${tasks.length})`}</span>
-        {tasks.length === 0 ? (
-          <p className="key-desc">No checklist items yet.</p>
-        ) : (
-          <div className="deliverable-tasklist">
-            {tasks.map((task) =>
-              editingTaskId === task.id ? (
-                <TaskEditForm
-                  key={task.id}
-                  task={task}
-                  team={team}
-                  onDone={async (saved) => { setEditingTaskId(null); if (saved) await onTaskSaved(); }}
-                />
-              ) : (
-                <div className="deliverable-task-row" key={task.id}>
+      {open && (
+        <>
+          {editing ? (
+            <EditMilestoneForm
+              milestone={milestone}
+              onCancel={() => setEditing(false)}
+              onSave={async (patch) => { await onUpdate(milestone.id, patch); setEditing(false); }}
+            />
+          ) : (
+            <>
+              {milestone.description && <p>{milestone.description}</p>}
+              {milestone.meta && <div className="sprint-meta">{milestone.meta}</div>}
+            </>
+          )}
+
+          <div className="deliverable-tasklist-section">
+            <span className="meta-k">Checklist {tasks.length > 0 && `(${doneCount}/${tasks.length})`}</span>
+            {tasks.length === 0 ? (
+              <p className="key-desc">No checklist items yet.</p>
+            ) : (
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr><th style={{ width: 36 }} /><th>Task</th><th>Assignee</th><th>Due</th><th /></tr>
+                  </thead>
+                  <tbody>
+                    {tasks.map((task) => {
+                      const due = dueInfo(task);
+                      return (
+                        <tr key={task.id} className={due?.overdue ? "row-overdue" : undefined}>
+                          {editingTaskId === task.id ? (
+                            <td colSpan={5}>
+                              <TaskEditForm
+                                task={task}
+                                team={team}
+                                onDone={async (saved) => { setEditingTaskId(null); if (saved) await onTaskSaved(); }}
+                              />
+                            </td>
+                          ) : (
+                            <>
+                              <td>
+                                <button
+                                  className={`deliverable-task-check ${task.is_done ? "done" : ""}`}
+                                  onClick={() => onToggleTask(task)}
+                                  aria-label={task.is_done ? "Mark not done" : "Mark done"}
+                                >
+                                  {task.is_done && <Check size={12} />}
+                                </button>
+                              </td>
+                              <td className="wrap"><span className={task.is_done ? "done" : ""}>{task.title}</span></td>
+                              <td className="admin-muted">{assigneeLabel(task, team)}</td>
+                              <td className={due?.overdue ? "admin-danger" : "admin-muted"}>{task.due_at ? formatDate(task.due_at) : "—"}</td>
+                              <td className="num">
+                                <RowMenu
+                                  label={`Actions for ${task.title}`}
+                                  items={[
+                                    { label: "Edit", onClick: () => setEditingTaskId(task.id) },
+                                    { label: task.is_done ? "Mark not done" : "Mark done", onClick: () => void onToggleTask(task) },
+                                    { label: "Remove", danger: true, onClick: () => void onDeleteTask(task) }
+                                  ]}
+                                />
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="deliverable-task-add">
+              <input
+                className="console-input"
+                placeholder="Add a checklist item…"
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void addTask();
+                }}
+              />
+              <button className="dash-tab-btn" disabled={!newTask.trim()} onClick={addTask} aria-label="Add checklist item">
+                <Plus size={13} />
+              </button>
+            </div>
+          </div>
+
+          <div className="lead-activity-section">
+            <button type="button" className="card-kicker" style={{ background: "none", border: 0, padding: 0, cursor: "pointer", textAlign: "left" }} onClick={() => setShowActivity((v) => !v)} aria-expanded={showActivity}>
+              ACTIVITY (INTERNAL){activities.length > 0 && ` · ${activities.length}`} {showActivity ? "▾" : "▸"}
+            </button>
+            {showActivity && (
+              <>
+                <ActivityTimeline activities={activities} loading={detailsLoading} onApprove={onApprove} onReject={onReject} />
+                <div className="lead-note-form">
+                  <textarea placeholder="Add a note…" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} rows={2} />
                   <button
-                    className={`deliverable-task-check ${task.is_done ? "done" : ""}`}
-                    onClick={() => onToggleTask(task)}
-                    aria-label={task.is_done ? "Mark not done" : "Mark done"}
+                    className="dash-action-btn"
+                    disabled={!noteDraft.trim()}
+                    onClick={async () => {
+                      await onAddNote(milestone.id, noteDraft.trim());
+                      setNoteDraft("");
+                    }}
                   >
-                    {task.is_done && <Check size={12} />}
-                  </button>
-                  <span className="task-body">
-                    <span className={task.is_done ? "done" : ""}>{task.title}</span>
-                    <TaskInlineMeta task={task} team={team} onSaved={onTaskSaved} />
-                  </span>
-                  <button className="dash-tab-btn" onClick={() => setEditingTaskId(task.id)}>Edit</button>
-                  <button className="deliverable-task-remove" onClick={() => onDeleteTask(task)} aria-label="Remove item">
-                    <Trash2 size={12} />
+                    <Send size={13} />
+                    <span>Add note</span>
                   </button>
                 </div>
-              )
+              </>
             )}
           </div>
-        )}
-        <div className="deliverable-task-add">
-          <input
-            className="console-input"
-            placeholder="Add a checklist item…"
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void addTask();
-            }}
-          />
-          <button className="dash-tab-btn" disabled={!newTask.trim()} onClick={addTask} aria-label="Add checklist item">
-            <Plus size={13} />
-          </button>
-        </div>
-      </div>
-
-      <div className="lead-activity-section">
-        <span className="card-kicker">ACTIVITY (INTERNAL)</span>
-        <ActivityTimeline activities={activities} loading={detailsLoading} onApprove={onApprove} onReject={onReject} />
-        <div className="lead-note-form">
-          <textarea placeholder="Add a note…" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} rows={2} />
-          <button
-            className="dash-action-btn"
-            disabled={!noteDraft.trim()}
-            onClick={async () => {
-              await onAddNote(milestone.id, noteDraft.trim());
-              setNoteDraft("");
-            }}
-          >
-            <Send size={13} />
-            <span>Add note</span>
-          </button>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
@@ -260,13 +361,16 @@ function NewMilestoneForm({
   );
 }
 
-export function MilestoneEditor({ workspaceId, onChanged }: { workspaceId: string; onChanged?: () => void }) {
+export function MilestoneEditor({ workspaceId, engagement, onChanged }: { workspaceId: string; engagement?: string | null; onChanged?: () => void }) {
   const { user } = useAuth();
   const [tasksByDeliverable, setTasksByDeliverable] = useState<Record<string, DeliverableTask[]>>({});
   const [activitiesByDeliverable, setActivitiesByDeliverable] = useState<Record<string, DeliverableActivity[]>>({});
   const [detailsLoading, setDetailsLoading] = useState(true);
   const team = useAsyncResource(() => loadTeamMembers(), []);
   const [showNew, setShowNew] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateKey, setTemplateKey] = useState(() => (templateFor(engagement) ? (engagement as string) : "build"));
+  const [applying, setApplying] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Deliverable | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -350,6 +454,32 @@ export function MilestoneEditor({ workspaceId, onChanged }: { workspaceId: strin
     }
   };
 
+  const handleUpdate = async (id: string, patch: MilestonePatch) => {
+    const { error: updateError } = await consoleSchema().from("deliverables").update(patch).eq("id", id);
+    if (report(updateError, "Failed to save milestone")) {
+      toast.success("Milestone updated");
+      await refresh();
+      onChanged?.();
+    }
+  };
+
+  const handleApplyTemplate = async () => {
+    const template = PROJECT_TEMPLATES[templateKey];
+    if (!template || !workspaceId) return;
+    setApplying(true);
+    try {
+      const added = await applyTemplate(workspaceId, template, { existingCount: deliverables.length, hasActive: deliverables.some((d) => d.status === "in-progress") });
+      toast.success(`Added ${added} ${template.name} milestones`);
+      setShowTemplates(false);
+      await refresh();
+      onChanged?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't add the template");
+    } finally {
+      setApplying(false);
+    }
+  };
+
   const handleStatusChange = async (id: string, status: Deliverable["status"]) => {
     const { error: updateError } = await consoleSchema().from("deliverables").update({ status }).eq("id", id);
     if (report(updateError, "Failed to update status")) await refresh();
@@ -416,11 +546,25 @@ export function MilestoneEditor({ workspaceId, onChanged }: { workspaceId: strin
             : `${completed}/${deliverables.length} milestones complete · ${allTasks.filter((t) => t.is_done).length}/${allTasks.length} checklist items done`}
         </span>
         <span className="admin-toolbar-spacer" />
+        <button className="dash-tab-btn" onClick={() => setShowTemplates((v) => !v)} aria-expanded={showTemplates}>Add from template</button>
         <button className="dash-action-btn" onClick={() => setShowNew((v) => !v)}>
           <Plus size={14} />
           <span>New milestone</span>
         </button>
       </div>
+
+      {showTemplates && (
+        <div className="console-card mb-4" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", padding: 14 }}>
+          <select value={templateKey} onChange={(e) => setTemplateKey(e.target.value)} aria-label="Template">
+            {Object.entries(PROJECT_TEMPLATES).map(([k, t]) => <option key={k} value={k}>{t.name} ({t.milestones.length} milestones)</option>)}
+          </select>
+          <button className="dash-action-btn" onClick={() => void handleApplyTemplate()} disabled={applying}>{applying ? "Adding…" : "Add milestones"}</button>
+          <button className="dash-tab-btn" onClick={() => setShowTemplates(false)} disabled={applying}>Cancel</button>
+          <span className="admin-muted" style={{ flexBasis: "100%" }}>
+            {PROJECT_TEMPLATES[templateKey]?.milestones.map((m) => m.title).join(" → ")}. Added after any milestones already here. Nothing is removed, and every item can be edited.
+          </span>
+        </div>
+      )}
 
       {showNew && workspaceId && (
         <NewMilestoneForm nextOrder={deliverables.length} onCreate={handleCreate} onCancel={() => setShowNew(false)} />
@@ -448,6 +592,7 @@ export function MilestoneEditor({ workspaceId, onChanged }: { workspaceId: strin
               team={team.data ?? []}
               onTaskSaved={reloadDetails}
               onStatusChange={handleStatusChange}
+              onUpdate={handleUpdate}
               onAddTask={handleAddTask}
               onToggleTask={handleToggleTask}
               onDeleteTask={handleDeleteTask}

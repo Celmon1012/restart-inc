@@ -18,6 +18,8 @@ export interface AdminWorkspace {
   qualification: string | null;
   created_by: string | null;
   archived_at: string | null;
+  /** The team member who owns the project (added by the project-lead migration; absent before it). */
+  lead_id?: string | null;
   // Set by complete_onboarding (full_name, role, website, timeline, budget) or
   // create_project (source, timeline, budget, brief).
   onboarding: {
@@ -34,9 +36,7 @@ export interface AdminWorkspace {
 export async function loadAdminWorkspaces(): Promise<AdminWorkspace[]> {
   const { data, error } = await consoleSchema()
     .from("workspaces")
-    .select(
-      "id,name,tier_label,created_at,coolify_project_uuid,lago_customer_id,contact_email,client_type,engagement_type,qualification,created_by,archived_at,onboarding"
-    )
+    .select("*")
     .order("name", { ascending: true });
   if (error) throw error;
   return data ?? [];

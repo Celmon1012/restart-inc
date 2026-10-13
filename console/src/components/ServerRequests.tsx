@@ -57,7 +57,7 @@ const PROVIDERS: { id: CloudProvider; name: string }[] = [
   { id: "other", name: "Other" },
 ];
 
-function requestSummary(r: ServerRequest): string {
+export function requestSummary(r: ServerRequest): string {
   if (r.hosting === "client") {
     const provider = PROVIDERS.find((p) => p.id === r.cloud_provider)?.name;
     return ["Your cloud", provider, r.cloud_region, r.cloud_spec].filter(Boolean).join(" · ");
@@ -76,7 +76,7 @@ export const STATUS_LABEL: Record<Status, string> = {
   cancelled: "Cancelled",
 };
 
-const STATUS_TONE: Record<Status, "healthy" | "warning" | "down" | "muted"> = {
+export const STATUS_TONE: Record<Status, "healthy" | "warning" | "down" | "muted"> = {
   pending_review: "warning",
   awaiting_payment: "warning",
   paid: "healthy",
@@ -215,26 +215,6 @@ export function RequestRow({
   onChanged: () => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [status, setStatus] = useState<Status>(r.status);
-  const [note, setNote] = useState(r.engineer_note ?? "");
-  const [invoiceId, setInvoiceId] = useState(r.lago_invoice_id ?? "");
-  const [saving, setSaving] = useState(false);
-
-  const save = async () => {
-    setSaving(true);
-    const { error } = await consoleSchema()
-      .from("server_requests")
-      .update({ status, engineer_note: note.trim() || null, lago_invoice_id: invoiceId.trim() || null })
-      .eq("id", r.id);
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("Request updated");
-    setEditing(false);
-    onChanged();
-  };
 
   return (
     <div className="sr-row">
@@ -266,32 +246,59 @@ export function RequestRow({
       </div>
 
       {reviewable && editing && (
-        <div className="sr-admin">
-          <label>
-            <span>Status</span>
-            <select value={status} onChange={(e) => setStatus(e.target.value as Status)}>
-              {(Object.keys(STATUS_LABEL) as Status[]).map((s) => (
-                <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Lago invoice ID</span>
-            <input value={invoiceId} onChange={(e) => setInvoiceId(e.target.value)} placeholder="Attach before setting Awaiting payment" />
-          </label>
-          <label className="sr-admin-wide">
-            <span>Note to client</span>
-            <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Recommendation, quote, or schedule" />
-          </label>
-          <div className="sr-admin-actions">
-            <button type="button" className="console-btn-secondary" onClick={() => setEditing(false)} disabled={saving}>Cancel</button>
-            <button type="button" className="dash-action-btn" onClick={save} disabled={saving || (status === "awaiting_payment" && !invoiceId.trim())}>
-              {saving ? <Loader2 size={13} className="spin" /> : null}
-              <span>Save</span>
-            </button>
-          </div>
-        </div>
+        <RequestReviewForm request={r} onCancel={() => setEditing(false)} onSaved={() => { setEditing(false); onChanged(); }} />
       )}
+    </div>
+  );
+}
+
+/** The engineer's editor for one request: status, the Lago invoice, and a note to the client. */
+export function RequestReviewForm({ request: r, onCancel, onSaved }: { request: ServerRequest; onCancel: () => void; onSaved: () => void }) {
+  const [status, setStatus] = useState<Status>(r.status);
+  const [note, setNote] = useState(r.engineer_note ?? "");
+  const [invoiceId, setInvoiceId] = useState(r.lago_invoice_id ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    const { error } = await consoleSchema()
+      .from("server_requests")
+      .update({ status, engineer_note: note.trim() || null, lago_invoice_id: invoiceId.trim() || null })
+      .eq("id", r.id);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Request updated");
+    onSaved();
+  };
+
+  return (
+    <div className="sr-admin">
+      <label>
+        <span>Status</span>
+        <select value={status} onChange={(e) => setStatus(e.target.value as Status)}>
+          {(Object.keys(STATUS_LABEL) as Status[]).map((st) => (
+            <option key={st} value={st}>{STATUS_LABEL[st]}</option>
+          ))}
+        </select>
+      </label>
+      <label>
+        <span>Lago invoice ID</span>
+        <input value={invoiceId} onChange={(e) => setInvoiceId(e.target.value)} placeholder="Attach before setting Awaiting payment" />
+      </label>
+      <label className="sr-admin-wide">
+        <span>Note to client</span>
+        <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Recommendation, quote, or schedule" />
+      </label>
+      <div className="sr-admin-actions">
+        <button type="button" className="console-btn-secondary" onClick={onCancel} disabled={saving}>Cancel</button>
+        <button type="button" className="dash-action-btn" onClick={save} disabled={saving || (status === "awaiting_payment" && !invoiceId.trim())}>
+          {saving ? <Loader2 size={13} className="spin" /> : null}
+          <span>Save</span>
+        </button>
+      </div>
     </div>
   );
 }

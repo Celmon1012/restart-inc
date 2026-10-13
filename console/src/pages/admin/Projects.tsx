@@ -9,6 +9,7 @@ import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatDate } from "@/lib/format";
 import {
   ENGAGEMENT_LABEL,
@@ -16,6 +17,7 @@ import {
   PROJECT_STATUS_TONE,
   loadCoolifyProjects,
   loadPortfolio,
+  loadTeamMembers,
   runInfraAction,
   type CoolifyProject,
   type ProjectStatus
@@ -145,6 +147,9 @@ function UnlinkedCoolifyProjects({ clientEmails, onImported }: { clientEmails: s
 
 export default function AdminProjects() {
   const { isOwner } = useWorkspace();
+  const { user } = useAuth();
+  const team = useAsyncResource(() => loadTeamMembers(), []);
+  const [lead, setLead] = useState("all");
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -159,6 +164,7 @@ export default function AdminProjects() {
   const needle = search.trim().toLowerCase();
   const visible = projects
     .filter((p) => filter === "all" || p.status === filter)
+    .filter((p) => lead === "all" || (lead === "mine" ? p.lead_id === user?.id : lead === "none" ? !p.lead_id : p.lead_id === lead))
     .filter(
       (p) =>
         !needle ||
@@ -206,11 +212,17 @@ export default function AdminProjects() {
       )}
 
       <div className="admin-toolbar">
-        {(["all", "active", "blocked", "not-started", "live", "onboarding", "completed"] as Filter[]).map((f) => (
-          <button key={f} className={`dash-tab-btn ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>
-            {f === "all" ? `All (${projects.length})` : `${PROJECT_STATUS_LABEL[f]} (${count(f)})`}
-          </button>
-        ))}
+        <select value={filter} onChange={(e) => setFilter(e.target.value as Filter)} aria-label="Status">
+          {(["all", "active", "blocked", "not-started", "live", "onboarding", "completed"] as Filter[]).map((f) => (
+            <option key={f} value={f}>{f === "all" ? `All statuses (${projects.length})` : `${PROJECT_STATUS_LABEL[f]} (${count(f)})`}</option>
+          ))}
+        </select>
+        <select value={lead} onChange={(e) => setLead(e.target.value)} aria-label="Lead">
+          <option value="all">Any lead</option>
+          <option value="mine">Mine</option>
+          <option value="none">No lead</option>
+          {(team.data ?? []).map((m) => <option key={m.user_id} value={m.user_id}>{m.email.split("@")[0]}</option>)}
+        </select>
         <label className="admin-muted" style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> Show archived
         </label>
@@ -235,6 +247,7 @@ export default function AdminProjects() {
                 <th>Project</th>
                 <th>Status</th>
                 <th>Engagement</th>
+                <th>Lead</th>
                 <th>Milestones</th>
                 <th>Current milestone</th>
                 <th className="num">Open tasks</th>
@@ -251,6 +264,7 @@ export default function AdminProjects() {
                   </td>
                   <td><ProjectStatusPill status={p.status} /></td>
                   <td>{p.engagement_type ? ENGAGEMENT_LABEL[p.engagement_type] ?? p.engagement_type : p.tier_label ?? "—"}</td>
+                  <td className="admin-muted">{p.lead_id ? (team.data ?? []).find((m) => m.user_id === p.lead_id)?.email.split("@")[0] ?? "—" : "—"}</td>
                   <td><ProgressCell completed={p.completed} total={p.milestones} /></td>
                   <td>{p.currentMilestone ?? <span className="admin-muted">—</span>}</td>
                   <td className="num">{p.tasksTotal ? p.tasksOpen : "—"}</td>

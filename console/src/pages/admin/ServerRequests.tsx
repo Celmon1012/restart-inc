@@ -1,19 +1,29 @@
-// Review queue for console.server_requests across every client. Clients raise
-// and pay for these on their Systems tab; engineers triage them here with the
-// same RequestRow editor (status, Lago invoice, note to client).
+// Review queue for console.server_requests across every client. Clients raise and pay for these
+// on their Systems tab; engineers triage them here: one table, a row menu, and the same review
+// editor (status, Lago invoice, note to client) opening under the row.
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
+import { useLocation } from "wouter";
+import { Search } from "lucide-react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
-import { RequestRow, OPEN, STATUS_LABEL, type ServerRequest, type Status } from "@/components/ServerRequests";
+import { RowMenu } from "@/components/admin/RowMenu";
+import { OPEN, RequestReviewForm, STATUS_LABEL, STATUS_TONE, requestSummary, type ServerRequest, type Status } from "@/components/ServerRequests";
 import { consoleSchema } from "@/lib/supabase";
 import { loadWorkspaceNames } from "@/lib/admin";
+import { formatRelative } from "@/lib/format";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 
 type Row = ServerRequest & { workspace: { id: string; name: string } | null };
 
+const TONE_CLASS: Record<string, string> = { healthy: "", warning: "warning", down: "down", muted: "" };
+
 export default function AdminServerRequests() {
+  const [, setLocation] = useLocation();
   const [filter, setFilter] = useState<"open" | "all" | Status>("open");
+  const [client, setClient] = useState("all");
+  const [search, setSearch] = useState("");
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   const { data, loading, error, retry, refresh, refreshing } = useAsyncResource<Row[]>(
     async (signal) => {
@@ -32,8 +42,16 @@ export default function AdminServerRequests() {
     { errorMessage: "Failed to load server requests" }
   );
   const requests = data ?? [];
-  const visible = requests.filter((r) => (filter === "all" ? true : filter === "open" ? OPEN.includes(r.status) : r.status === filter));
-  const count = (s: Status) => requests.filter((r) => r.status === s).length;
+  const clients = Array.from(new Map(requests.filter((r) => r.workspace).map((r) => [r.workspace!.id, r.workspace!.name])).entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  const needle = search.trim().toLowerCase();
+  const visible = requests.filter(
+    (r) =>
+      (filter === "all" ? true : filter === "open" ? OPEN.includes(r.status) : r.status === filter) &&
+      (client === "all" || r.workspace?.id === client) &&
+      (!needle || [r.workspace?.name, requestSummary(r), r.reason, r.engineer_note].some((v) => v?.toLowerCase().includes(needle)))
+  );
+  const openCount = requests.filter((r) => OPEN.includes(r.status)).length;
+  const awaitingReview = requests.filter((r) => r.status === "pending_review").length;
 
   return (
     <ConsoleLayout area="admin" onRefresh={() => void refresh()} isRefreshing={refreshing}>
@@ -48,18 +66,41 @@ export default function AdminServerRequests() {
 
       {error && <ErrorAlert message={`Couldn't load server requests: ${error}`} onRetry={retry} />}
 
-      <div className="dash-tabs-bar">
-        <button className={`dash-tab-btn ${filter === "open" ? "active" : ""}`} onClick={() => setFilter("open")}>
-          Open ({requests.filter((r) => OPEN.includes(r.status)).length})
-        </button>
-        {(["pending_review", "awaiting_payment", "paid", "in_progress", "done"] as Status[]).map((s) => (
-          <button key={s} className={`dash-tab-btn ${filter === s ? "active" : ""}`} onClick={() => setFilter(s)}>
-            {STATUS_LABEL[s]} ({count(s)})
-          </button>
-        ))}
-        <button className={`dash-tab-btn ${filter === "all" ? "active" : ""}`} onClick={() => setFilter("all")}>
-          All ({requests.length})
-        </button>
+      {!loading && requests.length > 0 && (
+        <div className="cp-stats mb-6" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+          <div>
+            <small>OPEN</small>
+            <strong>{openCount}</strong>
+            <em>of {requests.length} requests</em>
+          </div>
+          <div>
+            <small>WAITING FOR REVIEW</small>
+            <strong className={awaitingReview ? "warn" : undefined}>{awaitingReview}</strong>
+            <em>{awaitingReview ? "an engineer needs to look" : "nothing waiting"}</em>
+          </div>
+          <div>
+            <small>AWAITING PAYMENT</small>
+            <strong>{requests.filter((r) => r.status === "awaiting_payment").length}</strong>
+            <em>quoted, not yet paid</em>
+          </div>
+        </div>
+      )}
+
+      <div className="admin-toolbar">
+        <select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label="Status">
+          <option value="open">Open ({openCount})</option>
+          {(Object.keys(STATUS_LABEL) as Status[]).map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+          <option value="all">All statuses</option>
+        </select>
+        <select value={client} onChange={(e) => setClient(e.target.value)} aria-label="Client">
+          <option value="all">All clients</option>
+          {clients.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+        </select>
+        <span className="admin-toolbar-spacer" />
+        <div className="workspace-search-box">
+          <Search size={13} />
+          <input type="text" placeholder="Search clients, specs, notes…" aria-label="Search requests" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
       </div>
 
       {loading ? (
@@ -69,17 +110,51 @@ export default function AdminServerRequests() {
       ) : visible.length === 0 ? (
         <div className="dash-empty-state">No requests in this view.</div>
       ) : (
-        <div className="sr-list">
-          {visible.map((r) => (
-            <RequestRow
-              key={r.id}
-              request={r}
-              reviewable
-              clientName={r.workspace?.name}
-              paymentUrl={undefined}
-              onChanged={() => void refresh()}
-            />
-          ))}
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Request</th>
+                <th>Status</th>
+                <th>Raised</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((r) => (
+                <Fragment key={r.id}>
+                  <tr className={r.status === "pending_review" ? "clickable" : undefined} onClick={() => r.status === "pending_review" && setReviewingId(reviewingId === r.id ? null : r.id)}>
+                    <td><strong>{r.workspace?.name ?? "—"}</strong></td>
+                    <td className="wrap">
+                      {r.kind === "upgrade" ? "Upgrade server" : "Add a server"}
+                      <div className="admin-muted">{requestSummary(r)}</div>
+                      {r.reason && <div className="admin-muted">“{r.reason}”</div>}
+                      {r.engineer_note && <div className="admin-muted">Engineer: {r.engineer_note}</div>}
+                    </td>
+                    <td><span className={`cp-status ${TONE_CLASS[STATUS_TONE[r.status]]}`}>{STATUS_LABEL[r.status].toUpperCase()}</span></td>
+                    <td className="admin-muted">{formatRelative(r.created_at)}</td>
+                    <td className="num" onClick={(e) => e.stopPropagation()}>
+                      <RowMenu
+                        label={`Actions for ${r.workspace?.name ?? "request"}`}
+                        items={[
+                          { label: "Review", onClick: () => setReviewingId(reviewingId === r.id ? null : r.id) },
+                          ...(r.workspace ? [{ label: "Open project", onClick: () => setLocation(`/admin/projects/${r.workspace!.id}`) }] : [])
+                        ]}
+                      />
+                    </td>
+                  </tr>
+                  {reviewingId === r.id && (
+                    <tr>
+                      <td colSpan={5}>
+                        <RequestReviewForm request={r} onCancel={() => setReviewingId(null)} onSaved={() => { setReviewingId(null); void refresh(); }} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </ConsoleLayout>

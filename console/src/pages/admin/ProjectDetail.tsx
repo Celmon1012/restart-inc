@@ -16,7 +16,8 @@ import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { consoleSchema } from "@/lib/supabase";
 import { invokeFunction } from "@/lib/functions";
 import { formatAmount, formatDate, formatRelative } from "@/lib/format";
-import { CLIENT_TYPE_LABEL, ENGAGEMENT_LABEL, loadPortfolio, queryParam } from "@/lib/admin";
+import { CLIENT_TYPE_LABEL, ENGAGEMENT_LABEL, loadPortfolio, loadTeamMembers, queryParam } from "@/lib/admin";
+import { toast } from "sonner";
 import { ProjectStatusPill, ProgressCell } from "./Projects";
 import { ProjectActions } from "@/components/admin/ProjectActions";
 import { LinkBilling } from "@/components/admin/LinkBilling";
@@ -50,6 +51,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export default function AdminProjectDetail(props: { id?: string }) {
   const params = useParams<{ id: string }>();
   const { isOwner, canFinance } = useWorkspace();
+  const team = useAsyncResource(() => loadTeamMembers(), []);
   const id = props.id ?? params.id;
   const [tab, setTab] = useState<Tab>(() => {
     const t = queryParam("tab");
@@ -197,6 +199,20 @@ export default function AdminProjectDetail(props: { id?: string }) {
             <div className="cp-card-head"><span>Engagement</span></div>
             <div className="app-meta-list">
               <Field label="Engagement">{project.engagement_type ? ENGAGEMENT_LABEL[project.engagement_type] : project.tier_label}</Field>
+              <Field label="Lead">
+                <select
+                  value={project.lead_id ?? ""}
+                  onChange={async (e) => {
+                    const { error: leadError } = await consoleSchema().rpc("admin_set_workspace_lead", { p_workspace_id: project.id, p_lead_id: e.target.value || null });
+                    if (leadError) toast.error(leadError.message);
+                    else await portfolio.refresh();
+                  }}
+                  aria-label="Project lead"
+                >
+                  <option value="">No lead</option>
+                  {(team.data ?? []).map((m) => <option key={m.user_id} value={m.user_id}>{m.email.split("@")[0]}</option>)}
+                </select>
+              </Field>
               <Field label="Qualification">{project.qualification}</Field>
               <Field label="Budget">{ob.budget}</Field>
               <Field label="Timeline">{ob.timeline}</Field>
@@ -273,7 +289,7 @@ export default function AdminProjectDetail(props: { id?: string }) {
         </div>
       )}
 
-      {tab === "milestones" && <MilestoneEditor workspaceId={project.id} onChanged={() => void portfolio.refresh()} />}
+      {tab === "milestones" && <MilestoneEditor workspaceId={project.id} engagement={project.engagement_type} onChanged={() => void portfolio.refresh()} />}
 
       {tab === "requests" &&
         (requests.loading ? (

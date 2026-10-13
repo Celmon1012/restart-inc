@@ -6,8 +6,10 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { consoleSchema } from "@/lib/supabase";
 import { CLIENT_TYPE_LABEL, ENGAGEMENT_LABEL } from "@/lib/admin";
+import { applyTemplate, templateFor } from "@/lib/projectTemplates";
+import { toast } from "sonner";
 
-const blank = { name: "", email: "", engagement: "operate", service: "", clientType: "" };
+const blank = { name: "", email: "", engagement: "operate", service: "", clientType: "", useTemplate: true };
 
 export function AddClient() {
   const [, setLocation] = useLocation();
@@ -28,6 +30,15 @@ export function AddClient() {
         p_client_type: form.clientType || null
       });
       if (err) throw new Error(err.message);
+      const template = form.useTemplate ? templateFor(form.engagement) : null;
+      if (template) {
+        try {
+          await applyTemplate(data as string, template, { existingCount: 0, hasActive: false });
+        } catch (templateErr) {
+          // The project exists; only the starter milestones failed. Say so and carry on.
+          toast.error(`Project created, but the starter milestones couldn't be added: ${(templateErr as Error).message}`);
+        }
+      }
       setLocation(`/admin/projects/${data as string}?tab=billing`);
     } catch (err) {
       setError((err as Error).message);
@@ -52,6 +63,12 @@ export function AddClient() {
         <option value="">Client type…</option>
         {Object.entries(CLIENT_TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
       </select>
+      {templateFor(form.engagement) && (
+        <label className="admin-muted" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+          <input type="checkbox" checked={form.useTemplate} onChange={(e) => setForm({ ...form, useTemplate: e.target.checked })} />
+          Add the {ENGAGEMENT_LABEL[form.engagement] ?? form.engagement} milestones
+        </label>
+      )}
       <button type="submit" className="dash-tab-btn active" disabled={busy}>{busy ? "Creating…" : "Create"}</button>
       <button type="button" className="dash-tab-btn" onClick={() => { setOpen(false); setError(null); }} disabled={busy}>Cancel</button>
       {error && <span className="admin-warn" role="alert">{error}</span>}
