@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "restart-console": {
+      "type": "http",
+      "url": "https://db.restart.ng/functions/v1/console-ops-mcp",
+      "headers": {
+        "Authorization": "Bearer ${CONSOLE_MCP_OWNER_TOKEN}"
+      }
+    }
+  }
+}
