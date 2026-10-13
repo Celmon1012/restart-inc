@@ -88,6 +88,9 @@ export interface ExpensePayment {
   created_at: string;
   voided_at: string | null;
   void_reason: string | null;
+  /** Who recorded and who voided it (added by the recorded-by migration; absent before it). */
+  created_by_email?: string | null;
+  voided_by_email?: string | null;
 }
 
 export interface Books {
@@ -115,7 +118,7 @@ export async function loadBooks(): Promise<Books> {
     consoleSchema().from("finance_accounts").select("*").order("name"),
     consoleSchema()
       .from("expense_payments")
-      .select("id,expense_id,account_id,paid_on,period_end,amount_cents,currency,fx_rate,amount_ngn_cents,vat_cents,reference,note,created_at,voided_at,void_reason")
+      .select("*")
       .order("paid_on", { ascending: false })
       .order("created_at", { ascending: false })
   ]);
@@ -268,3 +271,29 @@ export function nextDue(expense: Expense, payments: ExpensePayment[]): string | 
 }
 
 export const isPaymentLive = (p: ExpensePayment) => !p.voided_at;
+
+/**
+ * What leaves the bank in month "YYYY-MM", in NGN: each expense on the days it actually falls due
+ * (a yearly bill in its own month, a weekly one every week, a one-off in its month), rather than
+ * smoothed across the year the way expenseInMonth does for profit. Servers with no linked expense
+ * fall back to their monthly cost. Used for cashflow, where the month a bill lands matters.
+ */
+export function cashDueInMonth(b: Books, month: string): number {
+  const first = `${month}-01`;
+  const last = `${month}-31`;
+  let total = 0;
+  for (const e of b.expenses) {
+    const ends = e.end_date ?? "9999-12-31";
+    if (e.cadence === "one_off") {
+      if (e.start_date.slice(0, 7) === month) total += toNgn(e.amount_cents, e.currency, b.settings);
+      continue;
+    }
+    let due = e.start_date;
+    for (let guard = 0; guard < 2000 && due <= last; guard++) {
+      if (due >= first && due <= ends) total += toNgn(e.amount_cents, e.currency, b.settings);
+      due = addPeriod(due, e.cadence);
+    }
+  }
+  for (const s of b.services) if (!s.expense_id) total += toNgn(serviceInMonth(s, month), s.currency, b.settings);
+  return total;
+}

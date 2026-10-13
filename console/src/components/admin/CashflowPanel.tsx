@@ -1,11 +1,13 @@
 // Cashflow: cash in against cash out by month, six months back and six forward, in NGN.
 //   Back    : collected from invoices (ex-VAT) against costs actually paid (payments ledger by date paid).
-//   Forward : billed MRR (less coupons) plus what is still outstanding on open invoices, against
-//             scheduled expenses and hosting. The balance runs on from the cash figure in Rates & cash.
+//   This month: what is still to come in (open invoices) against what is still to be paid. Cash now already
+//             holds what was collected and paid so far this month, so those are shown but not counted twice.
+//   Forward : billed MRR (less coupons) against bills on the day they fall due (a yearly bill in its own
+//             month, not smoothed). The balance runs on from the cash figure in Rates & cash.
 // Currencies other than NGN are converted at the rates in Rates & cash.
 
 import { formatAmount } from "@/lib/format";
-import { hostingInMonth, monthKey, overheadInMonth, totalsToNgn, type Books } from "@/lib/financeBooks";
+import { cashDueInMonth, hostingInMonth, monthKey, overheadInMonth, totalsToNgn, type Books } from "@/lib/financeBooks";
 import type { FinanceOverview } from "@/lib/financeOverview";
 
 const BACK = 6;
@@ -31,10 +33,14 @@ export function CashflowPanel({ finance, books }: { finance: FinanceOverview; bo
   const livePayments = books.payments.filter((p) => !p.voided_at);
 
   const paidIn = (month: string) => livePayments.filter((p) => p.paid_on.slice(0, 7) === month).reduce((s, p) => s + p.amount_ngn_cents, 0);
+  // Past months with no payments ledger: what the expenses say was due, smoothed.
   const costIn = (month: string) => hostingInMonth(books, month) + overheadInMonth(books, month);
   const collectedIn = (month: string) => totalsToNgn(finance.monthly.find((m) => m.month === month)?.collected, settings);
 
-  const outstanding = totalsToNgn(finance.totals.outstanding, settings);
+  // Overdue invoices are part of "outstanding" but may never arrive on time, so they are shown
+  // separately and left out of the forecast until they are paid.
+  const overdue = totalsToNgn(finance.totals.overdue, settings);
+  const outstanding = Math.max(0, totalsToNgn(finance.totals.outstanding, settings) - overdue);
   const billedMrr = totalsToNgn(finance.totals.mrr, settings) - totalsToNgn(finance.totals.discount, settings);
 
   const rows: Row[] = [];
@@ -45,18 +51,24 @@ export function CashflowPanel({ finance, books }: { finance: FinanceOverview; bo
       rows.push({ month, kind: "actual", inflow: collectedIn(month), outflow: books.paymentsAvailable ? paidIn(month) : costIn(month) });
     } else if (i === 0) {
       // Already collected this month, plus everything still waiting to be paid.
-      rows.push({ month, kind: "now", inflow: collectedIn(month) + outstanding, outflow: costIn(month) });
+      rows.push({ month, kind: "now", inflow: collectedIn(month) + outstanding, outflow: Math.max(cashDueInMonth(books, month), books.paymentsAvailable ? paidIn(month) : 0) });
     } else {
-      rows.push({ month, kind: "forecast", inflow: billedMrr, outflow: costIn(month) });
+      rows.push({ month, kind: "forecast", inflow: billedMrr, outflow: cashDueInMonth(books, month) });
     }
   }
 
-  // Balance runs forward from today's cash; the past is walked back from it.
+  // Cash now already includes this month's collections and payments so far, so only the rest of the
+  // month moves it: open invoices still to come in, bills still to be paid.
   const nowIdx = BACK;
+  const collectedSoFar = collectedIn(thisMonth);
+  const paidSoFar = books.paymentsAvailable ? paidIn(thisMonth) : 0;
+  const stillToPay = Math.max(0, rows[nowIdx].outflow - paidSoFar);
   const closing: number[] = new Array(rows.length);
-  closing[nowIdx] = settings.cash_ngn_cents + (rows[nowIdx].inflow - rows[nowIdx].outflow);
+  closing[nowIdx] = settings.cash_ngn_cents + outstanding - stillToPay;
   for (let i = nowIdx + 1; i < rows.length; i++) closing[i] = closing[i - 1] + rows[i].inflow - rows[i].outflow;
-  for (let i = nowIdx - 1; i >= 0; i--) closing[i] = closing[i + 1] - (rows[i + 1].inflow - rows[i + 1].outflow);
+  // Last month's closing is today's cash less what has moved so far this month; earlier months walk back from it.
+  closing[nowIdx - 1] = settings.cash_ngn_cents - (collectedSoFar - paidSoFar);
+  for (let i = nowIdx - 2; i >= 0; i--) closing[i] = closing[i + 1] - (rows[i + 1].inflow - rows[i + 1].outflow);
 
   const forward = rows.slice(nowIdx + 1);
   const avgBurn = forward.reduce((s, r) => s + r.outflow, 0) / forward.length;
@@ -67,7 +79,7 @@ export function CashflowPanel({ finance, books }: { finance: FinanceOverview; bo
 
   return (
     <div className="admin-section">
-      <div className="cp-stats">
+      <div className="cp-stats" style={{ gridTemplateColumns: "repeat(5, 1fr)" }}>
         <div>
           <small>CASH NOW</small>
           <strong>{ngn(settings.cash_ngn_cents)}</strong>
@@ -76,12 +88,17 @@ export function CashflowPanel({ finance, books }: { finance: FinanceOverview; bo
         <div>
           <small>MONTHLY BURN</small>
           <strong>{ngn(avgBurn)}</strong>
-          <em>expenses and hosting, next {FORWARD} months</em>
+          <em>bills falling due, next {FORWARD} months</em>
         </div>
         <div>
           <small>NET PER MONTH</small>
           <strong className={avgNet < 0 ? "warn" : undefined}>{ngn(avgNet)}</strong>
           <em>billed MRR less costs</em>
+        </div>
+        <div>
+          <small>OVERDUE, NOT COUNTED</small>
+          <strong className={overdue > 0 ? "warn" : undefined}>{ngn(overdue)}</strong>
+          <em>{overdue > 0 ? "late invoices, left out until paid" : "nothing overdue"}</em>
         </div>
         <div>
           <small>CASH RUNS OUT</small>
@@ -118,8 +135,9 @@ export function CashflowPanel({ finance, books }: { finance: FinanceOverview; bo
         </table>
       </div>
       <p className="admin-muted mt-2">
-        In is ex-VAT. This month's In is what has been collected plus all open invoices ({ngn(outstanding)}); later months use billed MRR of {ngn(billedMrr)}.
-        Past balances are worked back from the cash figure, so they are only as good as that figure.
+        In is ex-VAT. This month's In is what has been collected plus open invoices that aren't overdue ({ngn(outstanding)}); overdue invoices ({ngn(overdue)}) are left out until paid; later months use billed MRR of {ngn(billedMrr)}.
+        Cash now already holds this month's collections and payments so far, so the balance only moves by the rest of the month.
+        Bills count in the month they fall due, so a yearly bill shows in its own month. Past balances are worked back from the cash figure, so they are only as good as that figure.
         {!books.paymentsAvailable && " Past Out uses what expenses were due, as the payments ledger isn't set up."}
       </p>
     </div>
