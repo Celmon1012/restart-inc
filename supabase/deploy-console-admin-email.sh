@@ -111,6 +111,37 @@ async function reachable(hostname: string, port: number): Promise<boolean> {
   }
 }
 
+async function resendDomainCheck(domain: string): Promise<Check> {
+  const base = { id: "resend-domain", group: "setup" as const, label: `Resend has verified ${domain}` };
+  const key = env("RESEND_API_KEY");
+  if (!key) return { ...base, status: "fail", detail: "No Resend key is set, so nothing can be checked or sent." };
+  try {
+    const headers = { Authorization: `Bearer ${key}` };
+    const res = await fetch("https://api.resend.com/domains", { headers, signal: AbortSignal.timeout(8000) });
+    if (res.status === 401 || res.status === 403) {
+      return { ...base, status: "warn", detail: "This Resend key can only send, so the domain's status can't be read. Use the test email below: it is the real check." };
+    }
+    if (!res.ok) return { ...base, status: "warn", detail: `Resend answered ${res.status} when asked about domains.` };
+    const list: Array<{ id: string; name: string; status: string }> = (await res.json())?.data ?? [];
+    const d = list.find((x) => x.name === domain);
+    if (!d) return { ...base, status: "fail", detail: `${domain} isn't added in Resend. Add it at resend.com/domains and publish the records it shows, or every Resend email is refused.` };
+    if (d.status === "verified") return { ...base, status: "pass", detail: "Resend will send mail from this domain." };
+    // Say which records Resend is still unhappy with.
+    let which = "";
+    try {
+      const detail = await fetch(`https://api.resend.com/domains/${d.id}`, { headers, signal: AbortSignal.timeout(8000) });
+      const records: Array<{ record?: string; name?: string; status?: string }> = (await detail.json())?.records ?? [];
+      const bad = records.filter((r) => r.status && r.status !== "verified").map((r) => `${r.record ?? "record"} ${r.name ?? ""}`.trim());
+      if (bad.length) which = ` Not yet verified: ${bad.join("; ")}.`;
+    } catch {
+      // the headline is enough
+    }
+    return { ...base, status: "fail", detail: `Resend reports ${domain} as "${d.status}", so it refuses every email from it (invoices, reminders, client updates, enquiry replies).${which} Open resend.com/domains, compare each record with the one in Cloudflare, fix any difference, then press Verify.` };
+  } catch (err) {
+    return { ...base, status: "warn", detail: `Couldn't reach Resend: ${(err as Error).message}` };
+  }
+}
+
 async function readStatus() {
   const smtpHost = env("SMTP_HOST");
   const smtpPort = Number(env("SMTP_TLS_PORT", "465"));
@@ -177,9 +208,11 @@ async function readStatus() {
   // DKIM
   const dkimOk = (records: string[]) => records.some((t) => /v=dkim1/i.test(t) && /p=[A-Za-z0-9+/=]{20,}/.test(t)) || records.some((t) => /p=[A-Za-z0-9+/=]{20,}/.test(t));
   add({ id: "dkim-smtp", group: "dns", label: `DKIM for sign-in emails (selector "${selector}")`, status: dkimOk(dkimSmtp) ? "pass" : "fail", detail: dkimOk(dkimSmtp) ? "A public key is published. Whether your mail server actually signs with it shows in a message's headers (DKIM: pass)." : `No key at ${selector}._domainkey.${domain}. Sign-in emails can't be DKIM-signed, which is a common cause of spam placement.` });
-  add({ id: "dkim-resend", group: "dns", label: "DKIM for Resend", status: dkimOk(dkimResend) ? "pass" : "fail", detail: dkimOk(dkimResend) ? "The Resend signing key is published." : `No key at resend._domainkey.${domain}. Add the DKIM record Resend shows for the domain, or its mail is unsigned.` });
+  add({ id: "dkim-resend", group: "dns", label: "DKIM key for Resend published", status: dkimOk(dkimResend) ? "pass" : "fail", detail: dkimOk(dkimResend) ? "A key is published. It must also match the one Resend expects: see the next check, which asks Resend itself." : `No key at resend._domainkey.${domain}. Add the DKIM record Resend shows for the domain, or its mail is unsigned.` });
   const sendOk = sendTxt.some((t) => /amazonses\.com/.test(t)) && sendMx.some((m) => /amazonses\.com/.test(m));
   add({ id: "resend-path", group: "dns", label: "Resend return path (send." + domain + ")", status: sendOk ? "pass" : "warn", detail: sendOk ? "SPF and MX for the bounce subdomain are in place." : `Records for send.${domain} are missing or incomplete, so bounces and SPF alignment for Resend mail may fail.` });
+
+  add(await resendDomainCheck(domain));
 
   // DMARC
   const dmarc = dmarcTxt.find((t) => /^v=dmarc1/i.test(t));
@@ -235,7 +268,11 @@ async function sendTest(to: string, via: "smtp" | "resend", fromKey: "hello" | "
     try {
       await client.send({ from, to, subject: "Restart console: mail server test", content: text, html });
     } finally {
-      await client.close().catch(() => {});
+      try {
+        await client.close();
+      } catch {
+        // The message was already handed over; a failure while hanging up is not worth reporting.
+      }
     }
     return { via: "smtp", from };
   }
