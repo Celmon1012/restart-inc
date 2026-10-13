@@ -45,7 +45,8 @@ import {
   Moon,
   UserCog,
   TrendingUp,
-  FileBarChart
+  FileBarChart,
+  Mail
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -121,12 +122,15 @@ const ADMIN_NAV: NavGroup[] = [
   },
   {
     label: "Settings",
-    items: [{ href: "/admin/team", label: "Team", icon: UserCog }]
+    items: [
+      { href: "/admin/team", label: "Team", icon: UserCog },
+      { href: "/admin/email", label: "Email", icon: Mail }
+    ]
   }
 ];
 
 // Pages only the owner may open. Ops staff don't see these in the sidebar.
-const OWNER_ONLY_NAV = ["/admin/leads", "/admin/outreach", "/admin/team"];
+const OWNER_ONLY_NAV = ["/admin/leads", "/admin/outreach", "/admin/team", "/admin/email"];
 
 const FINANCE_NAV: NavGroup[] = [
   {

@@ -1,7 +1,8 @@
 #!/bin/sh
 # Paste into the Coolify terminal of the supabase-edge-functions container (restart-backend service).
 # send-email: the auth email hook (invite, password reset) for db.restart.ng, shared with Breadmaker.
-# Source of truth: github.com/Restart-inc/breadmaker-sys supabase/functions/send-email/index.ts
+# This version adds a preview mode used by the console Email page. Source of truth:
+# github.com/Restart-inc/breadmaker-sys supabase/functions/send-email/index.ts
 set -e
 mkdir -p /home/deno/functions/send-email
 cat > /home/deno/functions/send-email/index.ts <<'__RESTART_FN_EOF__'
@@ -66,6 +67,12 @@ serve(async (req: Request) => {
   if (req.method !== 'POST') return json(405, { error: { http_code: 405, message: 'Method not allowed' } })
 
   const body = await req.text()
+
+  // Preview mode, for the Restart console's Email page: renders the real templates with sample data
+  // and sends nothing. It is not part of the auth hook: it needs this project's service-role key,
+  // which only server-side code (the console's own functions) holds.
+  if (new URL(req.url).searchParams.get('preview') === '1') return preview(req, body)
+
   let payload: HookPayload
   try {
     payload = new Webhook(HOOK_SECRET).verify(body, Object.fromEntries(req.headers)) as HookPayload
@@ -82,6 +89,43 @@ serve(async (req: Request) => {
     return json(500, { error: { http_code: 500, message: 'Could not send the email. Please try again shortly.' } })
   }
 })
+
+const SAMPLE_TYPES = ['invite', 'recovery', 'signup', 'magiclink', 'email_change', 'reauthentication', 'password_changed_notification']
+
+function samePassword(given: string, expected: string) {
+  if (!expected || given.length !== expected.length) return false
+  let diff = 0
+  for (let i = 0; i < given.length; i++) diff |= given.charCodeAt(i) ^ expected.charCodeAt(i)
+  return diff === 0
+}
+
+async function preview(req: Request, body: string) {
+  const auth = req.headers.get('authorization') ?? ''
+  if (!auth.startsWith('Bearer ') || !samePassword(auth.slice(7).trim(), env('SUPABASE_SERVICE_ROLE_KEY'))) {
+    return json(401, { error: { http_code: 401, message: 'Invalid signature' } })
+  }
+  let brand: Brand = 'restart'
+  try {
+    if (JSON.parse(body || '{}')?.brand === 'breadmaker') brand = 'breadmaker'
+  } catch {
+    // keep the default brand
+  }
+  const redirect = brand === 'breadmaker' ? `${BREADMAKER_ORIGINS[0]}/auth/callback` : 'https://console.restart.ng/reset-password'
+  const messages = SAMPLE_TYPES.flatMap((type) =>
+    buildMessages(brand, {
+      user: { email: 'you@example.com', new_email: type === 'email_change' ? 'new-address@example.com' : undefined, user_metadata: { first_name: 'Ade' } },
+      email_data: {
+        token: '482913',
+        token_hash: 'sample-token-hash',
+        redirect_to: redirect,
+        email_action_type: type,
+        site_url: redirect,
+        token_hash_new: type === 'email_change' ? 'sample-token-hash-new' : undefined,
+      },
+    }).map((m, i) => ({ type: i === 0 ? type : `${type} (2nd email)`, to: m.to, subject: m.subject, html: m.html, text: m.text })),
+  )
+  return json(200, { brand, messages })
+}
 
 function json(status: number, data: unknown) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })

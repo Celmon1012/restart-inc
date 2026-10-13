@@ -40,6 +40,7 @@ import FinanceReports from "./pages/finance/Reports";
 import FinanceRates from "./pages/finance/Rates";
 import AdminAttention from "./pages/admin/Attention";
 import AdminTeam from "./pages/admin/Team";
+import AdminEmail from "./pages/admin/Email";
 import { StaffMfaGate } from "./components/StaffMfaGate";
 import { lazy, Suspense } from "react";
 
@@ -235,6 +236,13 @@ function Router() {
         <ProtectedRoute>
           <AdminRoute need="owner">
             <AdminTeam />
+          </AdminRoute>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/email">
+        <ProtectedRoute>
+          <AdminRoute need="owner">
+            <AdminEmail />
           </AdminRoute>
         </ProtectedRoute>
       </Route>
