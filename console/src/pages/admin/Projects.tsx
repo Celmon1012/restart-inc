@@ -5,6 +5,9 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Search } from "lucide-react";
+import { toast } from "sonner";
+import { RowMenu } from "@/components/admin/RowMenu";
+import { consoleSchema } from "@/lib/supabase";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
@@ -161,6 +164,17 @@ export default function AdminProjects() {
   const projects = data?.projects ?? [];
   const clientName = new Map((data?.clients ?? []).flatMap((c) => c.projects.map((p) => [p.id, c.name] as const)));
 
+  const memberName = (id: string | null | undefined) => (id ? (team.data ?? []).find((m) => m.user_id === id)?.email.split("@")[0] ?? "—" : "—");
+  const setLeadFor = async (ids: string[], leadId: string | null) => {
+    const results = await Promise.all(ids.map((id) => consoleSchema().rpc("admin_set_workspace_lead", { p_workspace_id: id, p_lead_id: leadId })));
+    const failed = results.find((r) => r.error);
+    if (failed?.error) toast.error(failed.error.message);
+    else toast.success(ids.length === 1 ? (leadId ? `Lead set to ${memberName(leadId)}` : "Lead cleared") : `${ids.length} projects assigned to ${memberName(leadId)}`);
+    await refresh();
+  };
+  const unassigned = projects.filter((p) => !p.lead_id && !p.archived_at);
+  const leadCount = (id: string) => projects.filter((p) => p.lead_id === id).length;
+
   const needle = search.trim().toLowerCase();
   const visible = projects
     .filter((p) => filter === "all" || p.status === filter)
@@ -219,10 +233,20 @@ export default function AdminProjects() {
         </select>
         <select value={lead} onChange={(e) => setLead(e.target.value)} aria-label="Lead">
           <option value="all">Any lead</option>
-          <option value="mine">Mine</option>
-          <option value="none">No lead</option>
-          {(team.data ?? []).map((m) => <option key={m.user_id} value={m.user_id}>{m.email.split("@")[0]}</option>)}
+          <option value="mine">Mine ({user ? leadCount(user.id) : 0})</option>
+          <option value="none">No lead ({projects.filter((p) => !p.lead_id).length})</option>
+          {(team.data ?? []).filter((m) => m.user_id !== user?.id).map((m) => <option key={m.user_id} value={m.user_id}>{m.email.split("@")[0]} ({leadCount(m.user_id)})</option>)}
         </select>
+        {unassigned.length > 0 && user && (
+          <button
+            className="dash-tab-btn"
+            onClick={() => {
+              if (window.confirm(`Make yourself the lead of the ${unassigned.length} project${unassigned.length === 1 ? "" : "s"} that have no lead?`)) void setLeadFor(unassigned.map((p) => p.id), user.id);
+            }}
+          >
+            Assign {unassigned.length} unassigned to me
+          </button>
+        )}
         <label className="admin-muted" style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> Show archived
         </label>
@@ -238,7 +262,11 @@ export default function AdminProjects() {
       ) : error ? null : projects.length === 0 ? (
         <EmptyState title="No projects yet" hint="Projects appear when a client finishes onboarding or starts a new project." />
       ) : visible.length === 0 ? (
-        <div className="dash-empty-state">No projects match this view.</div>
+        <div className="dash-empty-state">
+          {lead !== "all" && lead !== "none" && projects.every((p) => !p.lead_id)
+            ? "No project has a lead yet. Use “Assign unassigned to me” above, or set a lead from a row's menu."
+            : "No projects match this view."}
+        </div>
       ) : (
         <div className="admin-table-wrap">
           <table className="admin-table">
@@ -253,6 +281,7 @@ export default function AdminProjects() {
                 <th className="num">Open tasks</th>
                 <th>Next due</th>
                 <th>Started</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -264,7 +293,7 @@ export default function AdminProjects() {
                   </td>
                   <td><ProjectStatusPill status={p.status} /></td>
                   <td>{p.engagement_type ? ENGAGEMENT_LABEL[p.engagement_type] ?? p.engagement_type : p.tier_label ?? "—"}</td>
-                  <td className="admin-muted">{p.lead_id ? (team.data ?? []).find((m) => m.user_id === p.lead_id)?.email.split("@")[0] ?? "—" : "—"}</td>
+                  <td className="admin-muted">{memberName(p.lead_id)}</td>
                   <td><ProgressCell completed={p.completed} total={p.milestones} /></td>
                   <td>{p.currentMilestone ?? <span className="admin-muted">—</span>}</td>
                   <td className="num">{p.tasksTotal ? p.tasksOpen : "—"}</td>
@@ -272,6 +301,17 @@ export default function AdminProjects() {
                     {p.nextDue ? formatDate(p.nextDue) : "—"}
                   </td>
                   <td>{formatDate(p.created_at)}</td>
+                  <td className="num" onClick={(e) => e.stopPropagation()}>
+                    <RowMenu
+                      label={`Actions for ${p.name}`}
+                      items={[
+                        { label: "Open project", onClick: () => setLocation(`/admin/projects/${p.id}`) },
+                        ...(user && p.lead_id !== user.id ? [{ label: "Make me the lead", onClick: () => void setLeadFor([p.id], user.id) }] : []),
+                        ...(team.data ?? []).filter((m) => m.user_id !== user?.id && m.user_id !== p.lead_id).map((m) => ({ label: `Lead: ${m.email.split("@")[0]}`, onClick: () => void setLeadFor([p.id], m.user_id) })),
+                        ...(p.lead_id ? [{ label: "Clear lead", onClick: () => void setLeadFor([p.id], null) }] : [])
+                      ]}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>

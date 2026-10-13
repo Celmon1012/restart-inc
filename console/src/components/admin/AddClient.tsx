@@ -8,11 +8,13 @@ import { consoleSchema } from "@/lib/supabase";
 import { CLIENT_TYPE_LABEL, ENGAGEMENT_LABEL } from "@/lib/admin";
 import { applyTemplate, templateFor } from "@/lib/projectTemplates";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const blank = { name: "", email: "", engagement: "operate", service: "", clientType: "", useTemplate: true };
 
 export function AddClient() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(blank);
   const [busy, setBusy] = useState(false);
@@ -30,6 +32,8 @@ export function AddClient() {
         p_client_type: form.clientType || null
       });
       if (err) throw new Error(err.message);
+      // Whoever adds a client owns it until someone else is named. Best effort: it never blocks creation.
+      if (user) await consoleSchema().rpc("admin_set_workspace_lead", { p_workspace_id: data as string, p_lead_id: user.id });
       const template = form.useTemplate ? templateFor(form.engagement) : null;
       if (template) {
         try {
