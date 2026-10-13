@@ -92,6 +92,19 @@ interface LagoInvoice {
   currency: string;
   file_url: string | null;
   customer?: { external_id?: string; name?: string | null };
+  metadata?: Array<{ key?: string; value?: string | null }>;
+}
+
+// A payment recorded against an invoice (Lago's own Record a payment, or a card payment).
+interface LagoPayment {
+  invoice_ids?: string[];
+  lago_invoice_ids?: string[];
+  lago_payable_id?: string;
+  amount_cents: number;
+  payment_status?: string;
+  status?: string;
+  created_at?: string;
+  paid_at?: string;
 }
 
 interface LagoSubscription {
@@ -158,6 +171,24 @@ async function fetchAllInvoices(): Promise<LagoInvoice[]> {
   return all;
 }
 
+// Every payment Lago knows about, so revenue can be counted in the month the money arrived rather
+// than the month the invoice was issued. If this can't be read, callers fall back to the invoice's
+// own dates, so the figures never get worse.
+async function fetchAllPayments(): Promise<LagoPayment[]> {
+  const all: LagoPayment[] = [];
+  try {
+    for (let page = 1; page <= MAX_INVOICE_PAGES; page++) {
+      const res = await lagoFetch(`/payments?per_page=100&page=${page}`);
+      const batch: LagoPayment[] = res?.payments ?? [];
+      all.push(...batch);
+      if (!res?.meta?.next_page || batch.length === 0) break;
+    }
+  } catch {
+    return [];
+  }
+  return all;
+}
+
 type Totals = Record<string, number>;
 const add = (t: Totals, currency: string, cents: number) => {
   t[currency] = (t[currency] ?? 0) + cents;
@@ -197,8 +228,9 @@ Deno.serve(async (req) => {
     const workspaces = await getWorkspaces(jwt);
     const byCustomer = new Map(workspaces.filter((w) => w.lago_customer_id && !isBreadmaker(w.lago_customer_id)).map((w) => [w.lago_customer_id!, w]));
 
-    const [invoices, plansRes, subsByCustomer, couponsByCustomer] = await Promise.all([
+    const [invoices, payments, plansRes, subsByCustomer, couponsByCustomer] = await Promise.all([
       fetchAllInvoices(),
+      fetchAllPayments(),
       lagoFetch(`/plans?per_page=100`),
       Promise.all(
         [...byCustomer.keys()].map(async (customerId) => {
@@ -217,6 +249,16 @@ Deno.serve(async (req) => {
         })
       ),
     ]);
+    const paymentsByInvoice = new Map<string, Array<{ cents: number; date: string }>>();
+    for (const p of payments) {
+      if ((p.payment_status ?? p.status) && !["succeeded", "paid"].includes(String(p.payment_status ?? p.status))) continue;
+      const date = (p.paid_at ?? p.created_at ?? "").slice(0, 10);
+      if (!date) continue;
+      for (const invoiceId of p.invoice_ids ?? p.lago_invoice_ids ?? (p.lago_payable_id ? [p.lago_payable_id] : [])) {
+        paymentsByInvoice.set(invoiceId, [...(paymentsByInvoice.get(invoiceId) ?? []), { cents: p.amount_cents, date }]);
+      }
+    }
+    for (const list of paymentsByInvoice.values()) list.sort((a, b) => a.date.localeCompare(b.date));
     const planByCode = new Map<string, LagoPlan>(((plansRes?.plans ?? []) as LagoPlan[]).map((p) => [p.code, p]));
 
     const collected: Totals = {};
@@ -301,15 +343,31 @@ Deno.serve(async (req) => {
         // Split the payment pro rata into net revenue and the VAT inside it.
         const total = inv.total_amount_cents;
         const vat = total > 0 ? Math.round(paid * Math.min(Math.max(inv.taxes_amount_cents ?? 0, 0), total) / total) : 0;
-        const net = paid - vat;
-        const month = inv.issuing_date.slice(0, 7);
-        add(collected, inv.currency, net);
-        add(client.collected, inv.currency, net);
-        if (monthly[month]) add(monthly[month], inv.currency, net);
-        if (month === thisMonth) add(collectedThisMonth, inv.currency, net);
-        if (vat > 0) {
-          add(vatCollected, inv.currency, vat);
-          if (month === thisMonth) add(vatCollectedThisMonth, inv.currency, vat);
+        // Each payment counts in the month it was received. Whatever isn't covered by a payment
+        // record (an invoice marked paid through the console) counts on its recorded paid-on date,
+        // and failing that the day the invoice was issued.
+        const parts: Array<{ month: string; cents: number }> = [];
+        let remaining = paid;
+        for (const p of paymentsByInvoice.get(inv.lago_id) ?? []) {
+          const cents = Math.min(p.cents, remaining);
+          if (cents > 0) parts.push({ month: p.date.slice(0, 7), cents });
+          remaining -= cents;
+        }
+        if (remaining > 0) {
+          const paidOn = inv.metadata?.find((m) => m.key === "paid_on")?.value;
+          parts.push({ month: (paidOn && /^\d{4}-\d{2}/.test(paidOn) ? paidOn : inv.issuing_date).slice(0, 7), cents: remaining });
+        }
+        for (const part of parts) {
+          const partVat = paid > 0 ? Math.round((vat * part.cents) / paid) : 0;
+          const partNet = part.cents - partVat;
+          add(collected, inv.currency, partNet);
+          add(client.collected, inv.currency, partNet);
+          if (monthly[part.month]) add(monthly[part.month], inv.currency, partNet);
+          if (part.month === thisMonth) add(collectedThisMonth, inv.currency, partNet);
+          if (partVat > 0) {
+            add(vatCollected, inv.currency, partVat);
+            if (part.month === thisMonth) add(vatCollectedThisMonth, inv.currency, partVat);
+          }
         }
       }
       if (due > 0) {
