@@ -32,9 +32,18 @@ function json(body: unknown, status = 200) {
 }
 
 async function getUser(jwt: string): Promise<{ id: string; email?: string; isAdmin: boolean; roles: string[] } | null> {
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { Authorization: `Bearer ${jwt}`, apikey: SUPABASE_ANON_KEY },
-  });
+  // The caller's token is checked by the auth service, and in parallel their effective staff roles
+  // are read as themselves. Owner is the admin claim or an owner row; Ops and Finance count only
+  // when the session passed the second factor (aal2), which the database decides, not this code.
+  const headers = { Authorization: `Bearer ${jwt}`, apikey: SUPABASE_ANON_KEY };
+  const [res, rolesRes] = await Promise.all([
+    fetch(`${SUPABASE_URL}/auth/v1/user`, { headers }),
+    fetch(`${SUPABASE_URL}/rest/v1/rpc/my_effective_roles`, {
+      method: "POST",
+      headers: { ...headers, "Content-Profile": "console", "Content-Type": "application/json" },
+      body: "{}",
+    }).catch(() => null),
+  ]);
   if (!res.ok) return null;
   const user = await res.json();
   if (!user?.id) return null;
@@ -42,20 +51,10 @@ async function getUser(jwt: string): Promise<{ id: string; email?: string; isAdm
   // the user's own auth.updateUser() call, so an account can never grant itself this by editing
   // its own profile.
   let roles: string[] = user.app_metadata?.is_admin ? ["owner"] : [];
-  // Staff roles (owner / ops / finance) are rows in console.staff_roles; my_roles() returns the
-  // caller's own. If it can't be reached, fall back to the admin claim alone (the old behaviour).
-  try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/my_roles`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${jwt}`, apikey: SUPABASE_ANON_KEY, "Content-Profile": "console", "Content-Type": "application/json" },
-      body: "{}",
-    });
-    if (r.ok) {
-      const list = await r.json();
-      if (Array.isArray(list)) roles = [...new Set([...roles, ...list.filter((x: unknown) => typeof x === "string")])];
-    }
-  } catch {
-    // keep the claim-only result
+  // If the role lookup can't be reached, fall back to the admin claim alone.
+  if (rolesRes?.ok) {
+    const list = await rolesRes.json().catch(() => null);
+    if (Array.isArray(list)) roles = [...new Set([...roles, ...list.filter((x: unknown) => typeof x === "string")])];
   }
   // "isAdmin" for this function means: holds one of "owner", "finance".
   return { id: user.id, email: user.email, isAdmin: roles.some((r) => ["owner", "finance"].includes(r)), roles };

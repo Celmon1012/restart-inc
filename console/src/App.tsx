@@ -53,8 +53,9 @@ const DevPreview = import.meta.env.DEV ? lazy(() => import("./pages/DevPreview")
 // "ops" for the Ops area, "finance" for Finance, "owner" for owner-only pages (sales, the Team page).
 // Staff who aren't owners must have two-factor sign-in set up before they get in.
 function AdminRoute({ children, need = "ops" }: { children: React.ReactNode; need?: "ops" | "finance" | "owner" }) {
-  const { loaded, isOwner, canOps, canFinance } = useWorkspace();
-  if (!loaded) return null;
+  const { rolesLoaded, loading, isStaff, isOwner, canOps, canFinance } = useWorkspace();
+  // Wait for the role lookup (and, if it came back empty, the workspace call that can also report it).
+  if (!rolesLoaded || (loading && !isStaff)) return null;
   const allowed = need === "owner" ? isOwner : need === "finance" ? canFinance : canOps;
   if (!allowed) return <Redirect to={canOps ? "/admin" : canFinance ? "/finance" : "/overview"} />;
   return <StaffMfaGate>{children}</StaffMfaGate>;
@@ -62,8 +63,8 @@ function AdminRoute({ children, need = "ops" }: { children: React.ReactNode; nee
 
 // Where someone with a staff role but no client project of their own lands from the root.
 function Home() {
-  const { loaded, isOwner, canOps, canFinance, isStaff, workspaces } = useWorkspace();
-  if (loaded && isStaff && !isOwner && workspaces.length === 0) return <Redirect to={canOps ? "/admin" : canFinance ? "/finance" : "/profile"} replace />;
+  const { rolesLoaded, loading, isOwner, canOps, canFinance, isStaff, workspaces } = useWorkspace();
+  if (rolesLoaded && !loading && isStaff && !isOwner && workspaces.length === 0) return <Redirect to={canOps ? "/admin" : canFinance ? "/finance" : "/profile"} replace />;
   return <Overview />;
 }
 

@@ -48,6 +48,10 @@ export async function loadAdminWorkspaces(): Promise<AdminWorkspace[]> {
  * which failed in production against this self-hosted instance.
  */
 export async function loadWorkspaceNames(): Promise<Map<string, string>> {
+  // workspace_names() gives every staff role the names and nothing else. The table read is the
+  // fallback for a database that hasn't had that function added yet.
+  const viaFunction = await consoleSchema().rpc("workspace_names");
+  if (!viaFunction.error) return new Map(((viaFunction.data ?? []) as Array<{ id: string; name: string }>).map((w) => [w.id, w.name]));
   const { data, error } = await consoleSchema().from("workspaces").select("id,name");
   if (error) throw error;
   return new Map((data ?? []).map((w) => [w.id as string, w.name as string]));

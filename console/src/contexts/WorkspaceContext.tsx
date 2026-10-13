@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "./AuthContext";
 import type { Workspace, WorkspaceSummary } from "@/lib/resources";
@@ -15,6 +15,8 @@ export interface WorkspaceContextType {
   // Staff roles from console.staff_roles ("owner", "ops", "finance"); isAdmin above is the
   // owner. A UX gate for nav and routes, never the real boundary (RLS and the edge functions are).
   roles: string[];
+  /** True once the role lookup has answered (it does not depend on the workspace call). */
+  rolesLoaded: boolean;
   isOwner: boolean;
   canOps: boolean;
   canFinance: boolean;
@@ -37,7 +39,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [workspaces, setWorkspaces] = useState<WorkspaceSummary[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [roles, setRoles] = useState<string[]>([]);
+  const [dataRoles, setDataRoles] = useState<string[]>([]);
+  const [ownRoles, setOwnRoles] = useState<string[]>([]);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
   const [requestedId, setRequestedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
@@ -75,7 +79,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setActiveWorkspace(data?.active ?? null);
       setIsAdmin(Boolean(data?.isAdmin));
       // Older console-data builds don't send roles: fall back to the admin flag alone.
-      setRoles(Array.isArray(data?.roles) ? data.roles.filter((x: unknown) => typeof x === "string") : data?.isAdmin ? ["owner"] : []);
+      setDataRoles(Array.isArray(data?.roles) ? data.roles.filter((x: unknown) => typeof x === "string") : data?.isAdmin ? ["owner"] : []);
       setLoaded(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load workspace data");
@@ -93,13 +97,37 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setWorkspaces([]);
       setActiveWorkspace(null);
       setIsAdmin(false);
-      setRoles([]);
+      setDataRoles([]);
+      setOwnRoles([]);
+      setRolesLoaded(false);
       setLoaded(false);
       setLoading(false);
       return;
     }
     load(requestedId);
   }, [authLoading, userId, requestedId, load]);
+
+  // The person's own roles, read straight from the database. They don't depend on the workspace
+  // call (which also reaches Coolify), so a failure there can't hide the staff areas. Returns the
+  // roles held, whether or not this session has passed the second factor; the database decides
+  // what the session may read.
+  useEffect(() => {
+    if (authLoading || !userId) return;
+    let cancelled = false;
+    supabase
+      .schema("console")
+      .rpc("my_roles")
+      .then(({ data, error: rolesError }) => {
+        if (cancelled) return;
+        setOwnRoles(!rolesError && Array.isArray(data) ? data.filter((x: unknown): x is string => typeof x === "string") : []);
+        setRolesLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, userId]);
+
+  const roles = useMemo(() => Array.from(new Set([...dataRoles, ...ownRoles])), [dataRoles, ownRoles]);
 
   return (
     <WorkspaceContext.Provider
@@ -108,12 +136,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         activeWorkspace,
         isAdmin,
         roles,
+        rolesLoaded,
         isOwner: isAdmin || roles.includes("owner"),
         canOps: isAdmin || roles.includes("owner") || roles.includes("ops"),
         canFinance: isAdmin || roles.includes("owner") || roles.includes("finance"),
         isStaff: isAdmin || roles.length > 0,
         // Staff (ops, finance) have no client project of their own; they are not new clients.
-        needsOnboarding: loaded && !error && !isAdmin && roles.length === 0 && workspaces.length === 0,
+        needsOnboarding: loaded && rolesLoaded && !error && !isAdmin && roles.length === 0 && workspaces.length === 0,
         loaded,
         loading,
         error,

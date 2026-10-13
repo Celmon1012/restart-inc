@@ -32,25 +32,22 @@ function json(body: unknown, status = 200) {
 }
 
 async function callerRoles(jwt: string): Promise<{ id: string; roles: string[] } | null> {
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { Authorization: `Bearer ${jwt}`, apikey: SUPABASE_ANON_KEY },
-  });
+  const headers = { Authorization: `Bearer ${jwt}`, apikey: SUPABASE_ANON_KEY };
+  const [res, rolesRes] = await Promise.all([
+    fetch(`${SUPABASE_URL}/auth/v1/user`, { headers }),
+    fetch(`${SUPABASE_URL}/rest/v1/rpc/my_effective_roles`, {
+      method: "POST",
+      headers: { ...headers, "Content-Profile": "console", "Content-Type": "application/json" },
+      body: "{}",
+    }).catch(() => null),
+  ]);
   if (!res.ok) return null;
   const user = await res.json();
   if (!user?.id) return null;
   let roles: string[] = user.app_metadata?.is_admin ? ["owner"] : [];
-  try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/my_roles`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${jwt}`, apikey: SUPABASE_ANON_KEY, "Content-Profile": "console", "Content-Type": "application/json" },
-      body: "{}",
-    });
-    if (r.ok) {
-      const list = await r.json();
-      if (Array.isArray(list)) roles = [...new Set([...roles, ...list.filter((x: unknown) => typeof x === "string")])];
-    }
-  } catch {
-    // claim-only result
+  if (rolesRes?.ok) {
+    const list = await rolesRes.json().catch(() => null);
+    if (Array.isArray(list)) roles = [...new Set([...roles, ...list.filter((x: unknown) => typeof x === "string")])];
   }
   return { id: user.id, roles };
 }

@@ -31,6 +31,8 @@ interface Member {
   roles: Role[];
   last_sign_in_at: string | null;
   confirmed: boolean;
+  /** An owner through the account's sign-in settings (app_metadata), which this page can't change. */
+  owner_by_claim?: boolean;
 }
 
 function RoleChecks({ value, onChange, disabled }: { value: Role[]; onChange: (next: Role[]) => void; disabled?: boolean }) {
@@ -172,6 +174,7 @@ export default function AdminTeam() {
                     <td>
                       <strong>{m.email}</strong>
                       {isSelf && <span className="admin-muted"> · you</span>}
+                      {m.owner_by_claim && <div className="admin-muted">owner through sign-in settings</div>}
                       {!m.confirmed && <div className="admin-warn">invited, not accepted yet</div>}
                     </td>
                     <td className="wrap">
@@ -189,7 +192,7 @@ export default function AdminTeam() {
                     </td>
                     <td className="admin-muted">{m.last_sign_in_at ? formatRelative(m.last_sign_in_at) : "never"}</td>
                     <td className="num">
-                      {!isSelf && (
+                      {!isSelf && !m.owner_by_claim && (
                         <RowMenu
                           label={`Actions for ${m.email}`}
                           items={[

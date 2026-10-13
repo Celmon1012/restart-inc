@@ -262,6 +262,12 @@ export async function applyTemplate(workspaceId: string, template: ProjectTempla
   const start = opts.startDate ?? new Date();
   const db = consoleSchema();
 
+  // Order after the highest existing milestone, not after the count: deleted milestones leave gaps,
+  // and the count could land on a number already in use.
+  const { data: last, error: lastError } = await db.from("deliverables").select("sort_order").eq("workspace_id", workspaceId).order("sort_order", { ascending: false }).limit(1);
+  if (lastError) throw lastError;
+  const firstOrder = last && last.length > 0 ? Number(last[0].sort_order) + 1 : 0;
+
   const { data: created, error } = await db
     .from("deliverables")
     .insert(
@@ -273,7 +279,7 @@ export async function applyTemplate(workspaceId: string, template: ProjectTempla
           title: m.title,
           description: m.description,
           status: i === 0 && !opts.hasActive ? "in-progress" : "not-started",
-          sort_order: opts.existingCount + i,
+          sort_order: firstOrder + i,
           due_at: `${isoDay(due)}T00:00:00Z`
         };
       })
@@ -281,10 +287,11 @@ export async function applyTemplate(workspaceId: string, template: ProjectTempla
     .select("id,sort_order");
   if (error) throw error;
 
+  const createdIds = (created ?? []).map((d) => d.id as string);
   const idBySort = new Map((created ?? []).map((d) => [d.sort_order as number, d.id as string]));
   const tasks = template.milestones.flatMap((m, i) =>
     m.tasks.map((t, j) => ({
-      deliverable_id: idBySort.get(opts.existingCount + i) as string,
+      deliverable_id: idBySort.get(firstOrder + i) as string,
       title: t.title,
       sort_order: j,
       owner: t.client ? "client" : "team"
@@ -292,7 +299,11 @@ export async function applyTemplate(workspaceId: string, template: ProjectTempla
   );
   if (tasks.length > 0) {
     const { error: taskError } = await db.from("deliverable_tasks").insert(tasks);
-    if (taskError) throw taskError;
+    if (taskError) {
+      // Don't leave empty milestones behind: a second attempt would duplicate them.
+      await db.from("deliverables").delete().in("id", createdIds);
+      throw taskError;
+    }
   }
   return template.milestones.length;
 }

@@ -194,6 +194,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
     : baseNavGroups
         .map((g) => ({ ...g, items: g.items.filter((i) => !OWNER_ONLY_NAV.includes(i.href)) }))
         .filter((g) => g.items.length > 0);
+  const tabs = isOwner ? topTabs : topTabs.filter((t) => !OWNER_ONLY_NAV.includes(t.href));
   const staffHome = canOps ? "/admin" : canFinance ? "/finance" : "/overview";
   const displayName = getDisplayName(user);
   const displayEmail = user?.email || "";
@@ -608,7 +609,7 @@ export function ConsoleLayout({ children, onRefresh, isRefreshing = false, area 
               <Menu size={17} />
             </button>
             <nav className="cp-tabs" aria-label={isAdminArea ? `${areaLabel} views` : "Workspace views"}>
-              {topTabs.map((t) => (
+              {tabs.map((t) => (
                 <Link key={t.href} href={t.href} className={location === t.href ? "active" : undefined} aria-current={location === t.href ? "page" : undefined}>
                   {t.label}
                 </Link>

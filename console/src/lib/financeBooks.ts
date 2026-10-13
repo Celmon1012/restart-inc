@@ -36,6 +36,8 @@ export interface Expense {
   start_date: string;
   end_date: string | null;
   notes: string | null;
+  /** Who recorded it (added by the recorded-by migration; absent before it). */
+  created_by_email?: string | null;
 }
 
 export interface Service {
@@ -105,7 +107,7 @@ export interface Books {
 
 export async function loadBooks(): Promise<Books> {
   const [exp, svc, set] = await Promise.all([
-    consoleSchema().from("expenses").select("id,name,category,amount_cents,currency,cadence,start_date,end_date,notes").order("start_date", { ascending: false }),
+    consoleSchema().from("expenses").select("*").order("start_date", { ascending: false }),
     consoleSchema().from("services").select("*").order("started_on", { ascending: false }),
     consoleSchema().from("finance_settings").select("usd_ngn,eur_ngn,cash_ngn_cents").eq("id", true).maybeSingle()
   ]);

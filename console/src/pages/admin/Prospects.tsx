@@ -8,10 +8,11 @@
 // message: "Open" hands the draft to the mail app or WhatsApp, and "Mark
 // sent" records that the person sent it.
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { consoleSchema } from "@/lib/supabase";
-import { Building2, Clock, Copy, ExternalLink, Mail, Phone, Search, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, Mail, Phone, Search } from "lucide-react";
+import { RowMenu } from "@/components/admin/RowMenu";
 import { formatDate } from "@/lib/format";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
@@ -250,6 +251,9 @@ export default function Prospects() {
   const [tab, setTab] = useState<"drafts" | "prospects">("drafts");
   const [statusFilter, setStatusFilter] = useState<"all" | ProspectStatus>("all");
   const [search, setSearch] = useState("");
+  const [tierFilter, setTierFilter] = useState("all");
+  const [segmentFilter, setSegmentFilter] = useState("all");
+  const [dueOnly, setDueOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -295,7 +299,12 @@ export default function Prospects() {
         [p.company, p.contact_name, p.email, p.industry, p.country].some((v) => v?.toLowerCase().includes(needle))
       )
     : prospects;
-  const filtered = searched.filter((p) => statusFilter === "all" || p.status === statusFilter);
+  const isDue = (p: Prospect) => !p.do_not_contact && Boolean(p.next_followup_at) && new Date(p.next_followup_at as string) <= new Date();
+  const filtered = searched
+    .filter((p) => statusFilter === "all" || p.status === statusFilter)
+    .filter((p) => tierFilter === "all" || p.tier === tierFilter)
+    .filter((p) => segmentFilter === "all" || p.segment === segmentFilter)
+    .filter((p) => !dueOnly || isDue(p));
   const selected = selectedId ? byId.get(selectedId) ?? null : null;
 
   const now = new Date();
@@ -324,33 +333,33 @@ export default function Prospects() {
     }
   };
 
-  const moveTo = (status: ProspectStatus) => {
-    if (!selected) return;
+  const moveTo = (status: ProspectStatus, target: Prospect | null = selected) => {
+    if (!target) return;
     const closed = ["won", "lost", "disqualified"].includes(status);
-    void patchProspect(selected.id, { status, ...(closed ? { next_followup_at: null } : {}) }, `${selected.company} moved to ${status}`);
+    void patchProspect(target.id, { status, ...(closed ? { next_followup_at: null } : {}) }, `${target.company} moved to ${status}`);
   };
 
-  const stopContact = () => {
-    if (!selected) return;
-    const reason = window.prompt(`Stop all outreach to ${selected.company}? Reason:`);
+  const stopContact = (target: Prospect | null = selected) => {
+    if (!target) return;
+    const reason = window.prompt(`Stop all outreach to ${target.company}? Reason:`);
     if (!reason?.trim()) return;
     void patchProspect(
-      selected.id,
+      target.id,
       { do_not_contact: true, do_not_contact_reason: reason.trim(), next_followup_at: null },
       "Marked do not contact"
     );
   };
 
-  const deleteProspect = async () => {
-    if (!selected) return;
-    if (!window.confirm(`Delete ${selected.company} and all its messages? This can't be undone.`)) return;
+  const deleteProspect = async (target: Prospect | null = selected) => {
+    if (!target) return;
+    if (!window.confirm(`Delete ${target.company} and all its messages? This can't be undone.`)) return;
     setSaving(true);
     try {
-      const { error: deleteError } = await consoleSchema().from("prospects").delete().eq("id", selected.id);
+      const { error: deleteError } = await consoleSchema().from("prospects").delete().eq("id", target.id);
       if (deleteError) throw deleteError;
-      setSelectedId(null);
+      if (target.id === selectedId) setSelectedId(null);
       await refresh();
-      toast.success(`${selected.company} deleted`);
+      toast.success(`${target.company} deleted`);
     } catch (err) {
       toast.error(errMessage(err, "Delete failed"));
     } finally {
@@ -446,6 +455,28 @@ export default function Prospects() {
           ) : (
             <>
               <div className="admin-toolbar">
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "all" | ProspectStatus)} aria-label="Status">
+                  {STATUS_TABS.map((st) => (
+                    <option key={st.key} value={st.key}>
+                      {st.label} ({st.key === "all" ? searched.length : searched.filter((p) => p.status === st.key).length})
+                    </option>
+                  ))}
+                </select>
+                <select value={tierFilter} onChange={(e) => setTierFilter(e.target.value)} aria-label="Tier">
+                  <option value="all">All tiers</option>
+                  <option value="A">Tier A</option>
+                  <option value="B">Tier B</option>
+                  <option value="warm">Warm</option>
+                </select>
+                <select value={segmentFilter} onChange={(e) => setSegmentFilter(e.target.value)} aria-label="Segment">
+                  <option value="all">All markets</option>
+                  <option value="ng_sme">Nigeria</option>
+                  <option value="intl_sme">International</option>
+                </select>
+                <label className="admin-muted" style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input type="checkbox" checked={dueOnly} onChange={(e) => setDueOnly(e.target.checked)} /> Follow-up due
+                </label>
+                <span className="admin-toolbar-spacer" />
                 <div className="workspace-search-box">
                   <Search size={13} />
                   <input
@@ -457,56 +488,53 @@ export default function Prospects() {
                   />
                 </div>
               </div>
-              <div className="dash-tabs-bar">
-                {STATUS_TABS.map((s) => (
-                  <button
-                    key={s.key}
-                    className={`dash-tab-btn ${statusFilter === s.key ? "active" : ""}`}
-                    onClick={() => setStatusFilter(s.key)}
-                  >
-                    <span>
-                      {s.label} ({s.key === "all" ? searched.length : searched.filter((p) => p.status === s.key).length})
-                    </span>
-                  </button>
-                ))}
-              </div>
 
-              <div className="console-grid-layout leads-layout">
-                <div className="console-col leads-list-col">
-                  {filtered.length === 0 ? (
-                    <div className="dash-empty-state">No prospects in this stage.</div>
-                  ) : (
-                    <div className="leads-list">
+              {filtered.length === 0 ? (
+                <div className="dash-empty-state">No prospects match this view.</div>
+              ) : (
+                <div className="admin-table-wrap">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Company</th>
+                        <th>Market</th>
+                        <th>Tier</th>
+                        <th className="num">Fit</th>
+                        <th>Status</th>
+                        <th>Follow-up</th>
+                        <th>Last contacted</th>
+                        <th />
+                      </tr>
+                    </thead>
+                    <tbody>
                       {filtered.map((p) => (
-                        <button
-                          key={p.id}
-                          className={`lead-row ${selectedId === p.id ? "active" : ""}`}
-                          onClick={() => setSelectedId(p.id)}
-                        >
-                          <div className="lead-row-main">
-                            <strong>{p.company}</strong>
-                            <span className="lead-row-company">
-                              <Building2 size={12} />
-                              {[p.contact_name, p.industry].filter(Boolean).join(" · ") || p.segment}
-                            </span>
-                          </div>
-                          <div className="lead-row-meta">
-                            <StatusPill status={p.status} />
-                            <span className="lead-row-time">
-                              <Clock size={11} />
-                              {p.fit_score !== null ? `${p.fit_score} · ` : ""}{p.tier}
-                            </span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="console-col leads-detail-col">
-                  {!selected ? (
-                    <div className="dash-empty-state">Select a prospect to see the research and message history.</div>
-                  ) : (
+                        <Fragment key={p.id}>
+                          <tr className="clickable" onClick={() => setSelectedId(selectedId === p.id ? null : p.id)} style={p.do_not_contact ? { opacity: 0.6 } : undefined}>
+                            <td>
+                              <strong>{p.company}</strong>
+                              <div className="admin-muted">{[p.contact_name, p.industry].filter(Boolean).join(" · ") || "—"}</div>
+                            </td>
+                            <td className="admin-muted">{p.segment === "ng_sme" ? "Nigeria" : p.country ?? "International"}</td>
+                            <td>{p.tier === "warm" ? "Warm" : p.tier}</td>
+                            <td className="num">{p.fit_score ?? "—"}</td>
+                            <td><StatusPill status={p.status} />{p.do_not_contact && <div className="admin-warn">do not contact</div>}</td>
+                            <td className={isDue(p) ? "admin-danger" : "admin-muted"}>{p.next_followup_at ? formatDate(p.next_followup_at) : "—"}</td>
+                            <td className="admin-muted">{p.last_contacted_at ? formatDate(p.last_contacted_at) : "—"}</td>
+                            <td className="num" onClick={(e) => e.stopPropagation()}>
+                              <RowMenu
+                                label={`Actions for ${p.company}`}
+                                items={[
+                                  { label: selectedId === p.id ? "Close details" : "Open details", onClick: () => setSelectedId(selectedId === p.id ? null : p.id) },
+                                  ...MOVE_TO.filter((st) => st !== p.status).map((st) => ({ label: `Move to ${st}`, onClick: () => moveTo(st, p), disabled: saving })),
+                                  ...(p.do_not_contact ? [] : [{ label: "Do not contact", onClick: () => stopContact(p), disabled: saving }]),
+                                  { label: "Delete", danger: true, onClick: () => void deleteProspect(p), disabled: saving }
+                                ]}
+                              />
+                            </td>
+                          </tr>
+                          {selectedId === p.id && selected && (
+                            <tr>
+                              <td colSpan={8}>
                     <div className="console-card lead-detail-card">
                       <div className="card-top-header">
                         <span className="card-kicker">
@@ -584,18 +612,11 @@ export default function Prospects() {
                       )}
 
                       <div className="lead-stage-actions">
-                        <span className="meta-k">Move to</span>
-                        <div className="lead-stage-buttons">
-                          {MOVE_TO.filter((s) => s !== selected.status).map((s) => (
-                            <button key={s} className="dash-tab-btn" disabled={saving} onClick={() => moveTo(s)}>{s}</button>
-                          ))}
-                          {!selected.do_not_contact && (
-                            <button className="dash-tab-btn" disabled={saving} onClick={stopContact}>do not contact</button>
-                          )}
-                          <button className="dash-tab-btn" disabled={saving} onClick={() => void deleteProspect()}>
-                            <Trash2 size={12} /><span>delete</span>
-                          </button>
-                        </div>
+                        <span className="meta-k">Stage</span>
+                        <select value={selected.status} disabled={saving} onChange={(e) => moveTo(e.target.value as ProspectStatus)} aria-label="Stage">
+                          {(Object.keys(TONE) as ProspectStatus[]).map((st) => <option key={st} value={st}>{st}</option>)}
+                        </select>
+                        {!selected.do_not_contact && <button className="dash-tab-btn" disabled={saving} onClick={() => stopContact()}>do not contact</button>}
                       </div>
 
                       <div className="lead-activity-section">
@@ -622,9 +643,15 @@ export default function Prospects() {
                         )}
                       </div>
                     </div>
-                  )}
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
+              )}
             </>
           )}
         </>

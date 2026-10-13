@@ -1,7 +1,11 @@
 // Download a table as a CSV file (opens cleanly in Excel and Sheets).
 
 const cell = (v: unknown): string => {
-  const s = v === null || v === undefined ? "" : String(v);
+  let s = v === null || v === undefined ? "" : String(v);
+  // Text that starts like a formula (=, +, -, @, tab, return) would run as one when the file is
+  // opened in a spreadsheet, and these cells hold things people typed. A leading apostrophe makes
+  // it plain text. Real numbers are left alone, so negative amounts stay numbers.
+  if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 

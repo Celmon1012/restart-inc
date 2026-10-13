@@ -98,7 +98,7 @@ export function ReportsPanel({ finance, books }: { finance: FinanceOverview; boo
     downloadCsv(
       `restart-expenses-${stamp}.csv`,
       ["name", "type", "category", "amount", "currency", "cadence", "starts", "ends", "notes", "recorded_by"],
-      books.expenses.map((e) => [e.name, hostingIds.has(e.id) ? "hosting" : "operating", EXPENSE_CATEGORIES[e.category], e.amount_cents / 100, e.currency, CADENCE_LABEL[e.cadence], e.start_date, e.end_date, e.notes, (e as { created_by_email?: string | null }).created_by_email])
+      books.expenses.map((e) => [e.name, hostingIds.has(e.id) ? "hosting" : "operating", EXPENSE_CATEGORIES[e.category], e.amount_cents / 100, e.currency, CADENCE_LABEL[e.cadence], e.start_date, e.end_date, e.notes, e.created_by_email])
     );
 
   const exportPayments = () =>

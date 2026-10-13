@@ -27,7 +27,7 @@ type StepId = "you" | "org" | "need" | "fit";
 export default function Onboarding() {
   const [, setLocation] = useLocation();
   const { user, signOut } = useAuth();
-  const { needsOnboarding, workspaces, isAdmin, refresh } = useWorkspace();
+  const { needsOnboarding, workspaces, isStaff, refresh } = useWorkspace();
 
   // Google/GitHub hand over a real name; getDisplayName()'s email-prefix
   // fallback isn't one, so only prefill from the provider metadata.
@@ -47,10 +47,10 @@ export default function Onboarding() {
 
   // Someone who already has a workspace (or an admin) has nothing to do here.
   useEffect(() => {
-    if (!needsOnboarding && (workspaces.length > 0 || isAdmin)) {
+    if (!needsOnboarding && (workspaces.length > 0 || isStaff)) {
       setLocation("/overview");
     }
-  }, [needsOnboarding, workspaces.length, isAdmin, setLocation]);
+  }, [needsOnboarding, workspaces.length, isStaff, setLocation]);
 
   // "Just looking around" skips the fit questions -- there's no project to
   // size yet, and asking for a budget there would be noise.
