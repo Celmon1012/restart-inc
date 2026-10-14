@@ -2,13 +2,11 @@
 // thing holding LAGO_API_KEY for a cross-client read). Figures are per
 // currency and never summed across currencies.
 
-import { Link } from "wouter";
 import { formatAmount, formatNairaCompact, formatNairaWhole } from "@/lib/format";
-import { ArrowRight } from "lucide-react";
 import { FinancePage } from "@/components/admin/FinancePage";
 import { ExpenseCharts, type ChartItem } from "@/components/admin/ExpenseCharts";
 import { Meter, RevenueCostsChart } from "@/components/admin/FinanceCharts";
-import { EXPENSE_CATEGORIES, expenseInMonth, hostingExpenseIds, nextDue, serviceInMonth, toNgn, totalsToNgn } from "@/lib/financeBooks";
+import { EXPENSE_CATEGORIES, expenseInMonth, hostingExpenseIds, serviceInMonth, toNgn, totalsToNgn } from "@/lib/financeBooks";
 import { summarise } from "@/lib/financeSummary";
 
 import type { FinanceOverview, Totals } from "@/lib/financeOverview";
@@ -76,20 +74,10 @@ export default function AdminFinance() {
   return (
     <FinancePage title="Overview" description="Where the business stands: revenue, expenses and what needs attention." needs={["finance", "books"]}>
       {({ finance: data, books }) => {
-        const today = new Date().toISOString().slice(0, 10);
         const rates = books.settings;
         const summary = summarise(data, books);
         const thisMonthRow = summary.months[summary.months.length - 1];
         const overdueInvoices = data.openInvoices.filter((i) => i.overdue).length;
-        const billsDue = books.expenses
-          .filter((e) => e.cadence !== "one_off")
-          .map((e) => ({ e, due: nextDue(e, books.payments) }))
-          .filter((x): x is { e: (typeof books.expenses)[number]; due: string } => x.due !== null && x.due <= new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10));
-        const billsOverdue = billsDue.filter((b) => b.due < today).length;
-        const attention: Array<{ key: string; text: string; href: string; warn: boolean }> = [];
-        if (overdueInvoices > 0) attention.push({ key: "inv", text: `${overdueInvoices} overdue invoice${overdueInvoices === 1 ? "" : "s"}, ${formatTotals(data.totals.overdue)} owed`, href: "/finance/invoices", warn: true });
-        if (billsDue.length > 0) attention.push({ key: "bills", text: `${billsDue.length} expense${billsDue.length === 1 ? "" : "s"} due within a week${billsOverdue ? `, ${billsOverdue} overdue` : ""}: ${billsDue.slice(0, 3).map((b) => b.e.name).join(", ")}`, href: "/finance/expenses", warn: billsOverdue > 0 });
-        if (books.paymentsAvailable && books.accounts.length === 0) attention.push({ key: "acc", text: "No accounts set up yet, so payments can't record where they were paid from", href: "/finance/accounts", warn: false });
 
         // What this month's costs are made of: operating expenses by category, and client hosting.
         const hostingIds = hostingExpenseIds(books);
@@ -142,19 +130,6 @@ export default function AdminFinance() {
               <p className="admin-muted mt-2">Showing the most recent {data.invoiceCount} invoices; older ones aren't counted.</p>
             )}
 
-            {attention.length > 0 && (
-              <div className="admin-section">
-                <h2 className="admin-section-title">Needs attention</h2>
-                <div className="admin-table-wrap">
-                  {attention.map((a) => (
-                    <Link key={a.key} href={a.href} className="admin-task-row" style={{ textDecoration: "none" }}>
-                      <span className={a.warn ? "admin-danger" : undefined}>{a.text}</span>
-                      <span className="admin-task-context"><ArrowRight size={12} /></span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <div className="admin-section">
               <h2 className="admin-section-title">Revenue vs costs</h2>
