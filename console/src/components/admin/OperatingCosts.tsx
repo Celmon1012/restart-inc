@@ -97,7 +97,8 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
       categoryLabel: CATEGORIES[e.category],
       monthly: toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates)
     })),
-    ...(showHosting ? hostingItems.map((h) => ({ id: h.id, name: h.name, category: "infrastructure", categoryLabel: CATEGORIES.infrastructure, monthly: h.monthly })) : [])
+    // All servers are one line in the charts too, the same as the row in the table.
+    ...(showHosting ? [{ id: "servers", name: `Servers (${hostingItems.length})`, category: "infrastructure", categoryLabel: CATEGORIES.infrastructure, monthly: hostingTotal }] : [])
   ];
 
   const startEdit = (e: Expense) => {
@@ -249,9 +250,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                 selected={ticked}
                 onChange={(next) => setCatSel(next.length === presentCategories.length ? null : (next as Category[]))}
               />
-              <span className="admin-muted">
-                {visibleExpenses.length} of {operating.length} expenses{showHosting ? ` + hosting (${hostingItems.length} server${hostingItems.length === 1 ? "" : "s"})` : ""} · {ngn(monthlyOf(visibleExpenses) + (showHosting ? hostingTotal : 0))} this month
-              </span>
             </div>
             <div className="exp-layout">
             <div style={{ minWidth: 0 }}>
@@ -316,8 +314,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                   {showHosting && (
                     <tr className="clickable" onClick={() => setLocation("/finance/hosting")}>
                       <td>
-                        <strong>Hosting</strong>
-                        <div className="admin-muted">{hostingItems.length} server{hostingItems.length === 1 ? "" : "s"}, client and internal</div>
+                        <strong>Servers</strong>
                       </td>
                       <td>{CATEGORIES.infrastructure}</td>
                       <td className="admin-muted">Monthly</td>
@@ -330,6 +327,13 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                     </tr>
                   )}
                 </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={4}><strong>Total per month</strong></td>
+                    <td className="num"><strong>{ngn(visibleExpenses.filter((e) => e.cadence !== "one_off").reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0) + (showHosting ? hostingTotal : 0))}</strong></td>
+                    <td colSpan={2} />
+                  </tr>
+                </tfoot>
               </table>
             </div>
             {visibleExpenses.length === 0 && <div className="dash-empty-state">No categories ticked. Open the filter and tick one or more.</div>}

@@ -282,17 +282,14 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
 
   return (
     <div className="admin-section">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 className="admin-section-title">All hosting</h2>
-        <button className="dash-tab-btn active" onClick={() => openAdd()}>Add server</button>
-      </div>
-      <div className="admin-toolbar" style={{ margin: "8px 0 4px" }}>
+      <div className="admin-toolbar" style={{ margin: "0 0 10px" }}>
         {(["all", "client", "internal"] as const).map((k) => (
           <button key={k} className={`dash-tab-btn ${scope === k ? "active" : ""}`} onClick={() => setScope(k)} aria-pressed={scope === k}>
             {k === "all" ? `All (${rows.length + internal.length})` : k === "client" ? `Client (${rows.length})` : `Internal (${internal.length})`}
           </button>
         ))}
-        <span className="admin-muted">Client servers are billed on to a client and have a margin. Internal servers are Restart's own and only cost money.</span>
+        <span className="admin-toolbar-spacer" />
+        <button className="dash-tab-btn active" onClick={() => openAdd()}>Add server</button>
       </div>
 
       {form && (
