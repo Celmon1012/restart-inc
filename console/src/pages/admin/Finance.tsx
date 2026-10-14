@@ -97,7 +97,7 @@ export default function AdminFinance() {
           ...books.expenses
             .filter((e) => !hostingIds.has(e.id))
             .map((e) => ({ id: e.id, name: e.name, category: e.category, categoryLabel: EXPENSE_CATEGORIES[e.category], monthly: toNgn(expenseInMonth(e, summary.thisMonth), e.currency, rates) })),
-          ...books.services.map((sv) => ({ id: sv.id, name: sv.name, category: "client_hosting", categoryLabel: "Client hosting", monthly: toNgn(serviceInMonth(sv, summary.thisMonth), sv.currency, rates) }))
+          ...books.services.map((sv) => ({ id: sv.id, name: sv.name, category: "infrastructure", categoryLabel: "Hosting", monthly: toNgn(serviceInMonth(sv, summary.thisMonth), sv.currency, rates) }))
         ];
 
         const outstandingNgn = totalsToNgn(data.totals.outstanding, rates);

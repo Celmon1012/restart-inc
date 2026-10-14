@@ -49,8 +49,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
   const [payingId, setPayingId] = useState<string | null>(null);
   // Ticked categories; null means all of them, so a category added later shows up without a click.
   const [catSel, setCatSel] = useState<Category[] | null>(null);
-  // The Expenses page has two tabs: the business's own costs, and what client servers cost.
-  const [costsTab, setCostsTab] = useState<"operating" | "hosting">("operating");
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -60,7 +58,8 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
   const [, setLocation] = useLocation();
   // Expenses that hold a client server's cost are hosting (cost of sales); the rest are operating expenses.
   const hostingIds = hostingExpenseIds(books);
-  const operating = books.expenses.filter((e) => !hostingIds.has(e.id));
+  // Hosting, client servers and Restart's own, is managed on the Hosting page, so it is not listed here too.
+  const operating = books.expenses.filter((e) => !hostingIds.has(e.id) && e.category !== "infrastructure");
   const names = useAsyncResource(() => loadWorkspaceNames(), [], { enabled: view === "costs" });
 
   // Only the current month is needed here; the Overview does its own roll-ups (lib/financeSummary).
@@ -180,82 +179,12 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
 
       {view === "costs" && (
       <>
-      <div className="admin-toolbar" style={{ marginBottom: 12 }}>
-        <button className={`dash-tab-btn ${costsTab === "operating" ? "active" : ""}`} onClick={() => setCostsTab("operating")} aria-pressed={costsTab === "operating"}>
-          Operating expenses
-        </button>
-        <button className={`dash-tab-btn ${costsTab === "hosting" ? "active" : ""}`} onClick={() => setCostsTab("hosting")} aria-pressed={costsTab === "hosting"}>
-          Client hosting ({books.services.filter((sv) => sv.expense_id).length})
-        </button>
-        <span className="admin-toolbar-spacer" />
-        {costsTab === "operating" && <button className="dash-tab-btn active" onClick={startAdd}>Add expense</button>}
-      </div>
-
-      {costsTab === "hosting" && (
       <div className="admin-section">
-        {books.services.filter((sv) => sv.expense_id).length === 0 ? (
-          <div className="dash-empty-state">No client servers yet. <Link href="/finance/hosting" className="text-teal">Add one on Hosting</Link>.</div>
-        ) : (
-          <div className="admin-table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Server</th>
-                  <th>Client</th>
-                  <th className="num">Amount</th>
-                  <th>Next due</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {books.services.filter((sv) => sv.expense_id).map((sv) => {
-                  const e = books.expenses.find((x) => x.id === sv.expense_id);
-                  if (!e) return null;
-                  const due = nextDue(e, books.payments);
-                  const overdue = due !== null && due < new Date().toISOString().slice(0, 10);
-                  return (
-                    <Fragment key={sv.id}>
-                      <tr className={overdue ? "row-overdue" : undefined} style={due === null ? { opacity: 0.6 } : undefined}>
-                        <td><strong>{sv.name}</strong><div className="admin-muted">{sv.provider === "hetzner" ? "Hetzner" : sv.provider === "contabo" ? "Contabo" : "Other"}</div></td>
-                        <td>{names.data?.get(sv.workspace_id) ?? "—"}</td>
-                        <td className="num">{formatAmount(e.amount_cents, e.currency)}</td>
-                        <td className={overdue ? undefined : "admin-muted"}>
-                          {!due ? "ended" : overdue ? (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
-                              <span className="admin-muted">{formatDate(due)}</span>
-                              <span className="pill-overdue">OVERDUE · {Math.max(1, Math.round((Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(due)) / 86_400_000))}d</span>
-                            </span>
-                          ) : formatDate(due)}
-                        </td>
-                        <td className="num">
-                          <RowMenu
-                            label={`Actions for ${sv.name}`}
-                            items={[
-                              { label: "Mark paid", disabled: !books.paymentsAvailable || !due, onClick: () => setPayingId(payingId === e.id ? null : e.id) },
-                              { label: "Edit or end on Hosting", onClick: () => setLocation("/finance/hosting") }
-                            ]}
-                          />
-                        </td>
-                      </tr>
-                      {payingId === e.id && (
-                        <tr>
-                          <td colSpan={5}>
-                            <PaymentForm books={books} expense={e} onClose={() => setPayingId(null)} onSaved={refresh} />
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-      )}
-
-      {costsTab === "operating" && (
-      <div className="admin-section">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 className="admin-section-title">Operating expenses</h2>
+          <button className="dash-tab-btn active" onClick={startAdd}>Add expense</button>
+        </div>
+        <p className="admin-muted" style={{ margin: "4px 0 0" }}>Servers and hosting, for clients and for Restart itself, are on the <Link href="/finance/hosting" className="text-teal">Hosting</Link> page.</p>
 
         {showForm && (
           <form
@@ -264,7 +193,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
           >
             <input type="text" required placeholder="Name (e.g. Google Workspace)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as Category })}>
-              {Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {Object.entries(CATEGORIES).filter(([k]) => k !== "infrastructure").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
             <input type="number" required min="0" step="0.01" placeholder="Amount" style={{ width: 120 }} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
             <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as CostCurrency })}>
@@ -374,7 +303,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
           </>
         )}
       </div>
-      )}
       </>
       )}
     </>

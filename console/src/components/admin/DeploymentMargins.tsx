@@ -15,7 +15,7 @@ import { PaymentForm } from "@/components/admin/ExpensePayments";
 import { consoleSchema } from "@/lib/supabase";
 import { loadWorkspaceNames, loadCoolifyProjects } from "@/lib/admin";
 import { formatAmount, formatDate, formatPercent } from "@/lib/format";
-import { COST_CURRENCIES, nextDue, toNgn, totalsToNgn, type Books, type CostCurrency, type Service } from "@/lib/financeBooks";
+import { CADENCE_LABEL, CADENCE_OPTIONS, COST_CURRENCIES, expenseInMonth, hostingExpenseIds, nextDue, toNgn, totalsToNgn, type Books, type Cadence, type CostCurrency, type Expense, type Service } from "@/lib/financeBooks";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import type { FinanceOverview } from "@/pages/admin/Finance";
 
@@ -26,6 +26,9 @@ const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
 const today = () => new Date().toISOString().slice(0, 10);
 
 interface Form {
+  /** A client's server (billed on to them, so it has a margin) or one of Restart's own. */
+  kind: "client" | "internal";
+  cadence: Cadence;
   workspaceId: string;
   name: string;
   provider: Service["provider"];
@@ -35,7 +38,7 @@ interface Form {
   end: string;
   coolifyServerUuid: string;
 }
-const blankForm = (): Form => ({ workspaceId: "", name: "", provider: "hetzner", cost: "", currency: "EUR", start: today(), end: "", coolifyServerUuid: "" });
+const blankForm = (): Form => ({ kind: "client", cadence: "monthly", workspaceId: "", name: "", provider: "hetzner", cost: "", currency: "EUR", start: today(), end: "", coolifyServerUuid: "" });
 
 export function DeploymentMargins({ finance, books, refresh }: { finance: FinanceOverview; books: Books; refresh: () => Promise<void> }) {
   const names = useAsyncResource(() => loadWorkspaceNames(), [], { errorMessage: "Failed to load clients" });
@@ -47,6 +50,8 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
   const [saving, setSaving] = useState(false);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [scope, setScope] = useState<"all" | "client" | "internal">("all");
 
   const rates = books.settings;
   const nameOf = (id: string) => names.data?.get(id) ?? "Unknown project";
@@ -80,6 +85,19 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [books, finance, rates]);
 
+  // Restart's own servers (the Coolify host, the mail server): expenses in the Hosting category that no
+  // client's server record owns. They are paid and audited like any expense, and are listed here.
+  const clientExpenseIds = hostingExpenseIds(books);
+  const internal = books.expenses
+    .filter((e) => e.category === "infrastructure" && !clientExpenseIds.has(e.id))
+    .map((e) => {
+      const due = nextDue(e, books.payments);
+      const ended = Boolean(e.end_date && e.end_date < today());
+      return { e, due, overdue: due !== null && due < today(), ended, monthly: ended ? 0 : toNgn(expenseInMonth(e, today().slice(0, 7)), e.currency, rates) };
+    })
+    .sort((a, b) => a.e.name.localeCompare(b.e.name));
+  const internalCost = internal.reduce((s, r) => s + r.monthly, 0);
+
   const totals = rows.reduce((t, r) => ({ sale: t.sale + r.hostingSale, cost: t.cost + r.cost }), { sale: 0, cost: 0 });
 
   // Coolify sync hints.
@@ -98,13 +116,29 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
 
   const openAdd = (preset: Partial<Form> = {}) => {
     setEditingId(null);
+    setEditingExpenseId(null);
     setFormError(null);
     setForm({ ...blankForm(), ...preset });
   };
+  const openAddInternal = () => {
+    setEditingId(null);
+    setEditingExpenseId(null);
+    setFormError(null);
+    setForm({ ...blankForm(), kind: "internal", provider: "other", currency: "USD" });
+  };
+  const openEditInternal = (e: Expense) => {
+    setEditingId(null);
+    setEditingExpenseId(e.id);
+    setFormError(null);
+    setForm({ ...blankForm(), kind: "internal", cadence: e.cadence, name: e.name, cost: String(e.amount_cents / 100), currency: e.currency, start: e.start_date, end: e.end_date ?? "" });
+  };
   const openEdit = (s: Service) => {
+    setEditingExpenseId(null);
     setEditingId(s.id);
     setFormError(null);
     setForm({
+      kind: "client",
+      cadence: "monthly",
       workspaceId: s.workspace_id,
       name: s.name,
       provider: s.provider,
@@ -119,6 +153,32 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
   const save = async () => {
     if (!form) return;
     const cost = Number(form.cost);
+    if (form.kind === "internal") {
+      if (!form.name.trim() || !Number.isFinite(cost) || cost < 0) {
+        setFormError("Enter a name and the cost.");
+        return;
+      }
+      setSaving(true);
+      setFormError(null);
+      const expenseRow = {
+        name: form.name.trim(),
+        category: "infrastructure",
+        amount_cents: Math.round(cost * 100),
+        currency: form.currency,
+        cadence: form.cadence,
+        start_date: form.start,
+        end_date: form.end || null
+      };
+      const { error } = editingExpenseId
+        ? await consoleSchema().from("expenses").update(expenseRow).eq("id", editingExpenseId)
+        : await consoleSchema().from("expenses").insert(expenseRow);
+      setSaving(false);
+      if (error) return setFormError(error.message);
+      setForm(null);
+      setEditingExpenseId(null);
+      await refresh();
+      return;
+    }
     if (!form.workspaceId || !form.name.trim() || !Number.isFinite(cost) || cost < 0) {
       setFormError("Pick a client and enter a name and monthly cost.");
       return;
@@ -182,6 +242,22 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
     if (error) window.alert(error.message);
     else await refresh();
   };
+  const endInternal = async (e: Expense) => {
+    const { error } = await consoleSchema().from("expenses").update({ end_date: today() }).eq("id", e.id);
+    if (error) window.alert(error.message);
+    else await refresh();
+  };
+  const removeInternal = async (e: Expense) => {
+    if (books.payments.some((p) => p.expense_id === e.id)) {
+      window.alert("This server has payments recorded against it, which are kept for the audit trail. Use End instead of Delete.");
+      return;
+    }
+    if (!window.confirm(`Delete "${e.name}" entirely? Past months will lose its cost. Use End to keep history.`)) return;
+    const { error } = await consoleSchema().from("expenses").delete().eq("id", e.id);
+    if (error) window.alert(error.message);
+    else await refresh();
+  };
+
   const remove = async (s: Service) => {
     // Payments recorded against its expense are kept for the audit trail, so a paid server can only be ended.
     if (s.expense_id && books.payments.some((p) => p.expense_id === s.expense_id)) {
@@ -198,8 +274,16 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
   return (
     <div className="admin-section">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 className="admin-section-title">Hosting: sale vs server cost</h2>
+        <h2 className="admin-section-title">All hosting</h2>
         <button className="dash-tab-btn active" onClick={() => openAdd()}>Add server</button>
+      </div>
+      <div className="admin-toolbar" style={{ margin: "8px 0 4px" }}>
+        {(["all", "client", "internal"] as const).map((k) => (
+          <button key={k} className={`dash-tab-btn ${scope === k ? "active" : ""}`} onClick={() => setScope(k)} aria-pressed={scope === k}>
+            {k === "all" ? `All (${rows.length + internal.length})` : k === "client" ? `Client (${rows.length})` : `Internal (${internal.length})`}
+          </button>
+        ))}
+        <span className="admin-muted">Client servers are billed on to a client and have a margin. Internal servers are Restart's own and only cost money.</span>
       </div>
 
       {untracked.length > 0 && (
@@ -231,24 +315,41 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
           onSubmit={(e) => { e.preventDefault(); void save(); }}
           style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "12px 0" }}
         >
-          <select required value={form.workspaceId} onChange={(e) => setForm({ ...form, workspaceId: e.target.value })}>
-            <option value="">Client / project…</option>
-            {Array.from(names.data ?? [], ([id, n]) => ({ id, n })).sort((a, b) => a.n.localeCompare(b.n)).map((w) => <option key={w.id} value={w.id}>{w.n}</option>)}
-          </select>
-          <input type="text" required placeholder="Server name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <select
-            value={form.provider}
-            onChange={(e) => {
-              const provider = e.target.value as Service["provider"];
-              setForm({ ...form, provider, currency: editingId ? form.currency : DEFAULT_CURRENCY[provider] });
-            }}
-          >
-            {Object.entries(PROVIDER_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-          <input type="number" required min="0" step="0.01" placeholder="Monthly cost" style={{ width: 120 }} value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} />
+          {!editingId && !editingExpenseId && (
+            <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as Form["kind"] })} aria-label="Whose server">
+              <option value="client">Client server</option>
+              <option value="internal">Internal server (Restart's own)</option>
+            </select>
+          )}
+          {form.kind === "client" ? (
+            <>
+              <select required value={form.workspaceId} onChange={(e) => setForm({ ...form, workspaceId: e.target.value })}>
+                <option value="">Client / project…</option>
+                {Array.from(names.data ?? [], ([id, n]) => ({ id, n })).sort((a, b) => a.n.localeCompare(b.n)).map((w) => <option key={w.id} value={w.id}>{w.n}</option>)}
+              </select>
+              <input type="text" required placeholder="Server name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <select
+                value={form.provider}
+                onChange={(e) => {
+                  const provider = e.target.value as Service["provider"];
+                  setForm({ ...form, provider, currency: editingId ? form.currency : DEFAULT_CURRENCY[provider] });
+                }}
+              >
+                {Object.entries(PROVIDER_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </>
+          ) : (
+            <input type="text" required placeholder="Server name (e.g. cp.restart.ng, Coolify)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          )}
+          <input type="number" required min="0" step="0.01" placeholder={form.kind === "client" ? "Monthly cost" : "Cost"} style={{ width: 120 }} value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} />
           <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as CostCurrency })}>
             {COST_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
+          {form.kind === "internal" && (
+            <select value={form.cadence} onChange={(e) => setForm({ ...form, cadence: e.target.value as Cadence })} aria-label="How often it is billed">
+              {CADENCE_OPTIONS.filter((c) => c !== "one_off").map((c) => <option key={c} value={c}>{CADENCE_LABEL[c]}</option>)}
+            </select>
+          )}
           <label>From <input type="date" required value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} /></label>
           <label>Ended <input type="date" min={form.start} value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} /></label>
           <button type="submit" className="dash-tab-btn active" disabled={saving}>{saving ? "Saving…" : editingId ? "Update" : "Add"}</button>
@@ -257,13 +358,14 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
         </form>
       )}
 
-      {rows.length === 0 ? (
+      {rows.length === 0 && internal.length === 0 ? (
         <div className="dash-empty-state">No hosting tracked yet. Add each client's server with its monthly cost and the margin appears here.</div>
       ) : (
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
+                <th>Type</th>
                 <th>Client / project</th>
                 <th>Server</th>
                 <th className="num">Hosting sale</th>
@@ -274,7 +376,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
+              {(scope === "internal" ? [] : rows).map((r) => {
                 const lines = r.services.map((sv) => {
                   const expense = sv.expense_id ? books.expenses.find((e) => e.id === sv.expense_id) : undefined;
                   const due = expense ? nextDue(expense, books.payments) : null;
@@ -284,6 +386,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                 return (
                   <Fragment key={r.id}>
                     <tr className={lines.some((l) => l.overdue) ? "row-overdue" : undefined}>
+                      <td><span className="system-healthy-pill">CLIENT</span></td>
                       <td>
                         <strong>{nameOf(r.id)}</strong>
                         {r.discount > 0 && (
@@ -352,7 +455,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                     </tr>
                     {paying?.expense && (
                       <tr>
-                        <td colSpan={7}>
+                        <td colSpan={8}>
                           <PaymentForm books={books} expense={paying.expense} onClose={() => setPayingId(null)} onSaved={refresh} />
                         </td>
                       </tr>
@@ -360,10 +463,51 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                   </Fragment>
                 );
               })}
+              {(scope === "client" ? [] : internal).map(({ e, due, overdue, ended, monthly }) => (
+                <Fragment key={e.id}>
+                  <tr className={overdue ? "row-overdue" : undefined} style={ended ? { opacity: 0.6 } : undefined}>
+                    <td><span className="system-healthy-pill neutral">INTERNAL</span></td>
+                    <td className="admin-muted">Restart</td>
+                    <td>
+                      <strong style={{ fontWeight: 600 }}>{e.name}</strong>
+                      <div className="admin-muted">{formatAmount(e.amount_cents, e.currency)} {CADENCE_LABEL[e.cadence].toLowerCase()}</div>
+                    </td>
+                    <td className="num admin-muted">—</td>
+                    <td className="num">{ended ? "—" : ngn(monthly)}</td>
+                    <td className="num admin-muted">—</td>
+                    <td>
+                      {ended ? <span className="admin-muted">ended {formatDate(e.end_date as string)}</span> : overdue ? (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+                          <span className="admin-muted">{formatDate(due as string)}</span>
+                          <span className="pill-overdue">OVERDUE</span>
+                        </span>
+                      ) : due ? <span className="admin-muted">{formatDate(due)}</span> : <span className="admin-muted">—</span>}
+                    </td>
+                    <td className="num">
+                      <RowMenu
+                        label={`Actions for ${e.name}`}
+                        items={[
+                          { label: "Mark paid", disabled: !books.paymentsAvailable || due === null, onClick: () => setPayingId(payingId === e.id ? null : e.id) },
+                          { label: "Edit", onClick: () => openEditInternal(e) },
+                          ...(!ended ? [{ label: "End today", onClick: () => void endInternal(e) }] : []),
+                          { label: "Delete", danger: true, onClick: () => void removeInternal(e) }
+                        ]}
+                      />
+                    </td>
+                  </tr>
+                  {payingId === e.id && (
+                    <tr>
+                      <td colSpan={8}>
+                        <PaymentForm books={books} expense={e} onClose={() => setPayingId(null)} onSaved={refresh} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={2}><strong>Hosting margin</strong></td>
+                <td colSpan={3}><strong>Client hosting margin</strong></td>
                 <td className="num">{ngn(totals.sale)}</td>
                 <td className="num">{ngn(totals.cost)}</td>
                 <td className="num">
@@ -371,6 +515,20 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                   {totals.sale > 0 && <span className="admin-muted" style={{ marginLeft: 8 }}>{formatPercent(((totals.sale - totals.cost) / totals.sale) * 100, 0)}</span>}
                 </td>
                 <td colSpan={2} />
+              </tr>
+              {internal.length > 0 && (
+                <tr>
+                  <td colSpan={3}><strong>Internal servers</strong></td>
+                  <td className="num admin-muted">—</td>
+                  <td className="num"><strong>{ngn(internalCost)}</strong></td>
+                  <td colSpan={3} className="admin-muted">cost of Restart's own servers, not billed to anyone</td>
+                </tr>
+              )}
+              <tr>
+                <td colSpan={3}><strong>All hosting cost</strong></td>
+                <td className="num admin-muted">—</td>
+                <td className="num"><strong>{ngn(totals.cost + internalCost)}</strong></td>
+                <td colSpan={3} />
               </tr>
             </tfoot>
           </table>
