@@ -3092,3 +3092,24 @@ html[data-theme="light"] .dash-user-avatar{ filter: none; }
 .viz-bar-track{ position:relative; }
 .viz-bar-cut{ position:absolute; top:-3px; right:12%; width:5px; height:16px; background:#050507; transform:skewX(-25deg); }
 .viz-note{ margin:8px 0 0; font-size:.75rem; color:#7d8190; line-height:1.5; }
+
+.viz-legend-inline{ display:flex; gap:16px; margin:0 0 8px; color:#aeb4c4; font-size:.8125rem; }
+.viz-legend-inline span{ display:inline-flex; align-items:center; gap:7px; }
+.viz-legend-inline i, .viz-readout i{ width:10px; height:10px; border-radius:2px; display:inline-block; }
+.viz-bars-svg{ width:100%; height:auto; display:block; }
+.viz-axis{ fill:#7d8190; font-size:10.5px; font-variant-numeric:tabular-nums; }
+.viz-readout{ position:absolute; top:0; right:0; display:grid; gap:3px; padding:9px 12px; background:#15151b; border:1px solid rgba(255,255,255,.14); border-radius:8px; font-size:.8125rem; color:#aeb4c4; pointer-events:none; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+.viz-readout strong{ color:#f2f5ff; }
+.viz-readout span{ display:flex; align-items:center; gap:7px; }
+.viz-readout b{ color:#f2f5ff; margin-left:auto; padding-left:14px; font-variant-numeric:tabular-nums; }
+.viz-neg b{ color:#f06a6a; }
+.viz-meter{ display:grid; gap:7px; padding:12px 0; border-top:1px solid rgba(255,255,255,.06); }
+.viz-meter:first-of-type{ border-top:0; padding-top:4px; }
+.viz-meter-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; color:#c4c9d6; }
+.viz-meter-head strong{ color:#f2f5ff; font-size:1.05rem; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.viz-meter-head strong.warn{ color:#e0a050; }
+.viz-meter-track{ height:8px; background:rgba(255,255,255,.07); border-radius:4px; overflow:hidden; }
+.viz-meter-fill{ display:block; height:8px; border-radius:4px; }
+.viz-meter-note{ color:#7d8190; font-size:.75rem; line-height:1.5; }
+.fin-stack{ display:grid; gap:20px; min-width:0; }
+.fin-card-title{ font-size:.6875rem; letter-spacing:.08em; text-transform:uppercase; color:#7d8190; font-weight:700; margin:0 0 12px; }

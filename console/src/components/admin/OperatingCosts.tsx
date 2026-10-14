@@ -8,7 +8,7 @@ import { Link, useLocation } from "wouter";
 import { loadWorkspaceNames } from "@/lib/admin";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { consoleSchema } from "@/lib/supabase";
-import { formatAmount, formatDate, formatPercent } from "@/lib/format";
+import { formatAmount, formatDate } from "@/lib/format";
 import {
   CADENCE_LABEL,
   CADENCE_OPTIONS,
@@ -43,7 +43,7 @@ const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
 const emptyForm = { name: "", category: "software" as Category, amount: "", currency: "NGN" as CostCurrency, cadence: "monthly" as Cadence, start: new Date().toISOString().slice(0, 10), end: "" };
 
 /** view "summary": expenses vs revenue (stats and the month table). view "costs": the operating expense lines. view "rates": exchange rates and cash on hand. */
-export function OperatingCosts({ finance, books, refresh, view }: { finance: FinanceOverview; books: Books; refresh: () => Promise<void>; view: "summary" | "costs" | "rates" }) {
+export function OperatingCosts({ finance, books, refresh, view }: { finance: FinanceOverview; books: Books; refresh: () => Promise<void>; view: "costs" | "rates" }) {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
@@ -63,51 +63,8 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
   const operating = books.expenses.filter((e) => !hostingIds.has(e.id));
   const names = useAsyncResource(() => loadWorkspaceNames(), [], { enabled: view === "costs" });
 
-  const calc = useMemo(() => {
-    const now = new Date();
-    const thisMonth = monthKey(now);
-    const costNow = (m: string) => hostingInMonth(books, m) + overheadInMonth(books, m);
-
-    // Last 6 months, oldest first. Finance's monthly series has 12 months of collected revenue.
-    const months = Array.from({ length: 6 }, (_, i) => {
-      const key = monthKey(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - i), 1)));
-      const collected = totalsToNgn(finance.monthly.find((m) => m.month === key)?.collected, rates);
-      const hosting = hostingInMonth(books, key);
-      const overhead = overheadInMonth(books, key);
-      return { key, collected, hosting, overhead, cost: hosting + overhead, net: collected - hosting - overhead };
-    });
-
-    const recurringOverhead = operating
-      .filter((e) => e.cadence !== "one_off")
-      .reduce((s, e) => s + toNgn(expenseInMonth(e, thisMonth), e.currency, rates), 0);
-    const runRate = hostingInMonth(books, thisMonth) + recurringOverhead;
-
-    const last3 = months.slice(-3);
-    const avgCollected = last3.reduce((s, m) => s + m.collected, 0) / 3;
-    const avgCost = last3.reduce((s, m) => s + m.cost, 0) / 3;
-    // What is actually billed: contracted MRR less recurring coupons (a free support period, say).
-    const mrr = totalsToNgn(finance.totals.mrr, rates) - totalsToNgn(finance.totals.discount, rates);
-    const burn = Math.max(0, avgCost - avgCollected);
-    const byCategory = (Object.keys(CATEGORIES) as Category[])
-      .map((c) => ({ c, v: operating.filter((e) => e.category === c).reduce((s, e) => s + toNgn(expenseInMonth(e, thisMonth), e.currency, rates), 0) }))
-      .filter((r) => r.v > 0)
-      .sort((a, b) => b.v - a.v);
-
-    return {
-      thisMonth,
-      runRate,
-      costThisMonth: costNow(thisMonth),
-      months,
-      avgCollected,
-      avgCost,
-      mrrCoverage: runRate > 0 ? mrr / runRate : null,
-      breakEvenGap: Math.max(0, runRate - mrr),
-      margin3m: avgCollected > 0 ? ((avgCollected - avgCost) / avgCollected) * 100 : null,
-      burn,
-      runwayMonths: burn > 0 ? books.settings.cash_ngn_cents / burn : null,
-      byCategory
-    };
-  }, [books, finance, rates, operating]);
+  // Only the current month is needed here; the Overview does its own roll-ups (lib/financeSummary).
+  const calc = useMemo(() => ({ thisMonth: monthKey(new Date()) }), []);
 
   // The category filter, the table and the charts all read from here.
   const monthlyOf = (list: Expense[]) => list.reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0);
@@ -183,7 +140,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
     }
   };
 
-  const covered = calc.mrrCoverage !== null && calc.mrrCoverage >= 1;
   const settingField = (key: "usd_ngn" | "eur_ngn", label: string) => (
     <>
       <label>
@@ -198,74 +154,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
 
   return (
     <>
-      {view === "summary" && (
-      <div className="admin-section">
-        <h2 className="admin-section-title">Expenses vs revenue</h2>
-        <div className="cp-stats">
-          <div>
-            <small>MONTHLY EXPENSES</small>
-            <strong>{ngn(calc.runRate)}</strong>
-            <em>hosting + recurring operating · {ngn(calc.costThisMonth)} this month</em>
-          </div>
-          <div>
-            <small>MRR COVERS EXPENSES</small>
-            <strong className={calc.mrrCoverage !== null && !covered ? "warn" : undefined}>
-              {calc.mrrCoverage === null ? "—" : `${calc.mrrCoverage.toFixed(2)}×`}
-            </strong>
-            <em>{calc.mrrCoverage === null ? "add expenses to see this" : covered ? "recurring revenue exceeds expenses" : `${ngn(calc.breakEvenGap)} MRR short of break-even`}</em>
-          </div>
-          <div>
-            <small>3-MONTH MARGIN</small>
-            <strong className={calc.margin3m !== null && calc.margin3m < 0 ? "warn" : undefined}>
-              {calc.margin3m === null ? "—" : formatPercent(calc.margin3m, 1)}
-            </strong>
-            <em>collected {ngn(calc.avgCollected)} vs expenses {ngn(calc.avgCost)} a month, including one-off payments</em>
-          </div>
-          <div>
-            <small>RUNWAY</small>
-            <strong className={calc.runwayMonths !== null && calc.runwayMonths < 6 ? "warn" : undefined}>
-              {rates.cash_ngn_cents === 0 ? "Cash not set" : calc.burn === 0 ? "Self-funding" : calc.runwayMonths === null ? "—" : `${calc.runwayMonths.toFixed(1)} mo`}
-            </strong>
-            <em>
-              {rates.cash_ngn_cents === 0
-                ? "set cash on hand under Settings, Rates & cash"
-                : calc.burn === 0
-                  ? "collections ≥ expenses (3-mo avg, includes one-off payments)"
-                  : `${ngn(calc.burn)} net burn / mo`}
-            </em>
-          </div>
-        </div>
-
-        <div className="admin-table-wrap mt-4">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Month</th>
-                <th className="num">Collected</th>
-                <th className="num">Hosting</th>
-                <th className="num">Operating</th>
-                <th className="num">Net</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...calc.months].reverse().map((m) => (
-                <tr key={m.key}>
-                  <td>{new Date(`${m.key}-01T00:00:00Z`).toLocaleString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" })}</td>
-                  <td className="num">{ngn(m.collected)}</td>
-                  <td className="num">{ngn(m.hosting)}</td>
-                  <td className="num">{ngn(m.overhead)}</td>
-                  <td className={`num ${m.net < 0 ? "admin-warn" : "admin-ok"}`}>{ngn(m.net)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="admin-muted mt-2">
-          All in NGN at the rates set under Settings, Rates & cash. Hosting is the server cost of client deployments; operating expenses are everything else. Annual and quarterly expenses are spread evenly across months.
-        </p>
-      </div>
-      )}
-
       {view === "rates" && (
       <div className="admin-section">
         <p className="admin-muted">The exchange rates convert dollar and euro expenses and revenue into naira. Cash on hand is what runway is measured against, so update it when your balance changes.</p>

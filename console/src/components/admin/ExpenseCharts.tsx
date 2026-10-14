@@ -62,7 +62,7 @@ function slicesOf(items: ChartItem[]): Slice[] {
 
 const pct = (part: number, whole: number) => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : "0%");
 
-export function ExpenseCharts({ items }: { items: ChartItem[] }) {
+export function ExpenseCharts({ items, variant = "full", title = "Share by category" }: { items: ChartItem[]; /** "donut" leaves out the bars of single costs. */ variant?: "full" | "donut"; title?: string }) {
   const [hover, setHover] = useState<string | null>(null);
   const [tip, setTip] = useState<{ x: number; y: number; name: string; detail: string; value: string } | null>(null);
 
@@ -99,7 +99,7 @@ export function ExpenseCharts({ items }: { items: ChartItem[] }) {
 
   return (
     <div className="viz-root">
-      <div className="viz-title">Share by category</div>
+      <div className="viz-title">{title}</div>
       {showDonut ? (
         <div className="viz-donut-wrap">
           <svg viewBox="0 0 200 200" className="viz-donut" role="img" aria-label={`This month's cost by category: ${slices.map((s) => `${s.label} ${pct(s.value, total)}`).join(", ")}`}>
@@ -148,41 +148,46 @@ export function ExpenseCharts({ items }: { items: ChartItem[] }) {
         ))}
       </ul>
 
-      <div className="viz-title" style={{ marginTop: 22 }}>Biggest costs this month</div>
-      <div className="viz-bars" role="list">
-        {shown.map((it) => (
-          <div
-            key={it.id}
-            role="listitem"
-            className="viz-bar-row"
-            tabIndex={0}
-            aria-label={`${it.name}, ${it.categoryLabel}: ${formatNairaWhole(it.monthly)}, ${pct(it.monthly, total)} of the total`}
-            onPointerMove={(e) => move(e, it.name, it.categoryLabel, formatNairaWhole(it.monthly))}
-            onPointerLeave={() => setTip(null)}
-            onFocus={(e) => {
-              const r = e.currentTarget.getBoundingClientRect();
-              setTip({ x: r.left + r.width / 2, y: r.top, name: it.name, detail: it.categoryLabel, value: formatNairaWhole(it.monthly) });
-            }}
-            onBlur={() => setTip(null)}
-          >
-            <span className="viz-bar-name">{it.name}</span>
-            <span className="viz-bar-track">
-              <span className="viz-bar" style={{ width: `${Math.min(100, Math.max(2, (it.monthly / max) * 100))}%`, background: categoryColor(it.category) }} />
-              {cut && it.id === shown[0].id && <span className="viz-bar-cut" aria-hidden="true" />}
-            </span>
-            <span className="viz-bar-value">{formatNairaCompact(it.monthly)}</span>
-          </div>
-        ))}
-        {rest.length > 0 && (
-          <div role="listitem" className="viz-bar-row viz-bar-rest">
-            <span className="viz-bar-name">{rest.length} smaller cost{rest.length === 1 ? "" : "s"}</span>
-            <span className="viz-bar-track" />
-            <span className="viz-bar-value">{formatNairaCompact(rest.reduce((s, r) => s + r.monthly, 0))}</span>
-          </div>
-        )}
-      </div>
-
-      {cut && <p className="viz-note">The longest bar is cut off so the others stay readable. Its value is at the right.</p>}
+      {variant === "full" && (
+        <>
+        <div className="viz-title" style={{ marginTop: 22 }}>Biggest costs this month</div>
+        <div className="viz-bars" role="list">
+          {shown.map((it) => (
+            <div
+              key={it.id}
+              role="listitem"
+              className="viz-bar-row"
+              tabIndex={0}
+              aria-label={`${it.name}, ${it.categoryLabel}: ${formatNairaWhole(it.monthly)}, ${pct(it.monthly, total)} of the total`}
+              onPointerMove={(e) => move(e, it.name, it.categoryLabel, formatNairaWhole(it.monthly))}
+              onPointerLeave={() => setTip(null)}
+              onFocus={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                setTip({ x: r.left + r.width / 2, y: r.top, name: it.name, detail: it.categoryLabel, value: formatNairaWhole(it.monthly) });
+              }}
+              onBlur={() => setTip(null)}
+            >
+              <span className="viz-bar-name">{it.name}</span>
+              <span className="viz-bar-track">
+                <span className="viz-bar" style={{ width: `${Math.min(100, Math.max(2, (it.monthly / max) * 100))}%`, background: categoryColor(it.category) }} />
+                {cut && it.id === shown[0].id && <span className="viz-bar-cut" aria-hidden="true" />}
+              </span>
+              <span className="viz-bar-value">{formatNairaCompact(it.monthly)}</span>
+            </div>
+          ))}
+          {rest.length > 0 && (
+            <div role="listitem" className="viz-bar-row viz-bar-rest">
+              <span className="viz-bar-name">{rest.length} smaller cost{rest.length === 1 ? "" : "s"}</span>
+              <span className="viz-bar-track" />
+              <span className="viz-bar-value">{formatNairaCompact(rest.reduce((s, r) => s + r.monthly, 0))}</span>
+            </div>
+          )}
+        </div>
+  
+        {cut && <p className="viz-note">The longest bar is cut off so the others stay readable. Its value is at the right.</p>}
+  
+          </>
+      )}
 
       {tip && (
         <div className="viz-tip" style={{ left: tip.x + 14, top: tip.y + 14 }} role="status">
