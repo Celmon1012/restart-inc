@@ -23,6 +23,14 @@ const PROVIDER_LABEL: Record<Service["provider"], string> = { hetzner: "Hetzner"
 const DEFAULT_CURRENCY: Record<Service["provider"], CostCurrency> = { hetzner: "EUR", contabo: "USD", other: "NGN" };
 
 const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
+const PROVIDER_SUFFIX = /^(.*\S)\s+\((Hetzner|Contabo)\)$/;
+/** An internal server's expense is named "cp.restart.ng (Contabo)": pull the provider back out of the name. */
+function splitProvider(name: string): { name: string; provider: Service["provider"] | null } {
+  const m = name.match(PROVIDER_SUFFIX);
+  if (!m) return { name, provider: null };
+  return { name: m[1], provider: m[2] === "Hetzner" ? "hetzner" : "contabo" };
+}
+const cadenceShort: Record<Cadence, string> = { weekly: "/wk", monthly: "/mo", quarterly: "/qtr", annual: "/yr", one_off: "" };
 const today = () => new Date().toISOString().slice(0, 10);
 
 interface Form {
@@ -124,13 +132,14 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
     setEditingId(null);
     setEditingExpenseId(null);
     setFormError(null);
-    setForm({ ...blankForm(), kind: "internal", provider: "other", currency: "USD" });
+    setForm({ ...blankForm(), kind: "internal" });
   };
   const openEditInternal = (e: Expense) => {
     setEditingId(null);
     setEditingExpenseId(e.id);
     setFormError(null);
-    setForm({ ...blankForm(), kind: "internal", cadence: e.cadence, name: e.name, cost: String(e.amount_cents / 100), currency: e.currency, start: e.start_date, end: e.end_date ?? "" });
+    const parts = splitProvider(e.name);
+    setForm({ ...blankForm(), kind: "internal", cadence: e.cadence, name: parts.name, provider: parts.provider ?? "other", cost: String(e.amount_cents / 100), currency: e.currency, start: e.start_date, end: e.end_date ?? "" });
   };
   const openEdit = (s: Service) => {
     setEditingExpenseId(null);
@@ -161,7 +170,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
       setSaving(true);
       setFormError(null);
       const expenseRow = {
-        name: form.name.trim(),
+        name: form.provider === "other" ? form.name.trim() : `${form.name.trim()} (${PROVIDER_LABEL[form.provider]})`,
         category: "infrastructure",
         amount_cents: Math.round(cost * 100),
         currency: form.currency,
@@ -286,30 +295,6 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
         <span className="admin-muted">Client servers are billed on to a client and have a margin. Internal servers are Restart's own and only cost money.</span>
       </div>
 
-      {untracked.length > 0 && (
-        <div className="cp-card" style={{ marginBottom: 12 }} role="status">
-          <div className="cp-card-head"><span>Servers in Coolify with no cost recorded</span></div>
-          {untracked.map((s) => (
-            <p key={s.uuid} style={{ margin: "6px 0" }}>
-              <strong>{s.name}</strong> runs {nameOf(s.workspaceId!)}.{" "}
-              <button className="dash-tab-btn" onClick={() => openAdd({ workspaceId: s.workspaceId!, name: s.name, coolifyServerUuid: s.uuid })}>Add its cost</button>
-            </p>
-          ))}
-        </div>
-      )}
-      {vanished.length > 0 && (
-        <div className="cp-card" style={{ marginBottom: 12 }} role="status">
-          <div className="cp-card-head"><span>Servers no longer running client resources in Coolify</span></div>
-          {vanished.map((s) => (
-            <p key={s.id} style={{ margin: "6px 0" }}>
-              <strong>{s.name}</strong> ({nameOf(s.workspace_id)}) is still costing {formatAmount(s.monthly_cost_cents, s.currency)}/mo.{" "}
-              <button className="dash-tab-btn" onClick={() => void end(s)}>End today</button>
-            </p>
-          ))}
-        </div>
-      )}
-      {coolify.error && <p className="admin-muted">Couldn't reach Coolify, so server sync hints are off: {coolify.error}</p>}
-
       {form && (
         <form
           onSubmit={(e) => { e.preventDefault(); void save(); }}
@@ -339,7 +324,19 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
               </select>
             </>
           ) : (
-            <input type="text" required placeholder="Server name (e.g. cp.restart.ng, Coolify)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <>
+              <input type="text" required placeholder="Server name (e.g. cp.restart.ng)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <select
+                value={form.provider}
+                onChange={(e) => {
+                  const provider = e.target.value as Service["provider"];
+                  setForm({ ...form, provider, currency: editingExpenseId ? form.currency : DEFAULT_CURRENCY[provider] });
+                }}
+                aria-label="Provider"
+              >
+                {Object.entries(PROVIDER_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </>
           )}
           <input type="number" required min="0" step="0.01" placeholder={form.kind === "client" ? "Monthly cost" : "Cost"} style={{ width: 120 }} value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} />
           <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as CostCurrency })}>
@@ -469,8 +466,8 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                     <td><span className="system-healthy-pill neutral">INTERNAL</span></td>
                     <td className="admin-muted">Restart</td>
                     <td>
-                      <strong style={{ fontWeight: 600 }}>{e.name}</strong>
-                      <div className="admin-muted">{formatAmount(e.amount_cents, e.currency)} {CADENCE_LABEL[e.cadence].toLowerCase()}</div>
+                      <strong style={{ fontWeight: 600 }}>{splitProvider(e.name).name}</strong>
+                      <div className="admin-muted">{splitProvider(e.name).provider ? PROVIDER_LABEL[splitProvider(e.name).provider as Service["provider"]] : "Provider not set"} · {formatAmount(e.amount_cents, e.currency)}{cadenceShort[e.cadence]}</div>
                     </td>
                     <td className="num admin-muted">—</td>
                     <td className="num">{ended ? "—" : ngn(monthly)}</td>
@@ -534,6 +531,30 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
           </table>
         </div>
       )}
+
+      {untracked.length > 0 && (
+        <div className="cp-card" style={{ marginBottom: 12 }} role="status">
+          <div className="cp-card-head"><span>Servers in Coolify with no cost recorded</span></div>
+          {untracked.map((s) => (
+            <p key={s.uuid} style={{ margin: "6px 0" }}>
+              <strong>{s.name}</strong> runs {nameOf(s.workspaceId!)}.{" "}
+              <button className="dash-tab-btn" onClick={() => openAdd({ workspaceId: s.workspaceId!, name: s.name, coolifyServerUuid: s.uuid })}>Add its cost</button>
+            </p>
+          ))}
+        </div>
+      )}
+      {vanished.length > 0 && (
+        <div className="cp-card" style={{ marginBottom: 12 }} role="status">
+          <div className="cp-card-head"><span>Servers no longer running client resources in Coolify</span></div>
+          {vanished.map((s) => (
+            <p key={s.id} style={{ margin: "6px 0" }}>
+              <strong>{s.name}</strong> ({nameOf(s.workspace_id)}) is still costing {formatAmount(s.monthly_cost_cents, s.currency)}/mo.{" "}
+              <button className="dash-tab-btn" onClick={() => void end(s)}>End today</button>
+            </p>
+          ))}
+        </div>
+      )}
+      {coolify.error && <p className="admin-muted">Couldn't reach Coolify, so server sync hints are off: {coolify.error}</p>}
     </div>
   );
 }

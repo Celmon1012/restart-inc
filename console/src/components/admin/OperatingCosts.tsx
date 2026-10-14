@@ -18,6 +18,7 @@ import {
   hostingExpenseIds,
   hostingInMonth,
   nextDue,
+  serviceInMonth,
   monthKey,
   overheadInMonth,
   toNgn,
@@ -66,17 +67,38 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
   const calc = useMemo(() => ({ thisMonth: monthKey(new Date()) }), []);
 
   // The category filter, the table and the charts all read from here.
+  // Hosting is an expense too: client servers and Restart's own, this month. The Hosting page manages them;
+  // here they count in the totals, the filter and the charts, and show as one row that opens that page.
+  const hostingItems = [
+    ...books.services.map((sv) => ({ id: sv.id, name: sv.name, monthly: toNgn(serviceInMonth(sv, calc.thisMonth), sv.currency, rates) })),
+    ...books.expenses
+      .filter((e) => e.category === "infrastructure" && !hostingIds.has(e.id))
+      .map((e) => ({ id: e.id, name: e.name.replace(/\s+\((Hetzner|Contabo)\)$/, ""), monthly: toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates) }))
+  ].filter((h) => h.monthly > 0);
+  const hostingTotal = hostingItems.reduce((sum, h) => sum + h.monthly, 0);
+  const hostingDue = [
+    ...books.services.map((sv) => (sv.expense_id ? books.expenses.find((e) => e.id === sv.expense_id) : undefined)),
+    ...books.expenses.filter((e) => e.category === "infrastructure" && !hostingIds.has(e.id))
+  ]
+    .map((e) => (e ? nextDue(e, books.payments) : null))
+    .filter((d): d is string => d !== null)
+    .sort()[0] ?? null;
+
   const monthlyOf = (list: Expense[]) => list.reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0);
-  const presentCategories = (Object.keys(CATEGORIES) as Category[]).filter((c) => operating.some((e) => e.category === c));
+  const presentCategories = (Object.keys(CATEGORIES) as Category[]).filter((c) => (c === "infrastructure" ? hostingItems.length > 0 : operating.some((e) => e.category === c)));
+  const showHosting = (catSel ?? presentCategories).includes("infrastructure") && hostingItems.length > 0;
   const ticked = catSel ?? presentCategories;
   const visibleExpenses = operating.filter((e) => ticked.includes(e.category));
-  const chartItems: ChartItem[] = visibleExpenses.map((e) => ({
-    id: e.id,
-    name: e.name,
-    category: e.category,
-    categoryLabel: CATEGORIES[e.category],
-    monthly: toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates)
-  }));
+  const chartItems: ChartItem[] = [
+    ...visibleExpenses.map((e) => ({
+      id: e.id,
+      name: e.name,
+      category: e.category,
+      categoryLabel: CATEGORIES[e.category],
+      monthly: toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates)
+    })),
+    ...(showHosting ? hostingItems.map((h) => ({ id: h.id, name: h.name, category: "infrastructure", categoryLabel: CATEGORIES.infrastructure, monthly: h.monthly })) : [])
+  ];
 
   const startEdit = (e: Expense) => {
     setEditingId(e.id);
@@ -212,7 +234,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
           </form>
         )}
 
-        {operating.length === 0 ? (
+        {operating.length === 0 && hostingItems.length === 0 ? (
           <div className="dash-empty-state">No operating expenses yet. Add tools, internet, salaries, fees and tax, then the ratios on Overview fill in.</div>
         ) : (
           <>
@@ -221,14 +243,14 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                 label="Categories"
                 allLabel="All categories"
                 options={presentCategories
-                  .map((c) => ({ value: c, label: CATEGORIES[c], swatch: categoryColor(c), total: monthlyOf(operating.filter((e) => e.category === c)) }))
+                  .map((c) => ({ value: c, label: CATEGORIES[c], swatch: categoryColor(c), total: c === "infrastructure" ? hostingTotal : monthlyOf(operating.filter((e) => e.category === c)) }))
                   .sort((x, y) => y.total - x.total)
                   .map((o) => ({ value: o.value, label: o.label, swatch: o.swatch, detail: formatNairaCompact(o.total) }))}
                 selected={ticked}
                 onChange={(next) => setCatSel(next.length === presentCategories.length ? null : (next as Category[]))}
               />
               <span className="admin-muted">
-                {visibleExpenses.length} of {operating.length} expenses · {ngn(monthlyOf(visibleExpenses))} this month
+                {visibleExpenses.length} of {operating.length} expenses{showHosting ? ` + hosting (${hostingItems.length} server${hostingItems.length === 1 ? "" : "s"})` : ""} · {ngn(monthlyOf(visibleExpenses) + (showHosting ? hostingTotal : 0))} this month
               </span>
             </div>
             <div className="exp-layout">
@@ -291,6 +313,22 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                         </Fragment>
                       );
                     })}
+                  {showHosting && (
+                    <tr className="clickable" onClick={() => setLocation("/finance/hosting")}>
+                      <td>
+                        <strong>Hosting</strong>
+                        <div className="admin-muted">{hostingItems.length} server{hostingItems.length === 1 ? "" : "s"}, client and internal</div>
+                      </td>
+                      <td>{CATEGORIES.infrastructure}</td>
+                      <td className="admin-muted">Monthly</td>
+                      <td className="num admin-muted">—</td>
+                      <td className="num">{ngn(hostingTotal)}</td>
+                      <td className="admin-muted">{hostingDue ? formatDate(hostingDue) : "—"}</td>
+                      <td className="num" onClick={(ev) => ev.stopPropagation()}>
+                        <RowMenu label="Actions for hosting" items={[{ label: "Open Hosting", onClick: () => setLocation("/finance/hosting") }]} />
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
