@@ -7,12 +7,13 @@
 import { useState } from "react";
 import { consoleSchema } from "@/lib/supabase";
 import { downloadCsv } from "@/lib/csv";
-import { formatAmount, formatDate } from "@/lib/format";
+import { formatAmount, formatDate, formatNairaCompact } from "@/lib/format";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { CADENCE_LABEL, EXPENSE_CATEGORIES, hostingExpenseIds, hostingInMonth, monthKey, overheadInMonth, toNgn, totalsToNgn, type Books } from "@/lib/financeBooks";
 import type { FinanceOverview } from "@/lib/financeOverview";
 
 const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
+const tileValue = { fontSize: "1.5rem", whiteSpace: "nowrap" as const };
 const naira = (cents: number) => Math.round(cents) / 100;
 const monthLabel = (key: string) => new Date(`${key}-01T00:00:00Z`).toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" });
 const shiftMonth = (key: string, by: number) => {
@@ -148,17 +149,17 @@ export function ReportsPanel({ finance, books }: { finance: FinanceOverview; boo
       <div className="cp-stats">
         <div>
           <small>REVENUE</small>
-          <strong>{ngn(revenue)}</strong>
+          <strong style={tileValue} title={ngn(revenue)}>{formatNairaCompact(revenue)}</strong>
           <em>collected, ex-VAT</em>
         </div>
         <div>
           <small>COSTS</small>
-          <strong>{ngn(hosting + operating)}</strong>
+          <strong style={tileValue} title={ngn(hosting + operating)}>{formatNairaCompact(hosting + operating)}</strong>
           <em>{ngn(hosting)} hosting · {ngn(operating)} operating</em>
         </div>
         <div>
           <small>PROFIT</small>
-          <strong className={profit < 0 ? "warn" : undefined}>{ngn(profit)}</strong>
+          <strong className={profit < 0 ? "warn" : undefined} style={tileValue} title={ngn(profit)}>{formatNairaCompact(profit)}</strong>
           <em>revenue less costs</em>
         </div>
         <div>
@@ -203,22 +204,22 @@ export function ReportsPanel({ finance, books }: { finance: FinanceOverview; boo
       <div className="cp-stats">
         <div>
           <small>OWED NOW</small>
-          <strong className={vatOwed > 0 ? "warn" : undefined}>{remittances.data ? ngn(vatOwed) : "…"}</strong>
+          <strong className={vatOwed > 0 ? "warn" : undefined} style={tileValue} title={remittances.data ? ngn(vatOwed) : undefined}>{remittances.data ? formatNairaCompact(vatOwed) : "…"}</strong>
           <em>collected less remitted, all time</em>
         </div>
         <div>
           <small>COLLECTED</small>
-          <strong>{ngn(vatCollected)}</strong>
+          <strong style={tileValue} title={ngn(vatCollected)}>{formatNairaCompact(vatCollected)}</strong>
           <em>on invoices, all time</em>
         </div>
         <div>
           <small>REMITTED</small>
-          <strong>{remittances.data ? ngn(vatRemitted) : "…"}</strong>
+          <strong style={tileValue} title={remittances.data ? ngn(vatRemitted) : undefined}>{remittances.data ? formatNairaCompact(vatRemitted) : "…"}</strong>
           <em>{remittances.data ? `${remittances.data.length} payment${remittances.data.length === 1 ? "" : "s"} logged` : "loading"}</em>
         </div>
         <div>
           <small>VAT ON COSTS</small>
-          <strong>{ngn(inputVat)}</strong>
+          <strong style={tileValue} title={ngn(inputVat)}>{formatNairaCompact(inputVat)}</strong>
           <em>shown on receipts, {PERIOD_LABEL[period].toLowerCase()}</em>
         </div>
       </div>

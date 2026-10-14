@@ -6,7 +6,7 @@
 //             month, not smoothed). The balance runs on from the cash figure in Rates & cash.
 // Currencies other than NGN are converted at the rates in Rates & cash.
 
-import { formatAmount } from "@/lib/format";
+import { formatAmount, formatNairaCompact, formatNairaWhole } from "@/lib/format";
 import { cashDueInMonth, hostingInMonth, monthKey, overheadInMonth, totalsToNgn, type Books } from "@/lib/financeBooks";
 import type { FinanceOverview } from "@/lib/financeOverview";
 
@@ -14,6 +14,9 @@ const BACK = 6;
 const FORWARD = 6;
 
 const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
+// Stat tiles stay on one line however big the money gets: a short figure, the exact amount on hover.
+const tileValue = { fontSize: "1.5rem", whiteSpace: "nowrap" as const };
+const cell = { whiteSpace: "nowrap" as const };
 const monthLabel = (key: string) => new Date(`${key}-01T00:00:00Z`).toLocaleDateString("en-GB", { month: "short", year: "2-digit", timeZone: "UTC" });
 const shiftMonth = (key: string, by: number) => {
   const [y, m] = key.split("-").map(Number);
@@ -79,30 +82,30 @@ export function CashflowPanel({ finance, books }: { finance: FinanceOverview; bo
 
   return (
     <div className="admin-section">
-      <div className="cp-stats" style={{ gridTemplateColumns: "repeat(5, 1fr)" }}>
+      <div className="cp-stats" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
         <div>
           <small>CASH NOW</small>
-          <strong>{ngn(settings.cash_ngn_cents)}</strong>
+          <strong style={tileValue} title={ngn(settings.cash_ngn_cents)}>{formatNairaCompact(settings.cash_ngn_cents)}</strong>
           <em>set in Rates &amp; cash</em>
         </div>
         <div>
           <small>MONTHLY BURN</small>
-          <strong>{ngn(avgBurn)}</strong>
+          <strong style={tileValue} title={ngn(avgBurn)}>{formatNairaCompact(avgBurn)}</strong>
           <em>bills falling due, next {FORWARD} months</em>
         </div>
         <div>
           <small>NET PER MONTH</small>
-          <strong className={avgNet < 0 ? "warn" : undefined}>{ngn(avgNet)}</strong>
+          <strong className={avgNet < 0 ? "warn" : undefined} style={tileValue} title={ngn(avgNet)}>{formatNairaCompact(avgNet)}</strong>
           <em>billed MRR less costs</em>
         </div>
         <div>
           <small>OVERDUE, NOT COUNTED</small>
-          <strong className={overdue > 0 ? "warn" : undefined}>{ngn(overdue)}</strong>
+          <strong className={overdue > 0 ? "warn" : undefined} style={tileValue} title={ngn(overdue)}>{formatNairaCompact(overdue)}</strong>
           <em>{overdue > 0 ? "late invoices, left out until paid" : "nothing overdue"}</em>
         </div>
         <div>
           <small>CASH RUNS OUT</small>
-          <strong className={runway ? "warn" : undefined}>{runway ?? `Not in ${FORWARD} months`}</strong>
+          <strong className={runway ? "warn" : undefined} style={tileValue}>{runway ?? `Not in ${FORWARD} months`}</strong>
           <em>if nothing else changes</em>
         </div>
       </div>
@@ -118,10 +121,10 @@ export function CashflowPanel({ finance, books }: { finance: FinanceOverview; bo
               return (
                 <tr key={r.month} style={r.kind === "now" ? { fontWeight: 600 } : r.kind === "forecast" ? { opacity: 0.85 } : undefined}>
                   <td>{monthLabel(r.month)}{r.kind === "now" ? " (this month)" : r.kind === "forecast" ? " · forecast" : ""}</td>
-                  <td className="num">{ngn(r.inflow)}</td>
-                  <td className="num">{ngn(r.outflow)}</td>
-                  <td className={`num${net < 0 ? " warn" : ""}`}>{ngn(net)}</td>
-                  <td className={`num${closing[i] < 0 ? " warn" : ""}`}>{ngn(closing[i])}</td>
+                  <td className="num" style={cell} title={ngn(r.inflow)}>{formatNairaWhole(r.inflow)}</td>
+                  <td className="num" style={cell} title={ngn(r.outflow)}>{formatNairaWhole(r.outflow)}</td>
+                  <td className={`num${net < 0 ? " warn" : ""}`} style={cell} title={ngn(net)}>{formatNairaWhole(net)}</td>
+                  <td className={`num${closing[i] < 0 ? " warn" : ""}`} style={cell} title={ngn(closing[i])}>{formatNairaWhole(closing[i])}</td>
                   <td style={{ width: 140 }} aria-hidden="true">
                     <div style={{ display: "grid", gap: 2 }}>
                       <div style={{ height: 5, width: `${(r.inflow / max) * 100}%`, background: "currentColor", opacity: 0.7 }} />

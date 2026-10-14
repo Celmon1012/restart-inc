@@ -88,6 +88,27 @@ export function formatRelative(value: string | number | Date | null | undefined)
  * falls back to an explicit code when the currency is not recognised — which
  * matters because an unrecognised code must never render as a bare number.
  */
+/**
+ * A naira amount short enough for a stat tile, whatever its size: ₦100,000, then ₦1.63m, ₦12.5m,
+ * ₦1.2bn. Pass kobo. Below a million the figure is shown in full (no kobo); the exact amount belongs
+ * in the tile's title so it is one hover away.
+ */
+export function formatNairaCompact(kobo: number): string {
+  const naira = Math.round(kobo) / 100;
+  const sign = naira < 0 ? "-" : "";
+  const abs = Math.abs(naira);
+  if (abs < 1_000_000) return `${sign}₦${Math.round(abs).toLocaleString("en-US")}`;
+  const short = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(abs);
+  // "1.63M" -> "1.63m", "1.2B" -> "1.2bn", "3T" -> "3tn"
+  return `${sign}₦${short.replace(/M$/, "m").replace(/B$/, "bn").replace(/T$/, "tn")}`;
+}
+
+/** A naira amount in whole naira, with no kobo: ₦1,338,923. For table cells, where kobo is noise. */
+export function formatNairaWhole(kobo: number): string {
+  const naira = Math.round(kobo) / 100;
+  return `${naira < 0 ? "-" : ""}₦${Math.round(Math.abs(naira)).toLocaleString("en-US")}`;
+}
+
 export function formatAmount(minorUnits: number, currency: string): string {
   try {
     return new Intl.NumberFormat("en-US", {

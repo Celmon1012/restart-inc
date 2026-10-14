@@ -31,6 +31,9 @@ import {
 import type { FinanceOverview } from "@/pages/admin/Finance";
 import { PaymentForm } from "@/components/admin/ExpensePayments";
 import { RowMenu } from "@/components/admin/RowMenu";
+import { MultiSelectFilter } from "@/components/admin/MultiSelectFilter";
+import { ExpenseCharts, categoryColor, type ChartItem } from "@/components/admin/ExpenseCharts";
+import { formatNairaCompact } from "@/lib/format";
 
 const CATEGORIES: Record<Expense["category"], string> = EXPENSE_CATEGORIES;
 type Category = Expense["category"];
@@ -44,7 +47,9 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
-  const [catFilter, setCatFilter] = useState<Category | "all">("all");
+  // Ticked categories; null means all of them, so a category added later shows up without a click.
+  const [catSel, setCatSel] = useState<Category[] | null>(null);
+  const [showCharts, setShowCharts] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -102,6 +107,19 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
       byCategory
     };
   }, [books, finance, rates, operating]);
+
+  // The category filter, the table and the charts all read from here.
+  const monthlyOf = (list: Expense[]) => list.reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0);
+  const presentCategories = (Object.keys(CATEGORIES) as Category[]).filter((c) => operating.some((e) => e.category === c));
+  const ticked = catSel ?? presentCategories;
+  const visibleExpenses = operating.filter((e) => ticked.includes(e.category));
+  const chartItems: ChartItem[] = visibleExpenses.map((e) => ({
+    id: e.id,
+    name: e.name,
+    category: e.category,
+    categoryLabel: CATEGORIES[e.category],
+    monthly: toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates)
+  }));
 
   const startEdit = (e: Expense) => {
     setEditingId(e.id);
@@ -371,28 +389,27 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
           <div className="dash-empty-state">No operating expenses yet. Add tools, internet, salaries, fees and tax, then the ratios on Overview fill in.</div>
         ) : (
           <>
-            {/* This month by category: each is a filter, so one click shows that category's expenses and its total. */}
             <div className="admin-toolbar" style={{ margin: "10px 0" }}>
-              {(() => {
-                const monthlyOf = (list: Expense[]) => list.reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0);
-                const present = (Object.keys(CATEGORIES) as Category[]).filter((c) => operating.some((e) => e.category === c));
-                return (
-                  <>
-                    <button className={`dash-tab-btn ${catFilter === "all" ? "active" : ""}`} onClick={() => setCatFilter("all")}>
-                      All · {ngn(monthlyOf(operating))}
-                    </button>
-                    {present
-                      .map((c) => ({ c, total: monthlyOf(operating.filter((e) => e.category === c)) }))
-                      .sort((a, b) => b.total - a.total)
-                      .map(({ c, total }) => (
-                        <button key={c} className={`dash-tab-btn ${catFilter === c ? "active" : ""}`} onClick={() => setCatFilter(catFilter === c ? "all" : c)}>
-                          {CATEGORIES[c]} · {ngn(total)}
-                        </button>
-                      ))}
-                  </>
-                );
-              })()}
+              <MultiSelectFilter
+                label="Categories"
+                allLabel="All categories"
+                options={presentCategories
+                  .map((c) => ({ value: c, label: CATEGORIES[c], swatch: categoryColor(c), total: monthlyOf(operating.filter((e) => e.category === c)) }))
+                  .sort((x, y) => y.total - x.total)
+                  .map((o) => ({ value: o.value, label: o.label, swatch: o.swatch, detail: formatNairaCompact(o.total) }))}
+                selected={ticked}
+                onChange={(next) => setCatSel(next.length === presentCategories.length ? null : (next as Category[]))}
+              />
+              <span className="admin-muted">
+                {visibleExpenses.length} of {operating.length} expenses · {ngn(monthlyOf(visibleExpenses))} this month
+              </span>
+              <span className="admin-toolbar-spacer" />
+              <button className={`dash-tab-btn ${showCharts ? "active" : ""}`} onClick={() => setShowCharts((v) => !v)} aria-pressed={showCharts}>
+                Charts
+              </button>
             </div>
+            <div className="exp-layout">
+            <div style={{ minWidth: 0 }}>
             <div className="admin-table-wrap">
               <table className="admin-table">
                 <thead>
@@ -407,8 +424,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                   </tr>
                 </thead>
                 <tbody>
-                  {operating
-                    .filter((e) => catFilter === "all" || e.category === catFilter)
+                  {visibleExpenses
                     .map((e) => {
                       const due = nextDue(e, books.payments);
                       const overdue = due !== null && due < new Date().toISOString().slice(0, 10);
@@ -454,6 +470,14 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                     })}
                 </tbody>
               </table>
+            </div>
+            {visibleExpenses.length === 0 && <div className="dash-empty-state">No categories ticked. Open the filter and tick one or more.</div>}
+            </div>
+            {showCharts && (
+              <aside className="exp-charts" aria-label="Charts of this month's operating costs">
+                <ExpenseCharts items={chartItems} />
+              </aside>
+            )}
             </div>
           </>
         )}
