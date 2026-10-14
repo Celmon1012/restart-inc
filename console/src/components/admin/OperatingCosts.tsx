@@ -49,7 +49,8 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
   const [payingId, setPayingId] = useState<string | null>(null);
   // Ticked categories; null means all of them, so a category added later shows up without a click.
   const [catSel, setCatSel] = useState<Category[] | null>(null);
-  const [showCharts, setShowCharts] = useState(true);
+  // The Expenses page has two tabs: the business's own costs, and what client servers cost.
+  const [costsTab, setCostsTab] = useState<"operating" | "hosting">("operating");
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -291,8 +292,19 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
 
       {view === "costs" && (
       <>
+      <div className="admin-toolbar" style={{ marginBottom: 12 }}>
+        <button className={`dash-tab-btn ${costsTab === "operating" ? "active" : ""}`} onClick={() => setCostsTab("operating")} aria-pressed={costsTab === "operating"}>
+          Operating expenses
+        </button>
+        <button className={`dash-tab-btn ${costsTab === "hosting" ? "active" : ""}`} onClick={() => setCostsTab("hosting")} aria-pressed={costsTab === "hosting"}>
+          Client hosting ({books.services.filter((sv) => sv.expense_id).length})
+        </button>
+        <span className="admin-toolbar-spacer" />
+        {costsTab === "operating" && <button className="dash-tab-btn active" onClick={startAdd}>Add expense</button>}
+      </div>
+
+      {costsTab === "hosting" && (
       <div className="admin-section">
-        <h2 className="admin-section-title">Client hosting</h2>
         {books.services.filter((sv) => sv.expense_id).length === 0 ? (
           <div className="dash-empty-state">No client servers yet. <Link href="/finance/hosting" className="text-teal">Add one on Hosting</Link>.</div>
         ) : (
@@ -352,12 +364,10 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
           </div>
         )}
       </div>
+      )}
 
+      {costsTab === "operating" && (
       <div className="admin-section">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 className="admin-section-title">Operating expenses</h2>
-          <button className="dash-tab-btn active" onClick={startAdd}>Add expense</button>
-        </div>
 
         {showForm && (
           <form
@@ -403,10 +413,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
               <span className="admin-muted">
                 {visibleExpenses.length} of {operating.length} expenses · {ngn(monthlyOf(visibleExpenses))} this month
               </span>
-              <span className="admin-toolbar-spacer" />
-              <button className={`dash-tab-btn ${showCharts ? "active" : ""}`} onClick={() => setShowCharts((v) => !v)} aria-pressed={showCharts}>
-                Charts
-              </button>
             </div>
             <div className="exp-layout">
             <div style={{ minWidth: 0 }}>
@@ -473,15 +479,14 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
             </div>
             {visibleExpenses.length === 0 && <div className="dash-empty-state">No categories ticked. Open the filter and tick one or more.</div>}
             </div>
-            {showCharts && (
-              <aside className="exp-charts" aria-label="Charts of this month's operating costs">
-                <ExpenseCharts items={chartItems} />
-              </aside>
-            )}
+            <aside className="exp-charts" aria-label="Charts of this month's operating costs">
+              <ExpenseCharts items={chartItems} />
+            </aside>
             </div>
           </>
         )}
       </div>
+      )}
       </>
       )}
     </>
