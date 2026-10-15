@@ -12,9 +12,6 @@ import { useAdminAttention } from "@/lib/adminAttention";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { formatTotals, TotalsValue } from "./Finance";
 
-// The full list lives on /admin/attention and in the top-bar bell.
-const OVERVIEW_ATTENTION_LIMIT = 5;
-
 function Tile({ label, value, hint, warn, href }: { label: string; value: React.ReactNode; hint: string; warn?: boolean; href: string }) {
   return (
     <Link href={href} className="cp-stat-link">
@@ -27,7 +24,7 @@ function Tile({ label, value, hint, warn, href }: { label: string; value: React.
 
 export default function AdminOverview() {
   const { isOwner, canFinance } = useWorkspace();
-  const { sources, items: attention, loading: attentionLoading } = useAdminAttention();
+  const { sources } = useAdminAttention();
   const { leads, delivery, support, finance } = sources;
 
   const leadRows = leads.data ?? [];
@@ -86,31 +83,6 @@ export default function AdminOverview() {
             hint={finance.error ? "Couldn't reach billing" : `${formatTotals(finance.data?.totals.outstanding)} outstanding`}
             warn={Boolean(finance.data && Object.keys(finance.data.totals.overdue).length)}
           />
-        )}
-      </div>
-
-      <div className="admin-section">
-        <h2 className="admin-section-title">
-          Needs attention{attention.length > 0 && <span className="admin-muted"> · {attention.length}</span>}
-        </h2>
-        {attention.length === 0 ? (
-          <div className="dash-empty-state">{attentionLoading ? "Checking…" : "Nothing needs attention right now."}</div>
-        ) : (
-          <>
-            <div className="overview-attention-list">
-              {attention.slice(0, OVERVIEW_ATTENTION_LIMIT).map((a) => (
-                <Link href={a.href} key={a.key} className="overview-attention-row">
-                  <span className="overview-attention-name">{a.text}</span>
-                  <ArrowRight size={14} />
-                </Link>
-              ))}
-            </div>
-            {attention.length > OVERVIEW_ATTENTION_LIMIT && (
-              <Link href="/admin/attention" className="overview-section-link mt-2">
-                View all {attention.length} <ArrowRight size={12} />
-              </Link>
-            )}
-          </>
         )}
       </div>
 
