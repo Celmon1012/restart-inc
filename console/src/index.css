@@ -3128,7 +3128,7 @@ html[data-theme="light"] .dash-user-avatar{ filter: none; }
 .task-strip-tile.st-complete span{ color: var(--teal); }
 @media (max-width: 900px){ .task-strip{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
-.admin-table.tasks-compact td{ padding: 6px 12px; }
+.admin-table.tasks-compact td{ padding: 8px 14px; }
 .admin-table.tasks-compact td.task-name{ max-width: 460px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-table.tasks-compact td.task-name strong.done{ text-decoration: line-through; opacity: .6; }
 
@@ -3225,3 +3225,7 @@ div.task-strip-tile{ cursor: default; }
 .task-strip-tile.iv-partial span{ color: #a78bfa; }
 .task-strip-tile.iv-overdue span{ color: #ff7b7b; }
 .task-strip-tile.iv-paid span{ color: var(--teal); }
+
+/* One row height on every table, so Clients, Leads, Projects, Tasks and the finance pages line up. Taller content still grows the row. */
+.admin-table tbody td{ height: 54px; }
+.admin-table tfoot td{ height: 46px; padding-top: 8px; padding-bottom: 8px; }
