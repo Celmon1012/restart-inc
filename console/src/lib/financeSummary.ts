@@ -7,13 +7,16 @@
 //   Run rate: hosting plus the recurring operating costs for this month (one-offs left out).
 //   Runway  : cash on hand over the average net burn of the last three months.
 
-import { expenseInMonth, hostingExpenseIds, hostingInMonth, monthKey, overheadInMonth, toNgn, totalsToNgn, type Books } from "@/lib/financeBooks";
+import { costSplitInMonth, expenseInMonth, hostingExpenseIds, hostingInMonth, monthKey, overheadInMonth, toNgn, totalsToNgn, type Books } from "@/lib/financeBooks";
 import type { FinanceOverview } from "@/lib/financeOverview";
 
 export interface MonthRow {
   key: string;
   collected: number;
+  /** All hosting: client servers and Restart's own. */
   hosting: number;
+  domains: number;
+  /** Everything that is not hosting or a domain. */
   overhead: number;
   cost: number;
   net: number;
@@ -47,9 +50,9 @@ export function summarise(finance: FinanceOverview, books: Books): Summary {
   const months: MonthRow[] = Array.from({ length: 6 }, (_, i) => {
     const key = monthKey(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - i), 1)));
     const collected = totalsToNgn(finance.monthly.find((m) => m.month === key)?.collected, rates);
-    const hosting = hostingInMonth(books, key);
-    const overhead = overheadInMonth(books, key);
-    return { key, collected, hosting, overhead, cost: hosting + overhead, net: collected - hosting - overhead };
+    const split = costSplitInMonth(books, key);
+    const cost = split.hosting + split.domains + split.operating;
+    return { key, collected, hosting: split.hosting, domains: split.domains, overhead: split.operating, cost, net: collected - cost };
   });
 
   const recurringOverhead = operating

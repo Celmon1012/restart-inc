@@ -146,6 +146,7 @@ export default function AdminFinance() {
                           <th>Month</th>
                           <th className="num">Collected</th>
                           <th className="num">Hosting</th>
+                          <th className="num">Domains</th>
                           <th className="num">Operating</th>
                           <th className="num">Net</th>
                         </tr>
@@ -156,6 +157,7 @@ export default function AdminFinance() {
                             <td>{new Date(`${m.key}-01T00:00:00Z`).toLocaleString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" })}</td>
                             <td className="num" style={{ whiteSpace: "nowrap" }}>{formatNairaWhole(m.collected)}</td>
                             <td className="num" style={{ whiteSpace: "nowrap" }}>{formatNairaWhole(m.hosting)}</td>
+                            <td className="num" style={{ whiteSpace: "nowrap" }}>{formatNairaWhole(m.domains)}</td>
                             <td className="num" style={{ whiteSpace: "nowrap" }}>{formatNairaWhole(m.overhead)}</td>
                             <td className={`num ${m.net < 0 ? "admin-warn" : "admin-ok"}`} style={{ whiteSpace: "nowrap" }}>{formatNairaWhole(m.net)}</td>
                           </tr>
@@ -164,7 +166,7 @@ export default function AdminFinance() {
                     </table>
                   </div>
                   <p className="admin-muted">
-                    All in naira at the rates under Settings, Rates & cash. Revenue is what was collected in the month, ex-VAT. Hosting is the server cost of client deployments; operating is everything else, with annual and quarterly costs spread evenly across months.
+                    All in naira at the rates under Settings, Rates & cash. Revenue is what was collected in the month, ex-VAT. Hosting is every server, client and internal; domains are registrar renewals; operating is everything else, with annual and quarterly costs spread evenly across months.
                   </p>
                 </div>
 

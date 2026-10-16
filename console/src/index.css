@@ -3233,7 +3233,8 @@ html[data-theme="light"] .dash-user-avatar{ filter: none; }
 
 /* Invoices: list on the left, the open invoice on the right; the list can be folded away. */
 .inv-split{ display: block; }
-.inv-split.open{ display: grid; grid-template-columns: minmax(340px, 0.85fr) minmax(0, 1.6fr); gap: 16px; align-items: start; }
+.inv-split.open{ display: grid; grid-template-columns: minmax(430px, 1fr) minmax(0, 1.5fr); gap: 16px; align-items: start; }
+.inv-split.open > .admin-table-wrap{ overflow-x: auto; }
 .inv-split.open.list-hidden{ grid-template-columns: minmax(0, 1fr); }
 .admin-table tr.selected{ background: rgba(255,255,255,.07); }
 .inv-panel{ border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: rgba(255,255,255,.02); padding: 14px 16px; min-width: 0; }

@@ -236,6 +236,30 @@ export const overheadInMonth = (b: Books, month: string) => {
     .reduce((sum, e) => sum + toNgn(expenseInMonth(e, month), e.currency, b.settings), 0);
 };
 
+/** Costs fall into three groups: all hosting (client servers and Restart's own), domains, and everything else. */
+export interface CostSplit {
+  hosting: number;
+  domains: number;
+  operating: number;
+}
+export type CostGroup = keyof CostSplit;
+
+export const costGroupOf = (e: Pick<Expense, "id" | "category">, serviceExpenseIds: Set<string>): CostGroup =>
+  serviceExpenseIds.has(e.id) || e.category === "infrastructure" ? "hosting" : e.category === "domains" ? "domains" : "operating";
+
+export const sumSplit = (s: CostSplit) => s.hosting + s.domains + s.operating;
+
+/** What the month costs in profit terms (each cost spread over the months it covers), by group, in NGN. Adds up to hostingInMonth + overheadInMonth. */
+export function costSplitInMonth(b: Books, month: string): CostSplit {
+  const split: CostSplit = { hosting: hostingInMonth(b, month), domains: 0, operating: 0 };
+  const owned = hostingExpenseIds(b);
+  for (const e of b.expenses) {
+    if (owned.has(e.id)) continue;
+    split[costGroupOf(e, owned)] += toNgn(expenseInMonth(e, month), e.currency, b.settings);
+  }
+  return split;
+}
+
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 const todayIso = () => isoDate(new Date());
 
@@ -300,22 +324,39 @@ export const isPaymentLive = (p: ExpensePayment) => !p.voided_at;
  * smoothed across the year the way expenseInMonth does for profit. Servers with no linked expense
  * fall back to their monthly cost. Used for cashflow, where the month a bill lands matters.
  */
-export function cashDueInMonth(b: Books, month: string): number {
+export function cashSplitInMonth(b: Books, month: string): CostSplit {
   const first = `${month}-01`;
   const last = `${month}-31`;
-  let total = 0;
+  const owned = hostingExpenseIds(b);
+  const split: CostSplit = { hosting: 0, domains: 0, operating: 0 };
   for (const e of b.expenses) {
     const ends = e.end_date ?? "9999-12-31";
+    const group = costGroupOf(e, owned);
     if (e.cadence === "one_off") {
-      if (e.start_date.slice(0, 7) === month) total += toNgn(e.amount_cents, e.currency, b.settings);
+      if (e.start_date.slice(0, 7) === month) split[group] += toNgn(e.amount_cents, e.currency, b.settings);
       continue;
     }
     let due = e.start_date;
     for (let guard = 0; guard < 2000 && due <= last; guard++) {
-      if (due >= first && due <= ends) total += toNgn(e.amount_cents, e.currency, b.settings);
+      if (due >= first && due <= ends) split[group] += toNgn(e.amount_cents, e.currency, b.settings);
       due = addPeriod(due, e.cadence);
     }
   }
-  for (const s of b.services) if (!s.expense_id) total += toNgn(serviceInMonth(s, month), s.currency, b.settings);
-  return total;
+  for (const s of b.services) if (!s.expense_id) split.hosting += toNgn(serviceInMonth(s, month), s.currency, b.settings);
+  return split;
+}
+
+export const cashDueInMonth = (b: Books, month: string): number => sumSplit(cashSplitInMonth(b, month));
+
+/** What was actually paid in the month (payments ledger, by date paid), by group, in NGN. */
+export function paidSplitInMonth(b: Books, month: string): CostSplit {
+  const owned = hostingExpenseIds(b);
+  const byId = new Map(b.expenses.map((e) => [e.id, e]));
+  const split: CostSplit = { hosting: 0, domains: 0, operating: 0 };
+  for (const p of b.payments) {
+    if (p.voided_at || p.paid_on.slice(0, 7) !== month) continue;
+    const e = byId.get(p.expense_id);
+    split[e ? costGroupOf(e, owned) : "operating"] += p.amount_ngn_cents;
+  }
+  return split;
 }

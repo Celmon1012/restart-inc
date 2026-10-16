@@ -7,7 +7,7 @@
 // Currencies other than NGN are converted at the rates in Rates & cash.
 
 import { formatAmount, formatNairaCompact, formatNairaWhole } from "@/lib/format";
-import { cashDueInMonth, hostingInMonth, monthKey, overheadInMonth, totalsToNgn, type Books } from "@/lib/financeBooks";
+import { cashDueInMonth, cashSplitInMonth, costSplitInMonth, monthKey, paidSplitInMonth, sumSplit, totalsToNgn, type Books, type CostSplit } from "@/lib/financeBooks";
 import type { FinanceOverview } from "@/lib/financeOverview";
 
 const BACK = 6;
@@ -28,6 +28,8 @@ interface Row {
   kind: "actual" | "now" | "forecast";
   inflow: number;
   outflow: number;
+  /** Where the outflow goes: hosting, domains, everything else. */
+  split: CostSplit;
 }
 
 export function CashflowPanel({ finance, books }: { finance: FinanceOverview; books: Books }) {
@@ -37,7 +39,7 @@ export function CashflowPanel({ finance, books }: { finance: FinanceOverview; bo
 
   const paidIn = (month: string) => livePayments.filter((p) => p.paid_on.slice(0, 7) === month).reduce((s, p) => s + p.amount_ngn_cents, 0);
   // Past months with no payments ledger: what the expenses say was due, smoothed.
-  const costIn = (month: string) => hostingInMonth(books, month) + overheadInMonth(books, month);
+  const costSplitIn = (month: string) => costSplitInMonth(books, month);
   const collectedIn = (month: string) => totalsToNgn(finance.monthly.find((m) => m.month === month)?.collected, settings);
 
   // Overdue invoices are part of "outstanding" but may never arrive on time, so they are shown
@@ -51,12 +53,17 @@ export function CashflowPanel({ finance, books }: { finance: FinanceOverview; bo
     const month = shiftMonth(thisMonth, i);
     if (i < 0) {
       // With no payments ledger yet, fall back to what the expenses say was due.
-      rows.push({ month, kind: "actual", inflow: collectedIn(month), outflow: books.paymentsAvailable ? paidIn(month) : costIn(month) });
+      const split = books.paymentsAvailable ? paidSplitInMonth(books, month) : costSplitIn(month);
+      rows.push({ month, kind: "actual", inflow: collectedIn(month), outflow: sumSplit(split), split });
     } else if (i === 0) {
       // Already collected this month, plus everything still waiting to be paid.
-      rows.push({ month, kind: "now", inflow: collectedIn(month) + outstanding, outflow: Math.max(cashDueInMonth(books, month), books.paymentsAvailable ? paidIn(month) : 0) });
+      const due = cashSplitInMonth(books, month);
+      const paid = books.paymentsAvailable ? paidSplitInMonth(books, month) : null;
+      const split = paid && sumSplit(paid) > sumSplit(due) ? paid : due;
+      rows.push({ month, kind: "now", inflow: collectedIn(month) + outstanding, outflow: Math.max(cashDueInMonth(books, month), books.paymentsAvailable ? paidIn(month) : 0), split });
     } else {
-      rows.push({ month, kind: "forecast", inflow: billedMrr, outflow: cashDueInMonth(books, month) });
+      const split = cashSplitInMonth(books, month);
+      rows.push({ month, kind: "forecast", inflow: billedMrr, outflow: sumSplit(split), split });
     }
   }
 
@@ -113,7 +120,7 @@ export function CashflowPanel({ finance, books }: { finance: FinanceOverview; bo
       <div className="admin-table-wrap mt-4">
         <table className="admin-table">
           <thead>
-            <tr><th>Month</th><th className="num">In</th><th className="num">Out</th><th className="num">Net</th><th className="num">Balance</th><th aria-label="In against out" /></tr>
+            <tr><th>Month</th><th className="num">In</th><th className="num">Hosting</th><th className="num">Domains</th><th className="num">Operating</th><th className="num">Out</th><th className="num">Net</th><th className="num">Balance</th><th aria-label="In against out" /></tr>
           </thead>
           <tbody>
             {rows.map((r, i) => {
@@ -122,6 +129,9 @@ export function CashflowPanel({ finance, books }: { finance: FinanceOverview; bo
                 <tr key={r.month} style={r.kind === "now" ? { fontWeight: 600 } : r.kind === "forecast" ? { opacity: 0.85 } : undefined}>
                   <td>{monthLabel(r.month)}{r.kind === "now" ? " (this month)" : r.kind === "forecast" ? " · forecast" : ""}</td>
                   <td className="num" style={cell} title={ngn(r.inflow)}>{formatNairaWhole(r.inflow)}</td>
+                  <td className="num admin-muted" style={cell} title={ngn(r.split.hosting)}>{formatNairaWhole(r.split.hosting)}</td>
+                  <td className="num admin-muted" style={cell} title={ngn(r.split.domains)}>{formatNairaWhole(r.split.domains)}</td>
+                  <td className="num admin-muted" style={cell} title={ngn(r.split.operating)}>{formatNairaWhole(r.split.operating)}</td>
                   <td className="num" style={cell} title={ngn(r.outflow)}>{formatNairaWhole(r.outflow)}</td>
                   <td className={`num${net < 0 ? " warn" : ""}`} style={cell} title={ngn(net)}>{formatNairaWhole(net)}</td>
                   <td className={`num${closing[i] < 0 ? " warn" : ""}`} style={cell} title={ngn(closing[i])}>{formatNairaWhole(closing[i])}</td>

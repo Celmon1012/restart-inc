@@ -9,7 +9,7 @@ import { consoleSchema } from "@/lib/supabase";
 import { downloadCsv } from "@/lib/csv";
 import { formatAmount, formatDate, formatNairaCompact } from "@/lib/format";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
-import { CADENCE_LABEL, EXPENSE_CATEGORIES, hostingExpenseIds, hostingInMonth, monthKey, overheadInMonth, toNgn, totalsToNgn, type Books } from "@/lib/financeBooks";
+import { CADENCE_LABEL, EXPENSE_CATEGORIES, costGroupOf, costSplitInMonth, hostingExpenseIds, monthKey, toNgn, totalsToNgn, type Books } from "@/lib/financeBooks";
 import type { FinanceOverview } from "@/lib/financeOverview";
 
 const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
@@ -65,15 +65,15 @@ export function ReportsPanel({ finance, books }: { finance: FinanceOverview; boo
 
   const rows = months.map((month) => {
     const revenue = totalsToNgn(finance.monthly.find((m) => m.month === month)?.collected, settings);
-    const hosting = hostingInMonth(books, month);
-    const operating = overheadInMonth(books, month);
-    return { month, revenue, hosting, operating, profit: revenue - hosting - operating };
+    const split = costSplitInMonth(books, month);
+    return { month, revenue, hosting: split.hosting, domains: split.domains, operating: split.operating, profit: revenue - split.hosting - split.domains - split.operating };
   });
   const sum = (pick: (r: (typeof rows)[number]) => number) => rows.reduce((s, r) => s + pick(r), 0);
   const revenue = sum((r) => r.revenue);
   const hosting = sum((r) => r.hosting);
+  const domains = sum((r) => r.domains);
   const operating = sum((r) => r.operating);
-  const profit = revenue - hosting - operating;
+  const profit = revenue - hosting - domains - operating;
 
   const vatCollected = finance.totals.vatCollected?.NGN ?? 0;
   const vatRemitted = (remittances.data ?? []).reduce((s, r) => s + r.amount_cents, 0);
@@ -88,10 +88,10 @@ export function ReportsPanel({ finance, books }: { finance: FinanceOverview; boo
   const exportPnl = () =>
     downloadCsv(
       `restart-profit-and-loss-${stamp}.csv`,
-      ["month", "revenue_collected_ex_vat_ngn", "hosting_ngn", "operating_ngn", "profit_ngn", "margin_percent"],
+      ["month", "revenue_collected_ex_vat_ngn", "hosting_ngn", "domains_ngn", "operating_ngn", "profit_ngn", "margin_percent"],
       [
-        ...rows.map((r) => [r.month, naira(r.revenue), naira(r.hosting), naira(r.operating), naira(r.profit), r.revenue > 0 ? Math.round((r.profit / r.revenue) * 100) : ""]),
-        ["total", naira(revenue), naira(hosting), naira(operating), naira(profit), revenue > 0 ? Math.round((profit / revenue) * 100) : ""]
+        ...rows.map((r) => [r.month, naira(r.revenue), naira(r.hosting), naira(r.domains), naira(r.operating), naira(r.profit), r.revenue > 0 ? Math.round((r.profit / r.revenue) * 100) : ""]),
+        ["total", naira(revenue), naira(hosting), naira(domains), naira(operating), naira(profit), revenue > 0 ? Math.round((profit / revenue) * 100) : ""]
       ]
     );
 
@@ -99,7 +99,7 @@ export function ReportsPanel({ finance, books }: { finance: FinanceOverview; boo
     downloadCsv(
       `restart-expenses-${stamp}.csv`,
       ["name", "type", "category", "amount", "currency", "cadence", "starts", "ends", "notes", "recorded_by"],
-      books.expenses.map((e) => [e.name, hostingIds.has(e.id) ? "hosting" : "operating", EXPENSE_CATEGORIES[e.category], e.amount_cents / 100, e.currency, CADENCE_LABEL[e.cadence], e.start_date, e.end_date, e.notes, e.created_by_email])
+      books.expenses.map((e) => [e.name, costGroupOf(e, hostingIds), EXPENSE_CATEGORIES[e.category], e.amount_cents / 100, e.currency, CADENCE_LABEL[e.cadence], e.start_date, e.end_date, e.notes, e.created_by_email])
     );
 
   const exportPayments = () =>
@@ -154,8 +154,8 @@ export function ReportsPanel({ finance, books }: { finance: FinanceOverview; boo
         </div>
         <div>
           <small>COSTS</small>
-          <strong style={tileValue} title={ngn(hosting + operating)}>{formatNairaCompact(hosting + operating)}</strong>
-          <em>{ngn(hosting)} hosting · {ngn(operating)} operating</em>
+          <strong style={tileValue} title={ngn(hosting + domains + operating)}>{formatNairaCompact(hosting + domains + operating)}</strong>
+          <em>{ngn(hosting)} hosting · {ngn(domains)} domains · {ngn(operating)} operating</em>
         </div>
         <div>
           <small>PROFIT</small>
@@ -172,7 +172,7 @@ export function ReportsPanel({ finance, books }: { finance: FinanceOverview; boo
       <div className="admin-table-wrap mt-4">
         <table className="admin-table">
           <thead>
-            <tr><th>Month</th><th className="num">Revenue</th><th className="num">Hosting</th><th className="num">Operating</th><th className="num">Profit</th><th className="num">Margin</th></tr>
+            <tr><th>Month</th><th className="num">Revenue</th><th className="num">Hosting</th><th className="num">Domains</th><th className="num">Operating</th><th className="num">Profit</th><th className="num">Margin</th></tr>
           </thead>
           <tbody>
             {rows.map((r) => (
@@ -180,6 +180,7 @@ export function ReportsPanel({ finance, books }: { finance: FinanceOverview; boo
                 <td>{monthLabel(r.month)}</td>
                 <td className="num">{ngn(r.revenue)}</td>
                 <td className="num">{ngn(r.hosting)}</td>
+                <td className="num">{ngn(r.domains)}</td>
                 <td className="num">{ngn(r.operating)}</td>
                 <td className={`num${r.profit < 0 ? " warn" : ""}`}>{ngn(r.profit)}</td>
                 <td className="num">{pct(r.profit, r.revenue)}</td>
@@ -189,6 +190,7 @@ export function ReportsPanel({ finance, books }: { finance: FinanceOverview; boo
               <td>Total</td>
               <td className="num">{ngn(revenue)}</td>
               <td className="num">{ngn(hosting)}</td>
+              <td className="num">{ngn(domains)}</td>
               <td className="num">{ngn(operating)}</td>
               <td className={`num${profit < 0 ? " warn" : ""}`}>{ngn(profit)}</td>
               <td className="num">{pct(profit, revenue)}</td>
