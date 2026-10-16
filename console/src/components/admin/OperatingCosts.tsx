@@ -319,7 +319,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                           </tr>
                           {payingId === e.id && (
                             <tr>
-                              <td colSpan={7}>
+                              <td colSpan={8}>
                                 <PaymentForm books={books} expense={e} onClose={() => setPayingId(null)} onSaved={refresh} />
                               </td>
                             </tr>
@@ -330,6 +330,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                   {showDomains && (
                     <tr className="clickable" onClick={() => setLocation("/finance/domains")}>
                       <td><strong>Domains ({domainItems.length})</strong></td>
+                      <td className="admin-muted">—</td>
                       <td>{CATEGORIES.domains}</td>
                       <td className="admin-muted">Yearly</td>
                       <td className="num admin-muted">—</td>
@@ -345,6 +346,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                       <td>
                         <strong>Servers</strong>
                       </td>
+                      <td className="admin-muted">—</td>
                       <td>{CATEGORIES.infrastructure}</td>
                       <td className="admin-muted">Monthly</td>
                       <td className="num admin-muted">—</td>
@@ -358,7 +360,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={4}><strong>Total per month</strong></td>
+                    <td colSpan={5}><strong>Total per month</strong></td>
                     <td className="num"><strong>{ngn(visibleExpenses.filter((e) => e.cadence !== "one_off").reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0) + (showHosting ? hostingTotal : 0) + (showDomains ? domainsTotal : 0))}</strong></td>
                     <td colSpan={2} />
                   </tr>
