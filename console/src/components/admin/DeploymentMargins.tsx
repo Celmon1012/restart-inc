@@ -8,6 +8,8 @@
 // from Coolify: a server running a client's resources with no record is offered for tracking, and a
 // tracked server Coolify no longer sees is offered for ending. Contabo servers are kept by hand.
 
+import { toast } from "sonner";
+import { confirmAction } from "@/components/confirmAction";
 import { Fragment, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { RowMenu } from "@/components/admin/RowMenu";
@@ -264,37 +266,37 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
   const end = async (s: Service) => {
     if (s.expense_id) {
       const { error: eErr } = await consoleSchema().from("expenses").update({ end_date: today() }).eq("id", s.expense_id);
-      if (eErr) return window.alert(eErr.message);
+      if (eErr) return void toast.error(eErr.message);
     }
     const { error } = await consoleSchema().from("services").update({ ended_on: today() }).eq("id", s.id);
-    if (error) window.alert(error.message);
+    if (error) toast.error(error.message);
     else await refresh();
   };
   const endInternal = async (e: Expense) => {
     const { error } = await consoleSchema().from("expenses").update({ end_date: today() }).eq("id", e.id);
-    if (error) window.alert(error.message);
+    if (error) toast.error(error.message);
     else await refresh();
   };
   const removeInternal = async (e: Expense) => {
     if (books.payments.some((p) => p.expense_id === e.id)) {
-      window.alert("This server has payments recorded against it, which are kept for the audit trail. Use End instead of Delete.");
+      toast.error("This server has payments recorded against it, which are kept for the audit trail. Use End instead of Delete.");
       return;
     }
-    if (!window.confirm(`Delete "${e.name}" entirely? Past months will lose its cost. Use End to keep history.`)) return;
+    if (!(await confirmAction({ title: "Delete permanently?", description: `Delete "${e.name}" entirely? Past months will lose its cost. Use End to keep history.`, confirmLabel: "Delete" }))) return;
     const { error } = await consoleSchema().from("expenses").delete().eq("id", e.id);
-    if (error) window.alert(error.message);
+    if (error) toast.error(error.message);
     else await refresh();
   };
 
   const remove = async (s: Service) => {
     // Payments recorded against its expense are kept for the audit trail, so a paid server can only be ended.
     if (s.expense_id && books.payments.some((p) => p.expense_id === s.expense_id)) {
-      window.alert("This server has payments recorded against it, which are kept for the audit trail. Use End instead of Delete.");
+      toast.error("This server has payments recorded against it, which are kept for the audit trail. Use End instead of Delete.");
       return;
     }
-    if (!window.confirm(`Delete "${s.name}" entirely? Past months will lose its cost. Use End to keep history.`)) return;
+    if (!(await confirmAction({ title: "Delete permanently?", description: `Delete "${s.name}" entirely? Past months will lose its cost. Use End to keep history.`, confirmLabel: "Delete" }))) return;
     const { error } = await consoleSchema().from("services").delete().eq("id", s.id);
-    if (error) return window.alert(error.message);
+    if (error) return void toast.error(error.message);
     if (s.expense_id) await consoleSchema().from("expenses").delete().eq("id", s.expense_id);
     await refresh();
   };

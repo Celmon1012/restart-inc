@@ -3,6 +3,8 @@
 // per-deployment and lives in DeploymentMargins. Everything is folded into NGN
 // (home currency); revenue in currencies other than NGN/USD/EUR is left out.
 
+import { toast } from "sonner";
+import { confirmAction } from "@/components/confirmAction";
 import { Fragment, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { loadWorkspaceNames } from "@/lib/admin";
@@ -163,17 +165,17 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
   };
 
   const remove = async (e: Expense) => {
-    if (!window.confirm(`Delete "${e.name}"? Past months will no longer include it.`)) return;
+    if (!(await confirmAction({ title: "Delete cost?", description: `Delete "${e.name}"? Past months will no longer include it.`, confirmLabel: "Delete" }))) return;
     const { error: err } = await consoleSchema().from("expenses").delete().eq("id", e.id);
     // 23503: payments are recorded against it. Those are kept for the audit trail, so end the cost instead.
-    if (err?.code === "23503") window.alert("This cost has payments recorded against it, which are kept for the audit trail. Set an end date on it instead of deleting it.");
-    else if (err) window.alert(err.message);
+    if (err?.code === "23503") toast.error("This cost has payments recorded against it, which are kept for the audit trail. Set an end date on it instead of deleting it.");
+    else if (err) toast.error(err.message);
     else await refresh();
   };
 
   const saveSetting = async (key: keyof Settings, value: number) => {
     const { error: err } = await consoleSchema().from("finance_settings").update({ [key]: value }).eq("id", true);
-    if (err) window.alert(err.message);
+    if (err) toast.error(err.message);
     else {
       setEdits((e) => ({ ...e, [key]: undefined }));
       await refresh();

@@ -176,7 +176,7 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
     const reason = window.prompt(`Void this ${ngn(p.amount_ngn_cents)} payment of ${formatDate(p.paid_on)}? It stays on record, marked void. Reason:`);
     if (!reason || !reason.trim()) return;
     const { error } = await consoleSchema().from("expense_payments").update({ voided_at: new Date().toISOString(), void_reason: reason.trim() }).eq("id", p.id);
-    if (error) window.alert(error.message);
+    if (error) toast.error(error.message);
     else await refresh();
   };
 

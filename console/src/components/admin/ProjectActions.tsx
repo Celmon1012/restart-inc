@@ -2,6 +2,7 @@
 // lists: billing, servers, deliverables and the client's access are untouched.
 
 import { useState } from "react";
+import { confirmAction } from "@/components/confirmAction";
 import { consoleSchema } from "@/lib/supabase";
 
 export function ProjectActions({
@@ -44,8 +45,13 @@ export function ProjectActions({
     void run(() => consoleSchema().rpc("admin_rename_workspace", { p_workspace_id: id, p_name: next }));
   };
 
-  const toggleArchive = () => {
-    if (!archivedAt && !window.confirm(`Archive ${name}? It's hidden from Projects and Clients. Billing, servers and the client's access aren't affected, and you can restore it any time.`)) return;
+  const toggleArchive = async () => {
+    if (!archivedAt && !(await confirmAction({
+      title: "Archive project?",
+      description: `Archive ${name}? It's hidden from Projects and Clients. Billing, servers and the client's access aren't affected, and you can restore it any time.`,
+      confirmLabel: "Archive",
+      tone: "default"
+    }))) return;
     void run(() => consoleSchema().rpc("admin_set_workspace_archived", { p_workspace_id: id, p_archived: !archivedAt }));
   };
 

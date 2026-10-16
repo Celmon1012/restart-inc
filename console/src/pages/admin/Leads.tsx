@@ -12,6 +12,7 @@
 // since that's the only step allowed to hold RESEND_API_KEY and actually
 // contact the prospect.
 
+import { confirmAction } from "@/components/confirmAction";
 import { Fragment, useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { ActivityTimeline, type AgentActivity } from "@/components/ActivityTimeline";
@@ -225,7 +226,7 @@ export default function Leads() {
 
   const handleDeleteLead = async (target: Inquiry | null = selected) => {
     if (!target) return;
-    if (!window.confirm(`Delete ${target.name} (${target.company ?? target.email}) and its activity? This can't be undone.`)) return;
+    if (!(await confirmAction({ title: "Delete lead?", description: `Delete ${target.name} (${target.company ?? target.email}) and its activity? This can't be undone.`, confirmLabel: "Delete" }))) return;
     setStageSaving(true);
     try {
       const { error: deleteError } = await consoleSchema().from("inquiries").delete().eq("id", target.id);

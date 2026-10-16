@@ -3,6 +3,7 @@
 // as it appears there, and the account number. Add, edit and retire (retired accounts keep
 // their payment history and drop out of the "Paid from" list). Admin-only (RLS).
 
+import { toast } from "sonner";
 import { useState } from "react";
 import { RowMenu } from "@/components/admin/RowMenu";
 import { consoleSchema } from "@/lib/supabase";
@@ -89,7 +90,7 @@ export function AccountsPanel({ books, refresh }: { books: Books; refresh: () =>
 
   const toggle = async (a: Account) => {
     const { error: err } = await consoleSchema().from("finance_accounts").update({ active: !a.active }).eq("id", a.id);
-    if (err) window.alert(err.message);
+    if (err) toast.error(err.message);
     else await refresh();
   };
 

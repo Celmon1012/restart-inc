@@ -3,6 +3,8 @@
 // Revenue figures elsewhere on Finance are ex-VAT; this is the money that is
 // held for the tax authority rather than earned.
 
+import { toast } from "sonner";
+import { confirmAction } from "@/components/confirmAction";
 import { useState } from "react";
 import { consoleSchema } from "@/lib/supabase";
 import { formatAmount, formatDate } from "@/lib/format";
@@ -66,9 +68,9 @@ export function VatPanel({ finance }: { finance: FinanceOverview }) {
   };
 
   const remove = async (r: Remittance) => {
-    if (!window.confirm(`Delete the ${ngn(r.amount_cents)} remittance of ${formatDate(r.paid_on)}?`)) return;
+    if (!(await confirmAction({ title: "Delete remittance?", description: `Delete the ${ngn(r.amount_cents)} remittance of ${formatDate(r.paid_on)}?`, confirmLabel: "Delete" }))) return;
     const { error: err } = await consoleSchema().from("vat_remittances").delete().eq("id", r.id);
-    if (err) window.alert(err.message);
+    if (err) toast.error(err.message);
     else await refresh();
   };
 

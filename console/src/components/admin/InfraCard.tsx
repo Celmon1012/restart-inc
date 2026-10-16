@@ -3,6 +3,7 @@
 // console-admin-infra. Creating makes the Coolify project only -- the
 // project's own server is provisioned and deployed onto separately.
 
+import { confirmAction } from "@/components/confirmAction";
 import { useState } from "react";
 import { AlertTriangle, Link2, Plus } from "lucide-react";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
@@ -44,13 +45,13 @@ export function InfraCard({
     }
   }
 
-  function unlink() {
-    if (!window.confirm(`Detach ${workspaceName} from its Coolify project? Nothing in Coolify is deleted; the client stops seeing its servers here.`)) return;
+  async function unlink() {
+    if (!(await confirmAction({ title: "Detach from Coolify?", description: `Detach ${workspaceName} from its Coolify project? Nothing in Coolify is deleted; the client stops seeing its servers here.`, confirmLabel: "Detach" }))) return;
     void run({ action: "unlink", workspace_id: workspaceId });
   }
 
-  function create() {
-    if (!window.confirm(`Create a new Coolify project "${workspaceName}" and link it? Deploy it onto its own new server, not an existing client's.`)) return;
+  async function create() {
+    if (!(await confirmAction({ title: "Create Coolify project?", description: `Create a new Coolify project "${workspaceName}" and link it? Deploy it onto its own new server, not an existing client's.`, confirmLabel: "Create", tone: "default" }))) return;
     void run({ action: "create", workspace_id: workspaceId });
   }
 

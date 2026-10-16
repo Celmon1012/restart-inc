@@ -1,6 +1,8 @@
 // The Domains page body. A domain is an expense in the Domains category (name = the domain, vendor =
 // the registrar, workspace_id = the client project, empty for Restart's own), billed yearly.
 
+import { toast } from "sonner";
+import { confirmAction } from "@/components/confirmAction";
 import { Fragment, useState } from "react";
 import { Link } from "wouter";
 import { RowMenu } from "@/components/admin/RowMenu";
@@ -104,17 +106,17 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
 
   const endToday = async (e: Expense) => {
     const { error } = await consoleSchema().from("expenses").update({ end_date: today() }).eq("id", e.id);
-    if (error) window.alert(error.message);
+    if (error) toast.error(error.message);
     else await refresh();
   };
   const remove = async (e: Expense) => {
     if (books.payments.some((p) => p.expense_id === e.id)) {
-      window.alert("This domain has payments recorded against it, which are kept for the audit trail. Use End instead of Delete.");
+      toast.error("This domain has payments recorded against it, which are kept for the audit trail. Use End instead of Delete.");
       return;
     }
-    if (!window.confirm(`Delete "${e.name}" entirely? Past months will lose its cost. Use End to keep history.`)) return;
+    if (!(await confirmAction({ title: "Delete domain?", description: `Delete "${e.name}" entirely? Past months will lose its cost. Use End to keep history.`, confirmLabel: "Delete" }))) return;
     const { error } = await consoleSchema().from("expenses").delete().eq("id", e.id);
-    if (error) window.alert(error.message);
+    if (error) toast.error(error.message);
     else await refresh();
   };
 

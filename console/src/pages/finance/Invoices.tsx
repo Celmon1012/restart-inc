@@ -2,6 +2,7 @@
 // paid) and the revenue position of every billed client. Record a payment received by bank transfer
 // from the row. Data comes from Lago through console-admin-finance.
 
+import { confirmAction } from "@/components/confirmAction";
 import { Fragment, useState } from "react";
 import { Link } from "wouter";
 import { ChevronsLeft, ChevronsRight, ExternalLink, Search, X } from "lucide-react";
@@ -85,7 +86,7 @@ export default function FinanceInvoices() {
   // Re-creates the customer's link to the Flutterwave integration in Lago. Needed after the
   // integration is deleted and re-added (its code changes), or when "Pay Now" stops working.
   const relinkPayments = async (customerId: string, name: string) => {
-    if (!window.confirm(`Re-link ${name} to the Flutterwave integration in Lago?`)) return;
+    if (!(await confirmAction({ title: "Re-link payments?", description: `Re-link ${name} to the Flutterwave integration in Lago?`, confirmLabel: "Re-link", tone: "default" }))) return;
     setRelinkingId(customerId);
     try {
       await invokeFunction("sync-lago-payment-provider", { body: { externalCustomerId: customerId } });

@@ -6,6 +6,7 @@
 // Listing people and changing roles go straight to the database as the owner, which checks the
 // owner role itself (console.admin_list_staff, console.admin_set_staff_roles).
 
+import { confirmAction } from "@/components/confirmAction";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
@@ -105,7 +106,7 @@ export default function AdminTeam() {
   };
 
   const remove = async (m: Member) => {
-    if (!window.confirm(`Remove ${m.email}'s team access? Their account stays, but they lose Ops and Finance.`)) return;
+    if (!(await confirmAction({ title: "Remove team access?", description: `Remove ${m.email}'s team access? Their account stays, but they lose Ops and Finance.`, confirmLabel: "Remove" }))) return;
     await saveRoles(m, []);
   };
 

@@ -3,6 +3,7 @@
 // Lago key. After linking, the customer is re-linked to the Flutterwave
 // integration so "Pay Now" works, the same call as Finance's "Re-link payments".
 
+import { confirmAction } from "@/components/confirmAction";
 import { useState } from "react";
 import { consoleSchema } from "@/lib/supabase";
 import { invokeFunction } from "@/lib/functions";
@@ -71,7 +72,7 @@ export function LinkBilling({
   };
 
   const unlink = async () => {
-    if (!window.confirm("Unlink billing from this project? Its invoices stay in Lago but stop showing here and in Finance.")) return;
+    if (!(await confirmAction({ title: "Unlink billing?", description: "Unlink billing from this project? Its invoices stay in Lago but stop showing here and in Finance.", confirmLabel: "Unlink" }))) return;
     setBusy(true);
     setMessage(null);
     try {

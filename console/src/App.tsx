@@ -1,4 +1,5 @@
 import { Toaster } from "sonner";
+import { ConfirmHost } from "@/components/confirmAction";
 import { Switch, Route, Redirect } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -337,6 +338,7 @@ function App() {
       <AuthProvider>
         <WorkspaceProvider>
           <Toaster theme="dark" />
+          <ConfirmHost />
           <Router />
         </WorkspaceProvider>
       </AuthProvider>

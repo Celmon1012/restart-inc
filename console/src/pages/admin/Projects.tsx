@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Search } from "lucide-react";
 import { toast } from "sonner";
+import { confirmAction } from "@/components/confirmAction";
 import { RowMenu } from "@/components/admin/RowMenu";
 import { consoleSchema } from "@/lib/supabase";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
@@ -280,8 +281,13 @@ export default function AdminProjects() {
         {unassigned.length > 0 && user && (
           <button
             className="dash-tab-btn"
-            onClick={() => {
-              if (window.confirm(`Make yourself the lead of the ${unassigned.length} project${unassigned.length === 1 ? "" : "s"} that have no lead?`)) void setLeadFor(unassigned.map((p) => p.id), user.id);
+            onClick={async () => {
+              if (await confirmAction({
+                title: "Take lead of unassigned projects?",
+                description: `Make yourself the lead of the ${unassigned.length} project${unassigned.length === 1 ? "" : "s"} that have no lead?`,
+                confirmLabel: "Make me lead",
+                tone: "default"
+              })) void setLeadFor(unassigned.map((p) => p.id), user.id);
             }}
           >
             Assign {unassigned.length} unassigned to me

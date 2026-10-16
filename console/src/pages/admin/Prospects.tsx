@@ -8,6 +8,7 @@
 // message: "Open" hands the draft to the mail app or WhatsApp, and "Mark
 // sent" records that the person sent it.
 
+import { confirmAction } from "@/components/confirmAction";
 import { downloadCsv } from "@/lib/csv";
 import { Fragment, useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
@@ -360,7 +361,7 @@ export default function Prospects() {
 
   const deleteProspect = async (target: Prospect | null = selected) => {
     if (!target) return;
-    if (!window.confirm(`Delete ${target.company} and all its messages? This can't be undone.`)) return;
+    if (!(await confirmAction({ title: "Delete prospect?", description: `Delete ${target.company} and all its messages? This can't be undone.`, confirmLabel: "Delete" }))) return;
     setSaving(true);
     try {
       const { error: deleteError } = await consoleSchema().from("prospects").delete().eq("id", target.id);
