@@ -277,7 +277,6 @@ export default function AdminProjects() {
                 <th>Engagement</th>
                 <th>Lead</th>
                 <th>Milestones</th>
-                <th>Current milestone</th>
                 <th className="num">Open tasks</th>
                 <th>Next due</th>
                 <th>Started</th>
@@ -295,7 +294,6 @@ export default function AdminProjects() {
                   <td>{p.engagement_type ? ENGAGEMENT_LABEL[p.engagement_type] ?? p.engagement_type : p.tier_label ?? "—"}</td>
                   <td className="admin-muted">{memberName(p.lead_id)}</td>
                   <td><ProgressCell completed={p.completed} total={p.milestones} /></td>
-                  <td>{p.currentMilestone ?? <span className="admin-muted">—</span>}</td>
                   <td className="num">{p.tasksTotal ? p.tasksOpen : "—"}</td>
                   <td className={p.nextDue && new Date(p.nextDue) < new Date() ? "admin-warn" : undefined}>
                     {p.nextDue ? formatDate(p.nextDue) : "—"}
