@@ -10,7 +10,7 @@
 --
 -- Apply as supabase_admin; safe to run twice.
 
-create table if not exists console.clients (
+create table if not exists console.client_details (
   email text primary key check (email = lower(email)),
   contact_name text,
   role text,
@@ -20,15 +20,15 @@ create table if not exists console.clients (
   updated_by uuid references auth.users (id) on delete set null
 );
 
-alter table console.clients enable row level security;
+alter table console.client_details enable row level security;
 
-drop policy if exists "ops can read clients" on console.clients;
-create policy "ops can read clients"
-  on console.clients for select
+drop policy if exists "ops can read client details" on console.client_details;
+create policy "ops can read client details"
+  on console.client_details for select
   using (console.has_ops_access());
 
-revoke all on console.clients from anon;
-grant select on console.clients to authenticated;
+revoke all on console.client_details from anon;
+grant select on console.client_details to authenticated;
 
 create or replace function console.admin_save_client(
   p_email text,
@@ -56,7 +56,7 @@ begin
     raise exception 'Unknown client type' using errcode = '22023';
   end if;
 
-  insert into console.clients (email, contact_name, role, website, client_type, updated_at, updated_by)
+  insert into console.client_details (email, contact_name, role, website, client_type, updated_at, updated_by)
   values (
     v_email,
     left(nullif(btrim(coalesce(p_contact_name, '')), ''), 120),

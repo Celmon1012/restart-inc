@@ -140,7 +140,7 @@ export async function loadPortfolio(options: { includeArchived?: boolean } = {})
     consoleSchema().from("deliverables").select("id,workspace_id,title,status,due_at,sort_order").order("sort_order"),
     consoleSchema().from("deliverable_tasks").select("deliverable_id,is_done"),
     consoleSchema().from("server_requests").select("workspace_id,status"),
-    consoleSchema().from("clients").select("email,contact_name,role,website,client_type")
+    consoleSchema().from("client_details").select("email,contact_name,role,website,client_type")
   ]);
   // Saved client details override onboarding. Absent before the clients migration, or for Finance: ignored then.
   const savedDetails = new Map(
