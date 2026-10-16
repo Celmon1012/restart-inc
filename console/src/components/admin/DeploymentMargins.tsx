@@ -532,18 +532,6 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={4}><strong>Client servers</strong></td>
-                <td className="num"><strong>{ngn(clientCost)}</strong></td>
-                <td colSpan={2} />
-              </tr>
-              {internal.length + ownProjectRows.length > 0 && (
-                <tr>
-                  <td colSpan={4}><strong>Internal servers</strong></td>
-                  <td className="num"><strong>{ngn(ownCost)}</strong></td>
-                  <td colSpan={2} />
-                </tr>
-              )}
-              <tr>
                 <td colSpan={4}><strong>All hosting cost</strong></td>
                 <td className="num"><strong>{ngn(clientCost + ownCost)}</strong></td>
                 <td colSpan={2} />

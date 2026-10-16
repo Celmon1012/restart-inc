@@ -164,6 +164,13 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
   const paidThisMonth = live.filter((p) => p.paid_on.startsWith(thisMonth));
   const months = Array.from(new Set(books.payments.map((p) => p.paid_on.slice(0, 7)))).sort().reverse();
   const visible = books.payments.filter((p) => (showVoided || !p.voided_at) && (!month || p.paid_on.startsWith(month)));
+  // Totals count what was actually paid: voided payments stay listed when shown but never add up.
+  const counted = visible.filter((p) => !p.voided_at);
+  const sum = (list: ExpensePayment[]) => list.reduce((t, p) => t + p.amount_ngn_cents, 0);
+  const byAccount = books.accounts
+    .map((a) => ({ a, total: sum(counted.filter((p) => p.account_id === a.id)) }))
+    .filter((r) => r.total > 0);
+  const unassigned = sum(counted.filter((p) => !p.account_id || !accountById.has(p.account_id)));
 
   const voidPayment = async (p: ExpensePayment) => {
     const reason = window.prompt(`Void this ${ngn(p.amount_ngn_cents)} payment of ${formatDate(p.paid_on)}? It stays on record, marked void. Reason:`);
@@ -199,20 +206,6 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
       </div>
       {logging && <PaymentForm books={books} onClose={() => setLogging(false)} onSaved={refresh} />}
 
-      <p style={{ margin: "8px 0" }}>
-        Paid this month: <strong>{ngn(paidThisMonth.reduce((s, p) => s + p.amount_ngn_cents, 0))}</strong>
-        {books.accounts.length > 0 && (
-          <span className="admin-muted">
-            {" · "}
-            {books.accounts
-              .map((a) => ({ a, total: paidThisMonth.filter((p) => p.account_id === a.id).reduce((s, p) => s + p.amount_ngn_cents, 0) }))
-              .filter((r) => r.total > 0)
-              .map((r) => `${r.a.name} ${ngn(r.total)}`)
-              .join(" · ") || "no payments yet this month"}
-          </span>
-        )}
-      </p>
-
       <div className="admin-toolbar">
         <select value={month} onChange={(e) => setMonth(e.target.value)} aria-label="Month">
           <option value="">All months</option>
@@ -236,7 +229,6 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
                 <th>Reference</th>
                 <th>Recorded by</th>
                 <th className="num">Amount</th>
-                <th className="num">₦ cost</th>
                 <th />
               </tr>
             </thead>
@@ -249,18 +241,47 @@ export function ExpensePayments({ books, refresh }: { books: Books; refresh: () 
                     <td>
                       <strong style={p.voided_at ? { textDecoration: "line-through" } : undefined}>{e?.name ?? "Expense"}</strong>
                       {p.voided_at && <div className="admin-warn">void · {p.void_reason}{p.voided_by_email ? ` · by ${p.voided_by_email.split("@")[0]}` : ""}</div>}
-                      {p.period_end && !p.voided_at && <div className="admin-muted">covers to {formatDate(p.period_end)}</div>}
                     </td>
                     <td className="admin-muted">{p.account_id ? accountById.get(p.account_id)?.name ?? "—" : "—"}</td>
                     <td className="admin-muted">{p.reference ?? "—"}</td>
                     <td className="admin-muted">{p.created_by_email?.split("@")[0] ?? "—"}</td>
-                    <td className="num">{formatAmount(p.amount_cents, p.currency)}{p.vat_cents > 0 && <small className="admin-muted"> incl. VAT {formatAmount(p.vat_cents, p.currency)}</small>}</td>
-                    <td className="num">{ngn(p.amount_ngn_cents)}</td>
+                    <td className="num">
+                      {ngn(p.amount_ngn_cents)}
+                      {p.vat_cents > 0 && <div><small className="admin-muted">incl. VAT {ngn(Math.round(p.vat_cents * p.fx_rate))}</small></div>}
+                    </td>
                     <td>{!p.voided_at && <button className="dash-tab-btn" onClick={() => void voidPayment(p)}>Void</button>}</td>
                   </tr>
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={5}><strong>{month ? `Total for ${new Date(`${month}-01T00:00:00Z`).toLocaleString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })}` : "Total"}</strong></td>
+                <td className="num"><strong>{ngn(sum(counted))}</strong></td>
+                <td />
+              </tr>
+              {byAccount.map((r) => (
+                <tr key={r.a.id}>
+                  <td colSpan={5} className="admin-muted">of which {r.a.name}</td>
+                  <td className="num admin-muted">{ngn(r.total)}</td>
+                  <td />
+                </tr>
+              ))}
+              {byAccount.length > 0 && unassigned > 0 && (
+                <tr>
+                  <td colSpan={5} className="admin-muted">of which no account</td>
+                  <td className="num admin-muted">{ngn(unassigned)}</td>
+                  <td />
+                </tr>
+              )}
+              {!month && (
+                <tr>
+                  <td colSpan={5}><strong>Paid this month</strong></td>
+                  <td className="num"><strong>{ngn(sum(paidThisMonth))}</strong></td>
+                  <td />
+                </tr>
+              )}
+            </tfoot>
           </table>
         </div>
       )}
