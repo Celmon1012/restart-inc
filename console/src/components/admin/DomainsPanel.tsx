@@ -1,0 +1,245 @@
+// The Domains page body. A domain is an expense in the Domains category (name = the domain, vendor =
+// the registrar, workspace_id = the client project, empty for Restart's own), billed yearly.
+
+import { Fragment, useState } from "react";
+import { RowMenu } from "@/components/admin/RowMenu";
+import { PaymentForm } from "@/components/admin/ExpensePayments";
+import { consoleSchema } from "@/lib/supabase";
+import { loadWorkspaceNames } from "@/lib/admin";
+import { formatAmount, formatDate } from "@/lib/format";
+import { COST_CURRENCIES, expenseInMonth, nextDue, toNgn, type Books, type CostCurrency, type Expense } from "@/lib/financeBooks";
+import { useAsyncResource } from "@/hooks/useAsyncResource";
+
+const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
+const today = () => new Date().toISOString().slice(0, 10);
+const DEFAULT_REGISTRARS = ["Namecheap", "Upperlink"];
+const YEARLY_FACTOR = { annual: 1, monthly: 12, quarterly: 4, weekly: 52, one_off: 1 } as const;
+
+interface Form {
+  kind: "client" | "internal";
+  workspaceId: string;
+  domain: string;
+  registrar: string;
+  cost: string;
+  currency: CostCurrency;
+  start: string;
+  end: string;
+}
+const blankForm = (): Form => ({ kind: "internal", workspaceId: "", domain: "", registrar: "", cost: "", currency: "USD", start: today(), end: "" });
+
+export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => Promise<void> }) {
+  const names = useAsyncResource(() => loadWorkspaceNames(), [], { errorMessage: "Failed to load clients" });
+  const [form, setForm] = useState<Form | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [scope, setScope] = useState<"all" | "client" | "internal">("all");
+
+  const rates = books.settings;
+  const month = today().slice(0, 7);
+  const registrars = Array.from(
+    new Set([...DEFAULT_REGISTRARS, ...books.expenses.filter((e) => e.category === "domains").map((e) => e.vendor).filter((v): v is string => Boolean(v))])
+  ).sort();
+
+  const all = books.expenses
+    .filter((e) => e.category === "domains")
+    .map((e) => {
+      const ended = Boolean(e.end_date && e.end_date < today());
+      const due = ended ? null : nextDue(e, books.payments);
+      const days = due ? Math.round((Date.parse(due) - Date.parse(today())) / 86_400_000) : null;
+      return {
+        e,
+        ended,
+        due,
+        days,
+        overdue: due !== null && due < today(),
+        yearly: ended ? 0 : toNgn(e.amount_cents * YEARLY_FACTOR[e.cadence], e.currency, rates),
+        monthly: ended ? 0 : toNgn(expenseInMonth(e, month), e.currency, rates)
+      };
+    })
+    .sort((a, b) => (a.ended === b.ended ? (a.due ?? "9999").localeCompare(b.due ?? "9999") : a.ended ? 1 : -1));
+  const visible = all.filter((r) => scope === "all" || (scope === "client" ? Boolean(r.e.workspace_id) : !r.e.workspace_id));
+  const nameOf = (id: string | null | undefined) => (id ? names.data?.get(id) ?? "Unknown project" : "Restart");
+  const count = (k: "client" | "internal") => all.filter((r) => (k === "client" ? Boolean(r.e.workspace_id) : !r.e.workspace_id)).length;
+
+  const openAdd = () => {
+    setEditingId(null);
+    setFormError(null);
+    setForm(blankForm());
+  };
+  const openEdit = (e: Expense) => {
+    setEditingId(e.id);
+    setFormError(null);
+    setForm({
+      kind: e.workspace_id ? "client" : "internal",
+      workspaceId: e.workspace_id ?? "",
+      domain: e.name,
+      registrar: e.vendor ?? "",
+      cost: String(e.amount_cents / 100),
+      currency: e.currency,
+      start: e.start_date,
+      end: e.end_date ?? ""
+    });
+  };
+
+  const save = async () => {
+    if (!form) return;
+    const cost = Number(form.cost);
+    if (!form.domain.trim() || !Number.isFinite(cost) || cost < 0) return setFormError("Enter the domain and its yearly cost.");
+    if (form.kind === "client" && !form.workspaceId) return setFormError("Pick the client project this domain belongs to.");
+    setSaving(true);
+    setFormError(null);
+    const row = {
+      name: form.domain.trim().toLowerCase(),
+      vendor: form.registrar.trim() || null,
+      category: "domains",
+      amount_cents: Math.round(cost * 100),
+      currency: form.currency,
+      cadence: "annual",
+      start_date: form.start,
+      end_date: form.end || null,
+      workspace_id: form.kind === "client" ? form.workspaceId : null
+    };
+    const { error } = editingId ? await consoleSchema().from("expenses").update(row).eq("id", editingId) : await consoleSchema().from("expenses").insert(row);
+    setSaving(false);
+    if (error) return setFormError(error.message);
+    setForm(null);
+    setEditingId(null);
+    await refresh();
+  };
+
+  const endToday = async (e: Expense) => {
+    const { error } = await consoleSchema().from("expenses").update({ end_date: today() }).eq("id", e.id);
+    if (error) window.alert(error.message);
+    else await refresh();
+  };
+  const remove = async (e: Expense) => {
+    if (books.payments.some((p) => p.expense_id === e.id)) {
+      window.alert("This domain has payments recorded against it, which are kept for the audit trail. Use End instead of Delete.");
+      return;
+    }
+    if (!window.confirm(`Delete "${e.name}" entirely? Past months will lose its cost. Use End to keep history.`)) return;
+    const { error } = await consoleSchema().from("expenses").delete().eq("id", e.id);
+    if (error) window.alert(error.message);
+    else await refresh();
+  };
+
+  return (
+    <div className="admin-section">
+      <div className="admin-toolbar" style={{ margin: "0 0 10px" }}>
+        {(["all", "client", "internal"] as const).map((k) => (
+          <button key={k} className={`dash-tab-btn ${scope === k ? "active" : ""}`} onClick={() => setScope(k)} aria-pressed={scope === k}>
+            {k === "all" ? `All (${all.length})` : k === "client" ? `Client (${count("client")})` : `Internal (${count("internal")})`}
+          </button>
+        ))}
+        <span className="admin-toolbar-spacer" />
+        <button className="dash-tab-btn active" onClick={openAdd}>Add domain</button>
+      </div>
+
+      {form && (
+        <form onSubmit={(e) => { e.preventDefault(); void save(); }} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "12px 0" }}>
+          <input type="text" required placeholder="Domain (e.g. kumoda.io)" value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} />
+          <input type="text" list="domain-registrars" maxLength={120} placeholder="Registrar (e.g. Namecheap)" value={form.registrar} onChange={(e) => setForm({ ...form, registrar: e.target.value })} />
+          <datalist id="domain-registrars">{registrars.map((r) => <option key={r} value={r} />)}</datalist>
+          <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as Form["kind"] })} aria-label="Whose domain">
+            <option value="internal">Internal (Restart's own)</option>
+            <option value="client">Client's domain</option>
+          </select>
+          {form.kind === "client" && (
+            <select required value={form.workspaceId} onChange={(e) => setForm({ ...form, workspaceId: e.target.value })}>
+              <option value="">Client / project…</option>
+              {Array.from(names.data ?? [], ([id, n]) => ({ id, n })).sort((a, b) => a.n.localeCompare(b.n)).map((w) => <option key={w.id} value={w.id}>{w.n}</option>)}
+            </select>
+          )}
+          <input type="number" required min="0" step="0.01" placeholder="Cost per year" style={{ width: 130 }} value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} />
+          <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as CostCurrency })}>
+            {COST_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <label>Term starts <input type="date" required value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} /></label>
+          <label>Ended <input type="date" min={form.start} value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} /></label>
+          <button type="submit" className="dash-tab-btn active" disabled={saving}>{saving ? "Saving…" : editingId ? "Update" : "Add"}</button>
+          <button type="button" className="dash-tab-btn" onClick={() => setForm(null)} disabled={saving}>Cancel</button>
+          {formError && <span className="admin-warn" role="alert">{formError}</span>}
+        </form>
+      )}
+
+      {all.length === 0 ? (
+        <div className="dash-empty-state">No domains yet. Add each domain with its registrar, yearly cost and the date its current term starts, and the renewal date appears here.</div>
+      ) : (
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Domain</th>
+                <th>Client / project</th>
+                <th>Registrar</th>
+                <th className="num">Per year</th>
+                <th className="num">Per month</th>
+                <th>Renews</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map(({ e, ended, due, days, overdue, monthly }) => (
+                <Fragment key={e.id}>
+                  <tr className={overdue ? "row-overdue" : undefined} style={ended ? { opacity: 0.6 } : undefined}>
+                    <td>{e.workspace_id ? <span className="system-healthy-pill">CLIENT</span> : <span className="system-healthy-pill neutral">INTERNAL</span>}</td>
+                    <td><strong>{e.name}</strong></td>
+                    <td className="admin-muted">{nameOf(e.workspace_id)}</td>
+                    <td className="admin-muted">{e.vendor ?? "Not set"}</td>
+                    <td className="num">{formatAmount(e.amount_cents, e.currency)}</td>
+                    <td className="num">{ended ? "—" : ngn(monthly)}</td>
+                    <td>
+                      {ended ? (
+                        <span className="admin-muted">ended {formatDate(e.end_date as string)}</span>
+                      ) : overdue ? (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+                          <span className="admin-muted">{formatDate(due as string)}</span>
+                          <span className="pill-overdue">OVERDUE</span>
+                        </span>
+                      ) : due ? (
+                        <span className={days !== null && days <= 60 ? "admin-warn" : "admin-muted"}>
+                          {formatDate(due)}{days !== null && days <= 60 ? ` · ${days}d` : ""}
+                        </span>
+                      ) : (
+                        <span className="admin-muted">—</span>
+                      )}
+                    </td>
+                    <td className="num">
+                      <RowMenu
+                        label={`Actions for ${e.name}`}
+                        items={[
+                          { label: "Mark paid", disabled: !books.paymentsAvailable || due === null, onClick: () => setPayingId(payingId === e.id ? null : e.id) },
+                          { label: "Edit", onClick: () => openEdit(e) },
+                          ...(!ended ? [{ label: "End today", onClick: () => void endToday(e) }] : []),
+                          { label: "Delete", danger: true, onClick: () => void remove(e) }
+                        ]}
+                      />
+                    </td>
+                  </tr>
+                  {payingId === e.id && (
+                    <tr>
+                      <td colSpan={8}>
+                        <PaymentForm books={books} expense={e} onClose={() => setPayingId(null)} onSaved={refresh} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={4}><strong>Total</strong></td>
+                <td className="num"><strong>{ngn(visible.reduce((s, r) => s + r.yearly, 0))}</strong></td>
+                <td className="num"><strong>{ngn(visible.reduce((s, r) => s + r.monthly, 0))}</strong></td>
+                <td colSpan={2} />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

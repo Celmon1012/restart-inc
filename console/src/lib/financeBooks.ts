@@ -20,6 +20,7 @@ export const EXPENSE_CATEGORIES = {
   equipment: "Equipment",
   legal_tax: "Legal",
   banking_fees: "Banking",
+  domains: "Domains",
   other: "Other"
 } as const;
 export const CADENCE_LABEL: Record<Cadence, string> = { weekly: "Weekly", monthly: "Monthly", quarterly: "Quarterly", annual: "Yearly", one_off: "One-time" };
@@ -38,6 +39,8 @@ export interface Expense {
   notes: string | null;
   /** Who the money is paid to (Namecheap, Upperlink...). Added by the expense-vendor migration; absent before it. */
   vendor?: string | null;
+  /** The client project a domain belongs to (added by the domains migration); null for Restart's own. */
+  workspace_id?: string | null;
   /** Who recorded it (added by the recorded-by migration; absent before it). */
   created_by_email?: string | null;
 }

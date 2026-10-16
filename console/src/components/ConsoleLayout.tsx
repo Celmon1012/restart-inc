@@ -40,6 +40,7 @@ import {
   Inbox,
   Wallet,
   HardDrive,
+  Globe,
   Send,
   Sun,
   Moon,
@@ -150,6 +151,7 @@ const FINANCE_NAV: NavGroup[] = [
     items: [
       { href: "/finance/expenses", label: "Expenses", icon: Coins },
       { href: "/finance/hosting", label: "Hosting", icon: HardDrive },
+      { href: "/finance/domains", label: "Domains", icon: Globe },
       { href: "/finance/payments", label: "Payments", icon: Banknote }
     ]
   },

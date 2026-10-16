@@ -60,7 +60,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
   // Expenses that hold a client server's cost are hosting (cost of sales); the rest are operating expenses.
   const hostingIds = hostingExpenseIds(books);
   // Hosting, client servers and Restart's own, is managed on the Hosting page, so it is not listed here too.
-  const operating = books.expenses.filter((e) => !hostingIds.has(e.id) && e.category !== "infrastructure");
+  const operating = books.expenses.filter((e) => !hostingIds.has(e.id) && e.category !== "infrastructure" && e.category !== "domains");
   const names = useAsyncResource(() => loadWorkspaceNames(), [], { enabled: view === "costs" });
 
   // Only the current month is needed here; the Overview does its own roll-ups (lib/financeSummary).
@@ -84,9 +84,16 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
     .filter((d): d is string => d !== null)
     .sort()[0] ?? null;
 
+  // Domains are managed on the Domains page, so like servers they show here as one row.
+  const domainList = books.expenses.filter((e) => e.category === "domains");
+  const domainItems = domainList.filter((e) => !(e.end_date && e.end_date < calc.thisMonth + "-01"));
+  const domainsTotal = domainItems.reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0);
+  const domainDue = domainItems.map((e) => nextDue(e, books.payments)).filter((d): d is string => d !== null).sort()[0] ?? null;
+
   const monthlyOf = (list: Expense[]) => list.reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0);
-  const presentCategories = (Object.keys(CATEGORIES) as Category[]).filter((c) => (c === "infrastructure" ? hostingItems.length > 0 : operating.some((e) => e.category === c)));
+  const presentCategories = (Object.keys(CATEGORIES) as Category[]).filter((c) => (c === "infrastructure" ? hostingItems.length > 0 : c === "domains" ? domainItems.length > 0 : operating.some((e) => e.category === c)));
   const showHosting = (catSel ?? presentCategories).includes("infrastructure") && hostingItems.length > 0;
+  const showDomains = (catSel ?? presentCategories).includes("domains") && domainItems.length > 0;
   const ticked = catSel ?? presentCategories;
   const visibleExpenses = operating.filter((e) => ticked.includes(e.category));
   const chartItems: ChartItem[] = [
@@ -98,7 +105,8 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
       monthly: toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates)
     })),
     // All servers are one line in the charts too, the same as the row in the table.
-    ...(showHosting ? [{ id: "servers", name: `Servers (${hostingItems.length})`, category: "infrastructure", categoryLabel: CATEGORIES.infrastructure, monthly: hostingTotal }] : [])
+    ...(showHosting ? [{ id: "servers", name: `Servers (${hostingItems.length})`, category: "infrastructure", categoryLabel: CATEGORIES.infrastructure, monthly: hostingTotal }] : []),
+    ...(showDomains ? [{ id: "domains", name: `Domains (${domainItems.length})`, category: "domains", categoryLabel: CATEGORIES.domains, monthly: domainsTotal }] : [])
   ];
 
   // Vendors already used, offered as suggestions so the same one is spelled the same way each time.
@@ -222,7 +230,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
             <input type="text" list="expense-vendors" maxLength={120} placeholder="Vendor (e.g. Namecheap)" value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
             <datalist id="expense-vendors">{vendors.map((v) => <option key={v} value={v} />)}</datalist>
             <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as Category })}>
-              {Object.entries(CATEGORIES).filter(([k]) => k !== "infrastructure").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {Object.entries(CATEGORIES).filter(([k]) => k !== "infrastructure" && k !== "domains").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
             <input type="number" required min="0" step="0.01" placeholder="Amount" style={{ width: 120 }} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
             <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as CostCurrency })}>
@@ -250,7 +258,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                 label="Categories"
                 allLabel="All categories"
                 options={presentCategories
-                  .map((c) => ({ value: c, label: CATEGORIES[c], swatch: categoryColor(c), total: c === "infrastructure" ? hostingTotal : monthlyOf(operating.filter((e) => e.category === c)) }))
+                  .map((c) => ({ value: c, label: CATEGORIES[c], swatch: categoryColor(c), total: c === "infrastructure" ? hostingTotal : c === "domains" ? domainsTotal : monthlyOf(operating.filter((e) => e.category === c)) }))
                   .sort((x, y) => y.total - x.total)
                   .map((o) => ({ value: o.value, label: o.label, swatch: o.swatch, detail: formatNairaCompact(o.total) }))}
                 selected={ticked}
@@ -319,6 +327,19 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                         </Fragment>
                       );
                     })}
+                  {showDomains && (
+                    <tr className="clickable" onClick={() => setLocation("/finance/domains")}>
+                      <td><strong>Domains ({domainItems.length})</strong></td>
+                      <td>{CATEGORIES.domains}</td>
+                      <td className="admin-muted">Yearly</td>
+                      <td className="num admin-muted">—</td>
+                      <td className="num">{ngn(domainsTotal)}</td>
+                      <td className="admin-muted">{domainDue ? formatDate(domainDue) : "—"}</td>
+                      <td className="num" onClick={(ev) => ev.stopPropagation()}>
+                        <RowMenu label="Actions for domains" items={[{ label: "Open Domains", onClick: () => setLocation("/finance/domains") }]} />
+                      </td>
+                    </tr>
+                  )}
                   {showHosting && (
                     <tr className="clickable" onClick={() => setLocation("/finance/hosting")}>
                       <td>
@@ -338,7 +359,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                 <tfoot>
                   <tr>
                     <td colSpan={4}><strong>Total per month</strong></td>
-                    <td className="num"><strong>{ngn(visibleExpenses.filter((e) => e.cadence !== "one_off").reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0) + (showHosting ? hostingTotal : 0))}</strong></td>
+                    <td className="num"><strong>{ngn(visibleExpenses.filter((e) => e.cadence !== "one_off").reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0) + (showHosting ? hostingTotal : 0) + (showDomains ? domainsTotal : 0))}</strong></td>
                     <td colSpan={2} />
                   </tr>
                 </tfoot>
