@@ -392,6 +392,8 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
             <thead>
               <tr>
                 <th>Server</th>
+                <th>Provider</th>
+                <th>IP address</th>
                 <th>Client / project</th>
                 <th className="num">Server cost</th>
                 <th>Next due</th>
@@ -416,10 +418,15 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
                             <span className={isActive(l.sv) ? undefined : "admin-muted"}>
                               <strong style={{ fontWeight: 600 }}>{l.sv.name}</strong>{" "}
                               {isInternalWs(r.id) ? <span className="system-healthy-pill neutral">INTERNAL</span> : <span className="system-healthy-pill">CLIENT</span>}
-                              <div className="admin-muted">{PROVIDER_LABEL[l.sv.provider]} · {where(ipFor(l.sv.coolify_server_uuid, l.sv.name, l.sv.ip_address))}</div>
                             </span>
                           </div>
                         ))}
+                      </td>
+                      <td className="admin-muted">
+                        {lines.map((l) => <div key={l.sv.id} className="srv-line">{PROVIDER_LABEL[l.sv.provider]}</div>)}
+                      </td>
+                      <td className="admin-muted">
+                        {lines.map((l) => <div key={l.sv.id} className="srv-line">{where(ipFor(l.sv.coolify_server_uuid, l.sv.name, l.sv.ip_address))}</div>)}
                       </td>
                       <td>
                         <Link href={`/admin/projects/${r.id}`} className="text-teal"><strong>{nameOf(r.id)}</strong></Link>
@@ -467,7 +474,7 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
                     </tr>
                     {paying?.expense && (
                       <tr>
-                        <td colSpan={5}>
+                        <td colSpan={7}>
                           <PaymentForm books={books} expense={paying.expense} onClose={() => setPayingId(null)} onSaved={refresh} />
                         </td>
                       </tr>
@@ -481,8 +488,9 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
                     <td>
                       <strong style={{ fontWeight: 600 }}>{splitProvider(e.name).name}</strong>{" "}
                       <span className="system-healthy-pill neutral">INTERNAL</span>
-                      <div className="admin-muted">{splitProvider(e.name).provider ? PROVIDER_LABEL[splitProvider(e.name).provider as Service["provider"]] : "Provider not set"} · {where(ipFor(null, splitProvider(e.name).name, e.ip_address))}</div>
                     </td>
+                    <td className="admin-muted">{splitProvider(e.name).provider ? PROVIDER_LABEL[splitProvider(e.name).provider as Service["provider"]] : "Not set"}</td>
+                    <td className="admin-muted">{where(ipFor(null, splitProvider(e.name).name, e.ip_address))}</td>
                     <td className="admin-muted">Restart</td>
                     <td className="num">{ended ? "—" : ngn(monthly)}</td>
                     <td>
@@ -507,7 +515,7 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
                   </tr>
                   {payingId === e.id && (
                     <tr>
-                      <td colSpan={5}>
+                      <td colSpan={7}>
                         <PaymentForm books={books} expense={e} onClose={() => setPayingId(null)} onSaved={refresh} />
                       </td>
                     </tr>
@@ -517,19 +525,19 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={2}><strong>Client servers</strong></td>
+                <td colSpan={4}><strong>Client servers</strong></td>
                 <td className="num"><strong>{ngn(clientCost)}</strong></td>
                 <td colSpan={2} />
               </tr>
               {internal.length + ownProjectRows.length > 0 && (
                 <tr>
-                  <td colSpan={2}><strong>Internal servers</strong></td>
+                  <td colSpan={4}><strong>Internal servers</strong></td>
                   <td className="num"><strong>{ngn(ownCost)}</strong></td>
                   <td colSpan={2} className="admin-muted">Restart's own, not billed to anyone</td>
                 </tr>
               )}
               <tr>
-                <td colSpan={2}><strong>All hosting cost</strong></td>
+                <td colSpan={4}><strong>All hosting cost</strong></td>
                 <td className="num"><strong>{ngn(clientCost + ownCost)}</strong></td>
                 <td colSpan={2} />
               </tr>
