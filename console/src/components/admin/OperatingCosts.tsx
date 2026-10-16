@@ -41,7 +41,7 @@ type Category = Expense["category"];
 
 const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
 
-const emptyForm = { name: "", category: "software" as Category, amount: "", currency: "NGN" as CostCurrency, cadence: "monthly" as Cadence, start: new Date().toISOString().slice(0, 10), end: "" };
+const emptyForm = { name: "", vendor: "", category: "software" as Category, amount: "", currency: "NGN" as CostCurrency, cadence: "monthly" as Cadence, start: new Date().toISOString().slice(0, 10), end: "" };
 
 /** view "summary": expenses vs revenue (stats and the month table). view "costs": the operating expense lines. view "rates": exchange rates and cash on hand. */
 export function OperatingCosts({ finance, books, refresh, view }: { finance: FinanceOverview; books: Books; refresh: () => Promise<void>; view: "costs" | "rates" }) {
@@ -101,9 +101,12 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
     ...(showHosting ? [{ id: "servers", name: `Servers (${hostingItems.length})`, category: "infrastructure", categoryLabel: CATEGORIES.infrastructure, monthly: hostingTotal }] : [])
   ];
 
+  // Vendors already used, offered as suggestions so the same one is spelled the same way each time.
+  const vendors = Array.from(new Set(books.expenses.map((e) => e.vendor).filter((v): v is string => Boolean(v)))).sort();
+
   const startEdit = (e: Expense) => {
     setEditingId(e.id);
-    setForm({ name: e.name, category: e.category, amount: String(e.amount_cents / 100), currency: e.currency, cadence: e.cadence, start: e.start_date, end: e.end_date ?? "" });
+    setForm({ name: e.name, vendor: e.vendor ?? "", category: e.category, amount: String(e.amount_cents / 100), currency: e.currency, cadence: e.cadence, start: e.start_date, end: e.end_date ?? "" });
     setFormError(null);
     setShowForm(true);
   };
@@ -124,6 +127,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
     setFormError(null);
     const row = {
       name: form.name.trim(),
+      vendor: form.vendor.trim() || null,
       category: form.category,
       amount_cents: Math.round(amount * 100),
       currency: form.currency,
@@ -215,6 +219,8 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
             style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "12px 0" }}
           >
             <input type="text" required placeholder="Name (e.g. Google Workspace)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <input type="text" list="expense-vendors" maxLength={120} placeholder="Vendor (e.g. Namecheap)" value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
+            <datalist id="expense-vendors">{vendors.map((v) => <option key={v} value={v} />)}</datalist>
             <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as Category })}>
               {Object.entries(CATEGORIES).filter(([k]) => k !== "infrastructure").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
@@ -258,6 +264,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                 <thead>
                   <tr>
                     <th>Expense</th>
+                    <th>Vendor</th>
                     <th>Category</th>
                     <th>Cadence</th>
                     <th className="num">Amount</th>
@@ -275,6 +282,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                         <Fragment key={e.id}>
                           <tr className={overdue ? "row-overdue" : undefined}>
                             <td><strong>{e.name}</strong></td>
+                            <td className="admin-muted">{e.vendor ?? "—"}</td>
                             <td>{CATEGORIES[e.category]}</td>
                             <td className="admin-muted">
                               {CADENCE_LABEL[e.cadence]}

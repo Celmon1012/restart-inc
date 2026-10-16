@@ -36,6 +36,8 @@ export interface Expense {
   start_date: string;
   end_date: string | null;
   notes: string | null;
+  /** Who the money is paid to (Namecheap, Upperlink...). Added by the expense-vendor migration; absent before it. */
+  vendor?: string | null;
   /** Who recorded it (added by the recorded-by migration; absent before it). */
   created_by_email?: string | null;
 }
