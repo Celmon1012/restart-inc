@@ -36,7 +36,7 @@ export default function AdminClientDetail(props: { clientKey?: string }) {
   const { canFinance, canOps } = useWorkspace();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ contactName: "", role: "", website: "", clientType: "" });
+  const [form, setForm] = useState({ contactName: "", role: "", website: "", clientType: "", phone: "", address: "" });
   const finance = useAsyncResource(() => loadFinanceOverview(), [], { enabled: canFinance });
   const tickets = useAsyncResource(() => loadTickets(), []);
   const client = portfolio.data?.clients.find((c) => c.key === key) ?? null;
@@ -78,7 +78,7 @@ export default function AdminClientDetail(props: { clientKey?: string }) {
   }
 
   const startEdit = () => {
-    setForm({ contactName: client.contactName ?? "", role: client.role ?? "", website: client.website ?? "", clientType: client.clientType ?? "" });
+    setForm({ contactName: client.contactName ?? "", role: client.role ?? "", website: client.website ?? "", clientType: client.clientType ?? "", phone: client.phone ?? "", address: client.address ?? "" });
     setEditing(true);
   };
   const saveEdit = async () => {
@@ -88,7 +88,9 @@ export default function AdminClientDetail(props: { clientKey?: string }) {
       p_contact_name: form.contactName,
       p_role: form.role,
       p_website: form.website,
-      p_client_type: form.clientType
+      p_client_type: form.clientType,
+      p_phone: form.phone,
+      p_address: form.address
     });
     setSaving(false);
     if (error) {
@@ -169,6 +171,14 @@ export default function AdminClientDetail(props: { clientKey?: string }) {
                 <input type="text" maxLength={120} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} />
               </label>
               <label className="app-meta-item">
+                <span className="meta-k">Phone</span>
+                <input type="text" maxLength={60} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              </label>
+              <label className="app-meta-item">
+                <span className="meta-k">Address</span>
+                <input type="text" maxLength={300} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              </label>
+              <label className="app-meta-item">
                 <span className="meta-k">Website</span>
                 <input type="text" maxLength={200} placeholder="example.com" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
               </label>
@@ -189,6 +199,8 @@ export default function AdminClientDetail(props: { clientKey?: string }) {
             <Field label="Name">{client.contactName}</Field>
             <Field label="Role">{client.role}</Field>
             <Field label="Email">{client.email && <a className="text-teal" href={`mailto:${client.email}`}>{client.email}</a>}</Field>
+            <Field label="Phone">{client.phone}</Field>
+            <Field label="Address">{client.address}</Field>
             <Field label="Website">
               {client.website && (
                 <a className="text-teal" href={client.website.startsWith("http") ? client.website : `https://${client.website}`} target="_blank" rel="noreferrer">

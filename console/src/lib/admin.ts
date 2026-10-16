@@ -131,6 +131,8 @@ export interface ClientSummary {
   role: string | null;
   website: string | null;
   clientType: string | null;
+  phone: string | null;
+  address: string | null;
   since: string;
   projects: ProjectSummary[];
 }
@@ -150,7 +152,7 @@ export async function loadPortfolio(options: { includeArchived?: boolean } = {})
     consoleSchema().from("deliverables").select("id,workspace_id,title,status,due_at,sort_order").order("sort_order"),
     consoleSchema().from("deliverable_tasks").select("deliverable_id,is_done"),
     consoleSchema().from("server_requests").select("workspace_id,status"),
-    consoleSchema().from("client_details").select("email,contact_name,role,website,client_type")
+    consoleSchema().from("client_details").select("*")
   ]);
   // Saved client details override onboarding. Absent before the clients migration, or for Finance: ignored then.
   const savedDetails = new Map(
@@ -217,6 +219,8 @@ export async function loadPortfolio(options: { includeArchived?: boolean } = {})
       role: saved?.role ?? onboarded?.onboarding?.role ?? null,
       website: saved?.website ?? onboarded?.onboarding?.website ?? null,
       clientType: saved?.client_type ?? byAge.find((p) => p.client_type)?.client_type ?? null,
+      phone: saved?.phone ?? null,
+      address: saved?.address ?? null,
       since: byAge[0].created_at,
       projects: byAge
     };
