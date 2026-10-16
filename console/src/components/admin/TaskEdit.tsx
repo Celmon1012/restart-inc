@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { consoleSchema } from "@/lib/supabase";
 import { formatDate } from "@/lib/format";
+import { TASK_PRIORITIES, TASK_PRIORITY_LABEL, TASK_STATUSES, TASK_STATUS_LABEL, priorityOfTask, statusOfTask } from "@/lib/tasks";
 
 export interface EditableTask {
   id: string;
@@ -14,6 +15,9 @@ export interface EditableTask {
   owner?: "team" | "client";
   assignee_id?: string | null;
   due_at?: string | null;
+  status?: string | null;
+  priority?: string | null;
+  start_at?: string | null;
 }
 
 export interface TeamMember {
@@ -48,6 +52,9 @@ export function TaskEditForm({
   const [title, setTitle] = useState(task.title);
   const [assignTo, setAssignTo] = useState(task.owner === "client" ? "client" : task.assignee_id ?? "");
   const [due, setDue] = useState(task.due_at ?? "");
+  const [start, setStart] = useState(task.start_at ?? "");
+  const [status, setStatus] = useState(statusOfTask(task));
+  const [priority, setPriority] = useState(priorityOfTask(task));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,7 +68,11 @@ export function TaskEditForm({
         title: title.trim(),
         owner: assignTo === "client" ? "client" : "team",
         assignee_id: assignTo && assignTo !== "client" ? assignTo : null,
-        due_at: due || null
+        due_at: due || null,
+        // Only written when changed, so editing a title still works before the status/priority migration is applied.
+        ...(status !== statusOfTask(task) ? { status } : {}),
+        ...(priority !== priorityOfTask(task) ? { priority } : {}),
+        ...(start !== (task.start_at ?? "") ? { start_at: start || null } : {})
       })
       .eq("id", task.id);
     setBusy(false);
@@ -81,6 +92,13 @@ export function TaskEditForm({
         {team.map((m) => <option key={m.user_id} value={m.user_id}>{m.email}</option>)}
         <option value="client">Client to do</option>
       </select>
+      <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} aria-label="Status">
+        {TASK_STATUSES.map((s) => <option key={s} value={s}>{TASK_STATUS_LABEL[s]}</option>)}
+      </select>
+      <select value={priority} onChange={(e) => setPriority(e.target.value as typeof priority)} aria-label="Priority">
+        {TASK_PRIORITIES.map((p) => <option key={p} value={p}>{TASK_PRIORITY_LABEL[p]}</option>)}
+      </select>
+      <label className="admin-muted">Start <input type="date" value={start} onChange={(e) => setStart(e.target.value)} aria-label="Start date" /></label>
       <label className="admin-muted">Due <input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Deadline" /></label>
       <button type="submit" className="dash-tab-btn active" disabled={busy || !title.trim()}>{busy ? "Saving…" : "Save"}</button>
       <button type="button" className="dash-tab-btn" onClick={() => void onDone(false)} disabled={busy}>Cancel</button>

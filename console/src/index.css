@@ -3113,3 +3113,36 @@ html[data-theme="light"] .dash-user-avatar{ filter: none; }
 .viz-meter-note{ color:#7d8190; font-size:.75rem; line-height:1.5; }
 .fin-stack{ display:grid; gap:20px; min-width:0; }
 .fin-card-title{ font-size:.6875rem; letter-spacing:.08em; text-transform:uppercase; color:#7d8190; font-weight:700; margin:0 0 12px; }
+
+/* Tasks: a compact one-line table, status strip, inline status and priority, bulk bar. */
+.task-strip{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.task-strip-tile{ display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; text-align: left; font: inherit; color: inherit; background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; cursor: pointer; }
+.task-strip-tile span{ font-size: 0.8125rem; }
+.task-strip-tile strong{ font-size: 1rem; margin-right: 4px; }
+.task-strip-tile em{ font-style: normal; font-size: 0.6875rem; color: #8b91a1; }
+.task-strip-tile:hover, .task-strip-tile.active{ border-color: rgba(255,255,255,.28); background: rgba(255,255,255,.05); }
+.task-strip-tile.st-not_started span{ color: #f0b429; }
+.task-strip-tile.st-in_progress span{ color: #a78bfa; }
+.task-strip-tile.st-testing span{ color: #38bdf8; }
+.task-strip-tile.st-awaiting_feedback span{ color: #60a5fa; }
+.task-strip-tile.st-complete span{ color: var(--teal); }
+@media (max-width: 900px){ .task-strip{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.admin-table.tasks-compact td{ padding: 6px 12px; }
+.admin-table.tasks-compact td.task-name{ max-width: 460px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-table.tasks-compact td.task-name strong.done{ text-decoration: line-through; opacity: .6; }
+
+.status-select, .priority-select{ appearance: none; -webkit-appearance: none; background: transparent; font: inherit; font-size: 0.75rem; padding: 2px 10px; border-radius: 6px; cursor: pointer; border: 1px solid currentColor; }
+.status-select option, .priority-select option{ color: #111; }
+.status-select.st-not_started{ color: #f0b429; }
+.status-select.st-in_progress{ color: #34d399; }
+.status-select.st-testing{ color: #38bdf8; }
+.status-select.st-awaiting_feedback{ color: #60a5fa; }
+.status-select.st-complete{ color: var(--teal); opacity: .75; }
+.priority-select{ border-color: transparent; }
+.priority-select.pr-low{ color: #8b91a1; }
+.priority-select.pr-medium{ color: #38bdf8; }
+.priority-select.pr-high{ color: #f0b429; }
+.priority-select.pr-urgent{ color: #ff7b7b; font-weight: 700; }
+
+.bulk-bar{ display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.14); border-radius: 10px; background: rgba(255,255,255,.04); }
