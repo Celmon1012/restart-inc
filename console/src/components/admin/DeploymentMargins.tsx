@@ -103,10 +103,15 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
 
   // Coolify sync hints.
   const liveServers = useMemo(() => {
-    const m = new Map<string, { name: string; workspaceId: string | null }>();
-    for (const p of coolify.data ?? []) for (const s of p.servers) m.set(s.uuid, { name: s.name, workspaceId: p.workspaceId });
+    const m = new Map<string, { name: string; workspaceId: string | null; ip: string | null }>();
+    for (const p of coolify.data ?? []) for (const s of p.servers) m.set(s.uuid, { name: s.name, workspaceId: p.workspaceId, ip: s.ip ?? null });
     return m;
   }, [coolify.data]);
+  // A server's IP comes from Coolify when it can be matched (by its linked server, or by name), else from what was typed in.
+  const ipFor = (uuid: string | null | undefined, name: string, typed: string | null | undefined) => {
+    const live = uuid ? liveServers.get(uuid) : Array.from(liveServers.values()).find((s) => s.name.toLowerCase() === name.toLowerCase());
+    return live?.ip ?? typed ?? null;
+  };
   const tracked = new Set(books.services.filter(isActive).map((s) => s.coolify_server_uuid).filter(Boolean));
   const untracked = coolify.data
     ? Array.from(liveServers, ([uuid, s]) => ({ uuid, ...s })).filter((s) => s.workspaceId && !tracked.has(s.uuid))
@@ -341,7 +346,7 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
               </select>
             </>
           )}
-          <input type="text" maxLength={100} placeholder="IP address" style={{ width: 150 }} value={form.ipAddress} onChange={(e) => setForm({ ...form, ipAddress: e.target.value })} />
+          <input type="text" maxLength={100} placeholder="IP address (auto from Coolify)" style={{ width: 210 }} value={form.ipAddress} onChange={(e) => setForm({ ...form, ipAddress: e.target.value })} />
           <input type="number" required min="0" step="0.01" placeholder={form.kind === "client" ? "Monthly cost" : "Cost"} style={{ width: 120 }} value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} />
           <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as CostCurrency })}>
             {COST_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -411,7 +416,7 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
                             <span className={isActive(l.sv) ? undefined : "admin-muted"}>
                               <strong style={{ fontWeight: 600 }}>{l.sv.name}</strong>{" "}
                               {isInternalWs(r.id) ? <span className="system-healthy-pill neutral">INTERNAL</span> : <span className="system-healthy-pill">CLIENT</span>}
-                              <div className="admin-muted">{PROVIDER_LABEL[l.sv.provider]} · {where(l.sv.ip_address)}</div>
+                              <div className="admin-muted">{PROVIDER_LABEL[l.sv.provider]} · {where(ipFor(l.sv.coolify_server_uuid, l.sv.name, l.sv.ip_address))}</div>
                             </span>
                           </div>
                         ))}
@@ -476,7 +481,7 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
                     <td>
                       <strong style={{ fontWeight: 600 }}>{splitProvider(e.name).name}</strong>{" "}
                       <span className="system-healthy-pill neutral">INTERNAL</span>
-                      <div className="admin-muted">{splitProvider(e.name).provider ? PROVIDER_LABEL[splitProvider(e.name).provider as Service["provider"]] : "Provider not set"} · {where(e.ip_address)}</div>
+                      <div className="admin-muted">{splitProvider(e.name).provider ? PROVIDER_LABEL[splitProvider(e.name).provider as Service["provider"]] : "Provider not set"} · {where(ipFor(null, splitProvider(e.name).name, e.ip_address))}</div>
                     </td>
                     <td className="admin-muted">Restart</td>
                     <td className="num">{ended ? "—" : ngn(monthly)}</td>

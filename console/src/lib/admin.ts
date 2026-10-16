@@ -239,7 +239,7 @@ export interface CoolifyProject {
   description: string | null;
   workspaceId: string | null;
   workspaceName: string | null;
-  servers: Array<{ uuid: string; name: string; sharedWith: string[] }>;
+  servers: Array<{ uuid: string; name: string; sharedWith: string[]; ip?: string | null }>;
 }
 
 export async function loadCoolifyProjects(): Promise<CoolifyProject[]> {

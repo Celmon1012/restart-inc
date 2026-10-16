@@ -104,7 +104,7 @@ const RESOURCE_KEYS = [
 
 // Servers a project's production resources sit on. Same shapes console-data
 // reads: applications/databases carry destination.server, services carry server.
-async function projectServers(uuid: string): Promise<Array<{ uuid: string; name: string }>> {
+async function projectServers(uuid: string): Promise<Array<{ uuid: string; name: string; ip: string | null }>> {
   let env: Record<string, any> | null;
   try {
     env = await coolify(`/projects/${uuid}/production`);
@@ -112,14 +112,14 @@ async function projectServers(uuid: string): Promise<Array<{ uuid: string; name:
     return [];
   }
   if (!env) return [];
-  const servers = new Map<string, string>();
+  const servers = new Map<string, { name: string; ip: string | null }>();
   for (const key of RESOURCE_KEYS) {
     for (const r of env[key] ?? []) {
       const s = r.destination?.server ?? r.server;
-      if (s?.uuid) servers.set(s.uuid, s.name ?? s.uuid);
+      if (s?.uuid) servers.set(s.uuid, { name: s.name ?? s.uuid, ip: typeof s.ip === "string" && s.ip ? s.ip : null });
     }
   }
-  return Array.from(servers, ([uuid, name]) => ({ uuid, name }));
+  return Array.from(servers, ([uuid, v]) => ({ uuid, name: v.name, ip: v.ip }));
 }
 
 async function listProjects(jwt: string) {
