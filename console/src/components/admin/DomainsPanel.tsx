@@ -2,12 +2,13 @@
 // the registrar, workspace_id = the client project, empty for Restart's own), billed yearly.
 
 import { Fragment, useState } from "react";
+import { Link } from "wouter";
 import { RowMenu } from "@/components/admin/RowMenu";
 import { PaymentForm } from "@/components/admin/ExpensePayments";
 import { consoleSchema } from "@/lib/supabase";
 import { loadWorkspaceNames } from "@/lib/admin";
 import { formatAmount, formatDate } from "@/lib/format";
-import { COST_CURRENCIES, expenseInMonth, nextDue, toNgn, type Books, type CostCurrency, type Expense } from "@/lib/financeBooks";
+import { COST_CURRENCIES, nextDue, toNgn, type Books, type CostCurrency, type Expense } from "@/lib/financeBooks";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 
 const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
@@ -37,7 +38,6 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
   const [scope, setScope] = useState<"all" | "client" | "internal">("all");
 
   const rates = books.settings;
-  const month = today().slice(0, 7);
   const registrars = Array.from(
     new Set([...DEFAULT_REGISTRARS, ...books.expenses.filter((e) => e.category === "domains").map((e) => e.vendor).filter((v): v is string => Boolean(v))])
   ).sort();
@@ -55,7 +55,6 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
         days,
         overdue: due !== null && due < today(),
         yearly: ended ? 0 : toNgn(e.amount_cents * YEARLY_FACTOR[e.cadence], e.currency, rates),
-        monthly: ended ? 0 : toNgn(expenseInMonth(e, month), e.currency, rates)
       };
     })
     .sort((a, b) => (a.ended === b.ended ? (a.due ?? "9999").localeCompare(b.due ?? "9999") : a.ended ? 1 : -1));
@@ -171,26 +170,27 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Type</th>
                 <th>Domain</th>
                 <th>Client / project</th>
                 <th>Registrar</th>
                 <th className="num">Per year</th>
-                <th className="num">Per month</th>
                 <th>Renews</th>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {visible.map(({ e, ended, due, days, overdue, monthly }) => (
+              {visible.map(({ e, ended, due, days, overdue }) => (
                 <Fragment key={e.id}>
                   <tr className={overdue ? "row-overdue" : undefined} style={ended ? { opacity: 0.6 } : undefined}>
-                    <td>{e.workspace_id ? <span className="system-healthy-pill">CLIENT</span> : <span className="system-healthy-pill neutral">INTERNAL</span>}</td>
-                    <td><strong>{e.name}</strong></td>
-                    <td className="admin-muted">{nameOf(e.workspace_id)}</td>
+                    <td>
+                      <strong>{e.name}</strong>{" "}
+                      {e.workspace_id ? <span className="system-healthy-pill">CLIENT</span> : <span className="system-healthy-pill neutral">INTERNAL</span>}
+                    </td>
+                    <td className="admin-muted">
+                      {e.workspace_id ? <Link href={`/admin/projects/${e.workspace_id}`} className="text-teal">{nameOf(e.workspace_id)}</Link> : nameOf(e.workspace_id)}
+                    </td>
                     <td className="admin-muted">{e.vendor ?? "Not set"}</td>
                     <td className="num">{formatAmount(e.amount_cents, e.currency)}</td>
-                    <td className="num">{ended ? "—" : ngn(monthly)}</td>
                     <td>
                       {ended ? (
                         <span className="admin-muted">ended {formatDate(e.end_date as string)}</span>
@@ -221,7 +221,7 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
                   </tr>
                   {payingId === e.id && (
                     <tr>
-                      <td colSpan={8}>
+                      <td colSpan={6}>
                         <PaymentForm books={books} expense={e} onClose={() => setPayingId(null)} onSaved={refresh} />
                       </td>
                     </tr>
@@ -231,9 +231,8 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={4}><strong>Total</strong></td>
+                <td colSpan={3}><strong>Total per year</strong></td>
                 <td className="num"><strong>{ngn(visible.reduce((s, r) => s + r.yearly, 0))}</strong></td>
-                <td className="num"><strong>{ngn(visible.reduce((s, r) => s + r.monthly, 0))}</strong></td>
                 <td colSpan={2} />
               </tr>
             </tfoot>
