@@ -229,8 +229,8 @@ export async function loadPortfolio(options: { includeArchived?: boolean } = {})
 /* ------------------------------------------------------------------
  * Infrastructure: Coolify projects and which console project each one
  * backs. Coolify is only reachable through console-admin-infra (the API
- * token never reaches the browser). Policy: one console project = one
- * Coolify project = its own server, so servers.sharedWith should be empty.
+ * token never reaches the browser). A server may run several projects; a dedicated
+ * server is only for a client who asks for one.
  * ------------------------------------------------------------------ */
 
 export interface CoolifyProject {

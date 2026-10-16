@@ -39,6 +39,8 @@ export interface Expense {
   notes: string | null;
   /** Who the money is paid to (Namecheap, Upperlink...). Added by the expense-vendor migration; absent before it. */
   vendor?: string | null;
+  /** A server's IP address (added by the shared-servers migration; absent before it). */
+  ip_address?: string | null;
   /** The client project a domain belongs to (added by the domains migration); null for Restart's own. */
   workspace_id?: string | null;
   /** Who recorded it (added by the recorded-by migration; absent before it). */
@@ -58,6 +60,14 @@ export interface Service {
   notes: string | null;
   /** The expense that holds this server's cost (amount, currency, dates). The cost fields above mirror it. */
   expense_id?: string | null;
+  /** Copied from the expense. */
+  ip_address?: string | null;
+}
+
+/** A project that runs on a server whose cost sits on another project's service row. */
+export interface ServiceProject {
+  service_id: string;
+  workspace_id: string;
 }
 
 export interface Settings {
@@ -103,6 +113,8 @@ export interface ExpensePayment {
 export interface Books {
   expenses: Expense[];
   services: Service[];
+  /** Other projects each server also hosts. Empty until the shared-servers migration has been applied. */
+  serviceProjects: ServiceProject[];
   settings: Settings;
   accounts: Account[];
   payments: ExpensePayment[];
@@ -121,18 +133,20 @@ export async function loadBooks(): Promise<Books> {
   if (set.error) throw set.error;
 
   // Accounts and payments are additive: a missing table must not take the cost panels down.
-  const [acc, pay] = await Promise.all([
+  const [acc, pay, shared] = await Promise.all([
     consoleSchema().from("finance_accounts").select("*").order("name"),
     consoleSchema()
       .from("expense_payments")
       .select("*")
       .order("paid_on", { ascending: false })
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: false }),
+    consoleSchema().from("service_projects").select("service_id,workspace_id")
   ]);
   const paymentsAvailable = !acc.error && !pay.error;
   const expenses = (exp.data ?? []).map((e) => ({ ...e, amount_cents: Number(e.amount_cents) })) as Expense[];
   const expenseById = new Map(expenses.map((e) => [e.id, e]));
   return {
+    serviceProjects: (shared.error ? [] : shared.data ?? []) as ServiceProject[],
     accounts: (paymentsAvailable ? acc.data ?? [] : []) as Account[],
     payments: (paymentsAvailable ? pay.data ?? [] : []).map((p) => ({
       ...p,
@@ -153,7 +167,8 @@ export async function loadBooks(): Promise<Books> {
         monthly_cost_cents: exp ? exp.amount_cents : Number(sv.monthly_cost_cents),
         currency: exp ? exp.currency : sv.currency,
         started_on: exp ? exp.start_date : sv.started_on,
-        ended_on: exp ? exp.end_date : sv.ended_on
+        ended_on: exp ? exp.end_date : sv.ended_on,
+        ip_address: exp ? exp.ip_address ?? null : null
       };
     }) as Service[],
     settings: {

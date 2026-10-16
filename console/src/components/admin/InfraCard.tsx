@@ -77,8 +77,8 @@ export function InfraCard({
             </div>
           </div>
           {linked?.servers.some((s) => s.sharedWith.length > 0) && (
-            <p className="infra-note admin-warn">
-              <AlertTriangle size={13} /> Server shared with {Array.from(new Set(linked.servers.flatMap((s) => s.sharedWith))).join(", ")}. Each project should have its own server.
+            <p className="infra-note admin-muted">
+              Server shared with {Array.from(new Set(linked.servers.flatMap((s) => s.sharedWith))).join(", ")}.
             </p>
           )}
           <div className="admin-form-actions">

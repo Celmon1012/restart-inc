@@ -109,7 +109,7 @@ function UnlinkedCoolifyProjects({ clientEmails, onImported }: { clientEmails: s
                   <td>
                     {p.servers.length ? p.servers.map((s) => s.name).join(", ") : <span className="admin-muted">Nothing deployed</span>}
                     {p.servers.some((s) => s.sharedWith.length) && (
-                      <div className="admin-warn">Shared with {Array.from(new Set(p.servers.flatMap((s) => s.sharedWith))).join(", ")}</div>
+                      <div className="admin-muted">Shared with {Array.from(new Set(p.servers.flatMap((s) => s.sharedWith))).join(", ")}</div>
                     )}
                   </td>
                   <td className="num">
