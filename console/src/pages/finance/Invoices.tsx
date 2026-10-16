@@ -4,7 +4,8 @@
 
 import { Fragment, useState } from "react";
 import { Link } from "wouter";
-import { ExternalLink, Search } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, ExternalLink, Search, X } from "lucide-react";
+import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { FinancePage } from "@/components/admin/FinancePage";
 import { RowMenu } from "@/components/admin/RowMenu";
 import { EmptyState } from "@/components/AsyncStates";
@@ -12,7 +13,7 @@ import { invokeFunction } from "@/lib/functions";
 import { formatAmount, formatDate } from "@/lib/format";
 import { formatTotals } from "@/pages/admin/Finance";
 import { downloadCsv } from "@/lib/csv";
-import type { InvoiceRow, InvoiceState } from "@/lib/financeOverview";
+import type { InvoiceDetail, InvoiceRow, InvoiceState } from "@/lib/financeOverview";
 
 const STATE_LABEL: Record<InvoiceState, string> = { unpaid: "Unpaid", partial: "Partially paid", overdue: "Overdue", paid: "Paid", draft: "Draft" };
 const STATES: InvoiceState[] = ["unpaid", "partial", "overdue", "paid", "draft"];
@@ -50,6 +51,15 @@ export default function FinanceInvoices() {
   const [clientFilter, setClientFilter] = useState("all");
   const [year, setYear] = useState("all");
   const [search, setSearch] = useState("");
+  // The invoice open in the side panel, and whether the list beside it is folded away.
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [listHidden, setListHidden] = useState(false);
+  const [tab, setTab] = useState<"invoice" | "payments">("invoice");
+  const detail = useAsyncResource(
+    async () => (await invokeFunction<{ invoice: InvoiceDetail }>("console-admin-finance", { query: `invoice=${encodeURIComponent(detailId as string)}` })).invoice,
+    [detailId],
+    { enabled: Boolean(detailId), errorMessage: "Failed to load the invoice" }
+  );
 
   const openPayForm = (id: string) => {
     setPayingId(id);
@@ -183,91 +193,205 @@ export default function FinanceInvoices() {
               ) : shown.length === 0 ? (
                 <div className="dash-empty-state">No invoices match this view.</div>
               ) : (
-                <div className="admin-table-wrap">
-                  <table className="admin-table tasks-compact">
-                    <thead>
-                      <tr>
-                        <th>Invoice</th>
-                        <th>Client</th>
-                        <th>Issued</th>
-                        <th>Due</th>
-                        <th>Status</th>
-                        <th className="num">Amount</th>
-                        <th />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {shown.map((inv) => {
-                        const owing = inv.state === "unpaid" || inv.state === "partial" || inv.state === "overdue";
-                        return (
-                          <Fragment key={inv.id}>
-                            <tr className={inv.state === "overdue" ? "row-overdue" : undefined}>
-                              <td><strong>{inv.number}</strong></td>
-                              <td>
-                                {inv.workspaceId ? <Link href={`/admin/projects/${inv.workspaceId}`} className="text-teal">{inv.client}</Link> : inv.client}
-                              </td>
-                              <td className="admin-muted">{formatDate(inv.issuingDate)}</td>
-                              <td className={inv.state === "overdue" ? "admin-danger" : "admin-muted"}>{inv.dueDate ? formatDate(inv.dueDate) : "—"}</td>
-                              <td><StatePill state={inv.state} /></td>
-                              <td className="num">
-                                {formatAmount(inv.totalAmountCents, inv.currency)}
-                                {inv.state !== "paid" && inv.state !== "draft" && inv.paidAmountCents > 0 && (
-                                  <small className="admin-muted"> · {formatAmount(inv.paidAmountCents, inv.currency)} paid</small>
-                                )}
-                              </td>
-                              <td className="num">
-                                <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
-                                  {inv.fileUrl && (
-                                    <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="text-teal" aria-label={`Open ${inv.number} PDF`} style={{ display: "inline-flex", alignItems: "center" }}>
-                                      <ExternalLink size={14} />
-                                    </a>
-                                  )}
-                                  {owing && (
-                                    <button className="dash-tab-btn" onClick={() => openPayForm(inv.id)}>Record payment</button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                            {payingId === inv.id && (
-                              <tr>
-                                <td colSpan={7}>
-                                  <form
-                                    onSubmit={(e) => { e.preventDefault(); void submitPayment(inv.id, reloadAll); }}
-                                    style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}
-                                  >
-                                    <label>Paid on <input type="date" required value={paidOn} max={today} onChange={(e) => setPaidOn(e.target.value)} /></label>
-                                    <label>Reference <input type="text" placeholder="Bank ref / narration" value={reference} onChange={(e) => setReference(e.target.value)} /></label>
-                                    <button type="submit" className="dash-tab-btn active" disabled={saving}>
-                                      {saving ? "Saving…" : `Mark ${formatAmount(inv.totalAmountCents, inv.currency)} paid`}
-                                    </button>
-                                    <button type="button" className="dash-tab-btn" onClick={() => setPayingId(null)} disabled={saving}>Cancel</button>
-                                    {payError && <span className="admin-warn" role="alert">{payError}</span>}
-                                  </form>
+                <div className={`inv-split ${detailId ? "open" : ""} ${listHidden ? "list-hidden" : ""}`}>
+                  {!(detailId && listHidden) && (
+                    <div className="admin-table-wrap">
+                      <table className="admin-table tasks-compact">
+                        <thead>
+                          <tr>
+                            <th>Invoice</th>
+                            <th>Client</th>
+                            {!detailId && <th>Issued</th>}
+                            {!detailId && <th>Due</th>}
+                            <th>Status</th>
+                            <th className="num">Amount</th>
+                            {!detailId && <th />}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {shown.map((inv) => {
+                            const owing = inv.state === "unpaid" || inv.state === "partial" || inv.state === "overdue";
+                            return (
+                              <tr
+                                key={inv.id}
+                                className={`clickable ${inv.state === "overdue" ? "row-overdue" : ""} ${detailId === inv.id ? "selected" : ""}`}
+                                onClick={() => { setDetailId(detailId === inv.id ? null : inv.id); setTab("invoice"); setPayingId(null); }}
+                              >
+                                <td><strong>{inv.number}</strong></td>
+                                <td className="task-name">
+                                  {inv.workspaceId && !detailId ? <Link href={`/admin/projects/${inv.workspaceId}`} className="text-teal" onClick={(e) => e.stopPropagation()}>{inv.client}</Link> : inv.client}
                                 </td>
+                                {!detailId && <td className="admin-muted">{formatDate(inv.issuingDate)}</td>}
+                                {!detailId && <td className={inv.state === "overdue" ? "admin-danger" : "admin-muted"}>{inv.dueDate ? formatDate(inv.dueDate) : "—"}</td>}
+                                <td><StatePill state={inv.state} /></td>
+                                <td className="num">
+                                  {formatAmount(inv.totalAmountCents, inv.currency)}
+                                  {!detailId && inv.state !== "paid" && inv.state !== "draft" && inv.paidAmountCents > 0 && (
+                                    <small className="admin-muted"> · {formatAmount(inv.paidAmountCents, inv.currency)} paid</small>
+                                  )}
+                                </td>
+                                {!detailId && (
+                                  <td className="num" onClick={(e) => e.stopPropagation()}>
+                                    <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+                                      {inv.fileUrl && (
+                                        <a href={inv.fileUrl} target="_blank" rel="noreferrer" className="text-teal" aria-label={`Open ${inv.number} PDF`} style={{ display: "inline-flex", alignItems: "center" }}>
+                                          <ExternalLink size={14} />
+                                        </a>
+                                      )}
+                                      {owing && (
+                                        <button className="dash-tab-btn" onClick={() => { setDetailId(inv.id); setTab("invoice"); openPayForm(inv.id); }}>Record payment</button>
+                                      )}
+                                    </div>
+                                  </td>
+                                )}
                               </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <td colSpan={detailId ? 3 : 5}><strong>{shown.length} of {all.length} invoices · total invoiced</strong></td>
+                            <td className="num"><strong>{formatTotals(sumFor(shown.filter((i) => i.state !== "draft"), (i) => i.totalAmountCents))}</strong></td>
+                            {!detailId && <td />}
+                          </tr>
+                          <tr>
+                            <td colSpan={detailId ? 3 : 5} className="admin-muted">Paid</td>
+                            <td className="num admin-muted">{formatTotals(sumFor(shown.filter((i) => i.state !== "draft"), (i) => i.paidAmountCents))}</td>
+                            {!detailId && <td />}
+                          </tr>
+                          <tr>
+                            <td colSpan={detailId ? 3 : 5}><strong>Owing</strong></td>
+                            <td className="num"><strong>{formatTotals(sumFor(shown.filter((i) => i.state !== "draft"), (i) => i.totalDueAmountCents))}</strong></td>
+                            {!detailId && <td />}
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+
+                  {detailId && (() => {
+                    const row = all.find((i) => i.id === detailId);
+                    const inv = detail.data;
+                    const owing = row ? row.state === "unpaid" || row.state === "partial" || row.state === "overdue" : false;
+                    return (
+                      <aside className="inv-panel" aria-label="Invoice detail">
+                        <div className="inv-panel-head">
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                            <strong className="inv-panel-title">{row?.number ?? "Invoice"}</strong>
+                            {row && <StatePill state={row.state} />}
+                          </div>
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                            {(inv?.fileUrl ?? row?.fileUrl) && (
+                              <a className="dash-tab-btn" href={(inv?.fileUrl ?? row?.fileUrl) as string} target="_blank" rel="noreferrer">
+                                <ExternalLink size={13} /> <span>PDF</span>
+                              </a>
                             )}
-                          </Fragment>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td colSpan={5}><strong>{shown.length} of {all.length} invoices · total invoiced</strong></td>
-                        <td className="num"><strong>{formatTotals(sumFor(shown.filter((i) => i.state !== "draft"), (i) => i.totalAmountCents))}</strong></td>
-                        <td />
-                      </tr>
-                      <tr>
-                        <td colSpan={5} className="admin-muted">Paid</td>
-                        <td className="num admin-muted">{formatTotals(sumFor(shown.filter((i) => i.state !== "draft"), (i) => i.paidAmountCents))}</td>
-                        <td />
-                      </tr>
-                      <tr>
-                        <td colSpan={5}><strong>Owing</strong></td>
-                        <td className="num"><strong>{formatTotals(sumFor(shown.filter((i) => i.state !== "draft"), (i) => i.totalDueAmountCents))}</strong></td>
-                        <td />
-                      </tr>
-                    </tfoot>
-                  </table>
+                            {row && owing && (
+                              <button className="dash-tab-btn active" onClick={() => openPayForm(row.id)}>Record payment</button>
+                            )}
+                            <button className="dash-tab-btn" onClick={() => setListHidden(!listHidden)} aria-label={listHidden ? "Show the invoice list" : "Hide the invoice list"} title={listHidden ? "Show the list" : "Hide the list"}>
+                              {listHidden ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />}
+                            </button>
+                            <button className="dash-tab-btn" onClick={() => { setDetailId(null); setListHidden(false); setPayingId(null); }} aria-label="Close the detail panel" title="Close">
+                              <X size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {row && payingId === row.id && (
+                          <form
+                            onSubmit={(e) => { e.preventDefault(); void submitPayment(row.id, async () => { await reloadAll(); await detail.refresh(); }); }}
+                            className="inv-pay-form"
+                          >
+                            <label>Paid on <input type="date" required value={paidOn} max={today} onChange={(e) => setPaidOn(e.target.value)} /></label>
+                            <label>Reference <input type="text" placeholder="Bank ref / narration" value={reference} onChange={(e) => setReference(e.target.value)} /></label>
+                            <button type="submit" className="dash-tab-btn active" disabled={saving}>
+                              {saving ? "Saving…" : `Mark ${formatAmount(row.totalAmountCents, row.currency)} paid`}
+                            </button>
+                            <button type="button" className="dash-tab-btn" onClick={() => setPayingId(null)} disabled={saving}>Cancel</button>
+                            {payError && <span className="admin-warn" role="alert">{payError}</span>}
+                          </form>
+                        )}
+
+                        <div className="inv-tabs" role="tablist">
+                          <button role="tab" aria-selected={tab === "invoice"} className={tab === "invoice" ? "active" : ""} onClick={() => setTab("invoice")}>Invoice</button>
+                          <button role="tab" aria-selected={tab === "payments"} className={tab === "payments" ? "active" : ""} onClick={() => setTab("payments")}>Payments{inv ? ` (${inv.payments.length})` : ""}</button>
+                        </div>
+
+                        {detail.loading ? (
+                          <p className="admin-muted">Loading the invoice…</p>
+                        ) : detail.error || !inv ? (
+                          <p className="admin-warn" role="alert">Couldn't load the invoice: {detail.error ?? "not found"}</p>
+                        ) : tab === "payments" ? (
+                          inv.payments.length === 0 ? (
+                            <p className="admin-muted">No payments recorded against this invoice yet.</p>
+                          ) : (
+                            <table className="admin-table tasks-compact">
+                              <thead><tr><th>Date</th><th>Status</th><th className="num">Amount</th></tr></thead>
+                              <tbody>
+                                {inv.payments.map((p, idx) => (
+                                  <tr key={idx}>
+                                    <td>{p.date ? formatDate(p.date) : "—"}</td>
+                                    <td className="admin-muted">{p.status || "—"}</td>
+                                    <td className="num">{formatAmount(p.amountCents, inv.currency)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )
+                        ) : (
+                          <div className="inv-body">
+                            <div className="inv-parties">
+                              <div>
+                                <span className="admin-muted">Bill to</span>
+                                <strong>{inv.customer.legalName ?? inv.customer.name ?? row?.client}</strong>
+                                {inv.customer.address.map((l) => <div key={l}>{l}</div>)}
+                                {inv.customer.taxId && <div className="admin-muted">Tax ID {inv.customer.taxId}</div>}
+                                {inv.customer.email && <div className="admin-muted">{inv.customer.email}</div>}
+                              </div>
+                              <div className="inv-dates">
+                                <div><span className="admin-muted">Invoice date</span> <strong>{formatDate(inv.issuingDate)}</strong></div>
+                                <div><span className="admin-muted">Due date</span> <strong>{inv.dueDate ? formatDate(inv.dueDate) : "—"}</strong></div>
+                              </div>
+                            </div>
+
+                            <table className="admin-table tasks-compact">
+                              <thead>
+                                <tr><th>#</th><th>Item</th><th className="num">Qty</th><th className="num">Rate</th><th className="num">Tax</th><th className="num">Amount</th></tr>
+                              </thead>
+                              <tbody>
+                                {inv.lines.map((l, idx) => (
+                                  <tr key={idx}>
+                                    <td className="admin-muted">{idx + 1}</td>
+                                    <td className="wrap">
+                                      <strong>{l.description}</strong>
+                                      {l.detail && <div className="admin-muted">{l.detail}</div>}
+                                    </td>
+                                    <td className="num">{l.units}</td>
+                                    <td className="num">{formatAmount(Math.round(l.rateCents), inv.currency)}</td>
+                                    <td className="num admin-muted">{l.taxRate}%</td>
+                                    <td className="num">{formatAmount(l.amountCents, inv.currency)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+
+                            <div className="inv-totals">
+                              <div><span>Sub total</span><strong>{formatAmount(inv.subtotalCents, inv.currency)}</strong></div>
+                              {inv.taxes.map((t) => (
+                                <div key={t.name + t.rate}><span>{t.name} {t.rate}%</span><strong>{formatAmount(t.amountCents, inv.currency)}</strong></div>
+                              ))}
+                              {inv.taxes.length === 0 && inv.taxesCents > 0 && <div><span>Tax</span><strong>{formatAmount(inv.taxesCents, inv.currency)}</strong></div>}
+                              {inv.discountsCents > 0 && <div><span>Discounts and credits</span><strong>−{formatAmount(inv.discountsCents, inv.currency)}</strong></div>}
+                              <div className="grand"><span>Total</span><strong>{formatAmount(inv.totalCents, inv.currency)}</strong></div>
+                              {inv.paidCents > 0 && <div><span>Paid</span><strong>{formatAmount(inv.paidCents, inv.currency)}</strong></div>}
+                              <div className={inv.dueCents > 0 ? "due" : ""}><span>Amount due</span><strong>{formatAmount(inv.dueCents, inv.currency)}</strong></div>
+                            </div>
+                          </div>
+                        )}
+                      </aside>
+                    );
+                  })()}
                 </div>
               )}
             </div>

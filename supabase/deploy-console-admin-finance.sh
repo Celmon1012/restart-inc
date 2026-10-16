@@ -210,6 +210,73 @@ Deno.serve(async (req) => {
   if (!caller) return json({ error: "Unauthorized" }, 401);
   if (!caller.isAdmin) return json({ error: "Forbidden" }, 403);
 
+  // ?invoice=<lago id> -> one invoice in full (bill-to, line items, taxes, totals, payments), for the
+  // detail panel on the Invoices page.
+  const invoiceParam = new URL(req.url).searchParams.get("invoice");
+  if (invoiceParam) {
+    try {
+      if (!/^[A-Za-z0-9-]{8,64}$/.test(invoiceParam)) return json({ error: "Bad invoice id" }, 400);
+      const res = await lagoFetch(`/invoices/${invoiceParam}`);
+      const inv = res?.invoice;
+      if (!inv) return json({ error: "Invoice not found" }, 404);
+      const customer = inv.customer ?? {};
+      const address = [customer.address_line1, customer.address_line2, [customer.city, customer.state].filter(Boolean).join(" "), [customer.zipcode, customer.country].filter(Boolean).join(" ")]
+        .map((l: unknown) => (typeof l === "string" ? l.trim() : ""))
+        .filter(Boolean);
+      const payments = (await fetchAllPayments())
+        .filter((p) => (p.lago_invoice_ids ?? p.invoice_ids ?? []).includes(inv.lago_id) || p.lago_payable_id === inv.lago_id)
+        .map((p) => ({
+          date: String(p.paid_at ?? p.created_at ?? "").slice(0, 10),
+          amountCents: p.amount_cents,
+          status: p.payment_status ?? p.status ?? "",
+        }))
+        .sort((a, b) => b.date.localeCompare(a.date));
+      const fees: Array<Record<string, any>> = inv.fees ?? [];
+      return json({
+        invoice: {
+          id: inv.lago_id,
+          number: inv.number,
+          status: inv.status,
+          paymentStatus: inv.payment_status,
+          issuingDate: inv.issuing_date,
+          dueDate: inv.payment_due_date ?? null,
+          currency: inv.currency,
+          customer: {
+            name: customer.name ?? null,
+            legalName: customer.legal_name ?? null,
+            email: customer.email ?? null,
+            phone: customer.phone ?? null,
+            taxId: customer.tax_identification_number ?? null,
+            address,
+          },
+          lines: fees.map((f) => ({
+            description: f.item?.invoice_display_name || f.invoice_display_name || f.item?.name || f.item?.description || f.item?.code || "Item",
+            detail: f.item?.description && f.item?.description !== f.item?.name ? f.item.description : null,
+            units: Number(f.units ?? 1),
+            rateCents: Number(f.precise_unit_amount ?? 0) * 100 || Math.round(Number(f.amount_cents ?? 0) / Math.max(Number(f.units ?? 1), 1)),
+            amountCents: Number(f.amount_cents ?? 0),
+            taxRate: Number(f.taxes_rate ?? 0),
+          })),
+          taxes: ((inv.applied_taxes ?? []) as Array<Record<string, any>>).map((t) => ({
+            name: t.tax_name ?? "Tax",
+            rate: Number(t.tax_rate ?? 0),
+            amountCents: Number(t.amount_cents ?? 0),
+          })),
+          subtotalCents: Number(inv.sub_total_excluding_taxes_amount_cents ?? inv.total_amount_cents ?? 0),
+          taxesCents: Number(inv.taxes_amount_cents ?? 0),
+          discountsCents: Number(inv.coupons_amount_cents ?? 0) + Number(inv.credit_notes_amount_cents ?? 0) + Number(inv.prepaid_credit_amount_cents ?? 0),
+          totalCents: Number(inv.total_amount_cents ?? 0),
+          paidCents: inv.payment_status === "succeeded" ? Number(inv.total_amount_cents ?? 0) : Number(inv.total_paid_amount_cents ?? 0),
+          dueCents: inv.payment_status === "succeeded" ? 0 : Number(inv.total_due_amount_cents ?? inv.total_amount_cents ?? 0),
+          fileUrl: inv.file_url ?? null,
+          payments,
+        },
+      });
+    } catch (err) {
+      return json({ error: `Failed to load the invoice: ${(err as Error).message}` }, 502);
+    }
+  }
+
   // ?customers=1 -> the Lago customers a project can be linked to (Breadmaker's
   // are left out), for the "Link billing" control on a project's Billing tab.
   if (new URL(req.url).searchParams.get("customers")) {

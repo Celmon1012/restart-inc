@@ -76,4 +76,26 @@ export interface InvoiceRow {
   fileUrl: string | null;
 }
 
+/** One invoice in full, for the detail panel (console-admin-finance?invoice=...). */
+export interface InvoiceDetail {
+  id: string;
+  number: string;
+  status: string;
+  paymentStatus: string;
+  issuingDate: string;
+  dueDate: string | null;
+  currency: string;
+  customer: { name: string | null; legalName: string | null; email: string | null; phone: string | null; taxId: string | null; address: string[] };
+  lines: Array<{ description: string; detail: string | null; units: number; rateCents: number; amountCents: number; taxRate: number }>;
+  taxes: Array<{ name: string; rate: number; amountCents: number }>;
+  subtotalCents: number;
+  taxesCents: number;
+  discountsCents: number;
+  totalCents: number;
+  paidCents: number;
+  dueCents: number;
+  fileUrl: string | null;
+  payments: Array<{ date: string; amountCents: number; status: string }>;
+}
+
 export const loadFinanceOverview = () => invokeFunction<FinanceOverview>("console-admin-finance");
