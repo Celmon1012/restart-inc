@@ -3212,7 +3212,6 @@ html[data-theme="light"] .dash-user-avatar{ filter: none; }
 
 /* Support, server requests and invoices: tiles that match the other pages. */
 .task-strip.auto{ grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-div.task-strip-tile{ cursor: default; }
 .task-strip-tile.sp-open span{ color: #f0b429; }
 .task-strip-tile.sp-pending span{ color: #60a5fa; }
 .task-strip-tile.sp-resolved span{ color: var(--teal); }
@@ -3229,3 +3228,5 @@ div.task-strip-tile{ cursor: default; }
 /* One row height on every table, so Clients, Leads, Projects, Tasks and the finance pages line up. Taller content still grows the row. */
 .admin-table tbody td{ height: 54px; }
 .admin-table tfoot td{ height: 46px; padding-top: 8px; padding-bottom: 8px; }
+.task-strip-tile.iv-draft span{ color: #8b91a1; }
+.task-strip { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }

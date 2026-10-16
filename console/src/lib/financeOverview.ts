@@ -41,6 +41,8 @@ export interface FinanceOverview {
   }>;
   /** Every active subscription as a line: hosting plans (dedicated-server-*) or services (retainers, maintenance, pods). */
   subscriptions?: SubscriptionLine[];
+  /** Every invoice with its state (absent until the finance function has been redeployed). */
+  allInvoices?: InvoiceRow[];
   openInvoices: Array<{
     id: string;
     number: string;
@@ -55,6 +57,23 @@ export interface FinanceOverview {
     currency: string;
     fileUrl: string | null;
   }>;
+}
+
+export type InvoiceState = "draft" | "unpaid" | "partial" | "overdue" | "paid";
+
+export interface InvoiceRow {
+  id: string;
+  number: string;
+  client: string;
+  workspaceId: string | null;
+  issuingDate: string;
+  dueDate: string | null;
+  state: InvoiceState;
+  totalAmountCents: number;
+  paidAmountCents: number;
+  totalDueAmountCents: number;
+  currency: string;
+  fileUrl: string | null;
 }
 
 export const loadFinanceOverview = () => invokeFunction<FinanceOverview>("console-admin-finance");

@@ -465,6 +465,41 @@ Deno.serve(async (req) => {
         fileUrl: inv.file_url,
       }));
 
+    // Every invoice, not only the unpaid ones, each with the state a person would call it:
+    // draft, paid, overdue (unpaid and past due), partial (some paid, not yet due) or unpaid.
+    // Voided invoices are left out.
+    const allInvoices = invoices
+      .filter((inv) => inv.status === "finalized" || inv.status === "draft")
+      .sort((a, b) => b.issuing_date.localeCompare(a.issuing_date) || b.number.localeCompare(a.number))
+      .map((inv) => {
+        const paid = inv.payment_status === "succeeded"
+          ? inv.total_amount_cents
+          : Math.min(inv.total_paid_amount_cents ?? 0, inv.total_amount_cents);
+        const due = inv.payment_status === "succeeded"
+          ? 0
+          : Math.max(inv.total_due_amount_cents ?? inv.total_amount_cents - paid, 0);
+        const state =
+          inv.status === "draft" ? "draft"
+          : due <= 0 ? "paid"
+          : isOverdue(inv) ? "overdue"
+          : paid > 0 ? "partial"
+          : "unpaid";
+        return {
+          id: inv.lago_id,
+          number: inv.number,
+          client: clientFor(inv.customer?.external_id ?? "unknown", inv.customer?.name).name,
+          workspaceId: byCustomer.get(inv.customer?.external_id ?? "")?.id ?? null,
+          issuingDate: inv.issuing_date,
+          dueDate: inv.payment_due_date ?? null,
+          state,
+          totalAmountCents: inv.total_amount_cents,
+          paidAmountCents: paid,
+          totalDueAmountCents: due,
+          currency: inv.currency,
+          fileUrl: inv.file_url,
+        };
+      });
+
     return json({
       generatedAt: now.toISOString(),
       totals: { collected, collectedThisMonth, outstanding, overdue, mrr, discount, vatCollected, vatCollectedThisMonth },
@@ -477,6 +512,7 @@ Deno.serve(async (req) => {
       clients: [...clients.values()].sort((a, b) => a.name.localeCompare(b.name)),
       subscriptions: subscriptionLines,
       openInvoices,
+      allInvoices,
     });
   } catch (err) {
     return json({ error: `Failed to load finance data: ${(err as Error).message}` }, 502);
