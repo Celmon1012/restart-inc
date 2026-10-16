@@ -30,6 +30,8 @@ function splitProvider(name: string): { name: string; provider: Service["provide
   return { name: m[1], provider: m[2] === "Hetzner" ? "hetzner" : "contabo" };
 }
 const today = () => new Date().toISOString().slice(0, 10);
+/** How many times a cost is paid in a year, to show a cost per year. */
+const YEARLY_FACTOR: Record<Cadence, number> = { weekly: 52, monthly: 12, quarterly: 4, annual: 1, one_off: 1 };
 
 interface Form {
   /** A client's server (billed on to them) or one of Restart's own. */
@@ -64,6 +66,9 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
   const [formError, setFormError] = useState<string | null>(null);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [scope, setScope] = useState<"all" | "client" | "internal">("all");
+  // Costs per month (the default) or per year.
+  const [period, setPeriod] = useState<"month" | "year">("month");
+  const mult = period === "year" ? 12 : 1;
 
   const rates = books.settings;
   const nameOf = (id: string) => names.data?.get(id) ?? "Unknown project";
@@ -91,15 +96,15 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
     .map((e) => {
       const due = nextDue(e, books.payments);
       const ended = Boolean(e.end_date && e.end_date < today());
-      return { e, due, overdue: due !== null && due < today(), ended, monthly: ended ? 0 : toNgn(expenseInMonth(e, today().slice(0, 7)), e.currency, rates) };
+      return { e, due, overdue: due !== null && due < today(), ended, monthly: ended ? 0 : period === "year" ? toNgn(e.amount_cents * YEARLY_FACTOR[e.cadence], e.currency, rates) : toNgn(expenseInMonth(e, today().slice(0, 7)), e.currency, rates) };
     })
     .sort((a, b) => a.e.name.localeCompare(b.e.name));
   const internalCost = internal.reduce((s, r) => s + r.monthly, 0);
 
   const clientRows = rows.filter((r) => !isInternalWs(r.id));
   const ownProjectRows = rows.filter((r) => isInternalWs(r.id));
-  const clientCost = clientRows.reduce((sum, r) => sum + r.cost, 0);
-  const ownCost = internalCost + ownProjectRows.reduce((sum, r) => sum + r.cost, 0);
+  const clientCost = clientRows.reduce((sum, r) => sum + r.cost, 0) * mult;
+  const ownCost = internalCost + ownProjectRows.reduce((sum, r) => sum + r.cost, 0) * mult;
 
   // Coolify sync hints.
   const liveServers = useMemo(() => {
@@ -300,6 +305,10 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
           </button>
         ))}
         <span className="admin-toolbar-spacer" />
+        <select value={period} onChange={(e) => setPeriod(e.target.value as "month" | "year")} aria-label="Show costs per">
+          <option value="month">Monthly</option>
+          <option value="year">Yearly</option>
+        </select>
         <button className="dash-tab-btn active" onClick={() => openAdd()}>Add server</button>
       </div>
 
@@ -395,7 +404,7 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
                 <th>Provider</th>
                 <th>IP address</th>
                 <th>Client / project</th>
-                <th className="num">Server cost</th>
+                <th className="num">{period === "year" ? "Cost per year" : "Cost per month"}</th>
                 <th>Next due</th>
                 <th />
               </tr>
@@ -417,7 +426,6 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
                           <div key={l.sv.id} className="srv-line">
                             <span className={isActive(l.sv) ? undefined : "admin-muted"}>
                               <strong style={{ fontWeight: 600 }}>{l.sv.name}</strong>{" "}
-                              {isInternalWs(r.id) ? <span className="system-healthy-pill neutral">INTERNAL</span> : <span className="system-healthy-pill">CLIENT</span>}
                             </span>
                           </div>
                         ))}
@@ -437,7 +445,7 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
                           </span>
                         ))}
                       </td>
-                      <td className="num">{ngn(r.cost)}</td>
+                      <td className="num">{ngn(r.cost * mult)}</td>
                       <td>
                         {lines.map((l) => (
                           <div key={l.sv.id} className="srv-line">
@@ -486,8 +494,7 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
                 <Fragment key={e.id}>
                   <tr className={overdue ? "row-overdue" : undefined} style={ended ? { opacity: 0.6 } : undefined}>
                     <td>
-                      <strong style={{ fontWeight: 600 }}>{splitProvider(e.name).name}</strong>{" "}
-                      <span className="system-healthy-pill neutral">INTERNAL</span>
+                      <strong style={{ fontWeight: 600 }}>{splitProvider(e.name).name}</strong>
                     </td>
                     <td className="admin-muted">{splitProvider(e.name).provider ? PROVIDER_LABEL[splitProvider(e.name).provider as Service["provider"]] : "Not set"}</td>
                     <td className="admin-muted">{where(ipFor(null, splitProvider(e.name).name, e.ip_address))}</td>
@@ -533,7 +540,7 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
                 <tr>
                   <td colSpan={4}><strong>Internal servers</strong></td>
                   <td className="num"><strong>{ngn(ownCost)}</strong></td>
-                  <td colSpan={2} className="admin-muted">Restart's own, not billed to anyone</td>
+                  <td colSpan={2} />
                 </tr>
               )}
               <tr>
