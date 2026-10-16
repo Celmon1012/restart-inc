@@ -135,12 +135,17 @@ export function clientKeyFor(w: Pick<AdminWorkspace, "id" | "contact_email" | "c
 
 /** Archived projects are hidden unless includeArchived is set (the Projects toggle and a project's own page). */
 export async function loadPortfolio(options: { includeArchived?: boolean } = {}): Promise<{ projects: ProjectSummary[]; clients: ClientSummary[] }> {
-  const [workspaces, deliverablesRes, tasksRes, requestsRes] = await Promise.all([
+  const [workspaces, deliverablesRes, tasksRes, requestsRes, clientDetailsRes] = await Promise.all([
     loadAdminWorkspaces(),
     consoleSchema().from("deliverables").select("id,workspace_id,title,status,due_at,sort_order").order("sort_order"),
     consoleSchema().from("deliverable_tasks").select("deliverable_id,is_done"),
-    consoleSchema().from("server_requests").select("workspace_id,status")
+    consoleSchema().from("server_requests").select("workspace_id,status"),
+    consoleSchema().from("clients").select("email,contact_name,role,website,client_type")
   ]);
+  // Saved client details override onboarding. Absent before the clients migration, or for Finance: ignored then.
+  const savedDetails = new Map(
+    (clientDetailsRes.error ? [] : clientDetailsRes.data ?? []).map((d) => [d.email as string, d])
+  );
   if (deliverablesRes.error) throw deliverablesRes.error;
   // Tasks and requests are enrichment; a missing grant or table there must
   // not take the whole portfolio down.
@@ -193,14 +198,15 @@ export async function loadPortfolio(options: { includeArchived?: boolean } = {})
     const byAge = list.slice().sort((a, b) => a.created_at.localeCompare(b.created_at));
     const onboarded = byAge.find((p) => p.onboarding?.full_name) ?? null;
     const primary = onboarded ?? byAge[0];
+    const saved = savedDetails.get(key);
     return {
       key,
       name: primary.name,
-      contactName: onboarded?.onboarding?.full_name ?? null,
+      contactName: saved?.contact_name ?? onboarded?.onboarding?.full_name ?? null,
       email: primary.contact_email,
-      role: onboarded?.onboarding?.role ?? null,
-      website: onboarded?.onboarding?.website ?? null,
-      clientType: byAge.find((p) => p.client_type)?.client_type ?? null,
+      role: saved?.role ?? onboarded?.onboarding?.role ?? null,
+      website: saved?.website ?? onboarded?.onboarding?.website ?? null,
+      clientType: saved?.client_type ?? byAge.find((p) => p.client_type)?.client_type ?? null,
       since: byAge[0].created_at,
       projects: byAge
     };

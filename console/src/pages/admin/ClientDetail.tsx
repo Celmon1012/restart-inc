@@ -2,6 +2,8 @@
 // (from console-admin-finance), open invoices, their lead history, and
 // support tickets across all their projects.
 
+import { useState } from "react";
+import { toast } from "sonner";
 import { Link, useLocation, useParams } from "wouter";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
@@ -31,7 +33,10 @@ export default function AdminClientDetail(props: { clientKey?: string }) {
   const [, setLocation] = useLocation();
 
   const portfolio = useAsyncResource(() => loadPortfolio(), [], { errorMessage: "Failed to load client" });
-  const { canFinance } = useWorkspace();
+  const { canFinance, canOps } = useWorkspace();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ contactName: "", role: "", website: "", clientType: "" });
   const finance = useAsyncResource(() => loadFinanceOverview(), [], { enabled: canFinance });
   const tickets = useAsyncResource(() => loadTickets(), []);
   const client = portfolio.data?.clients.find((c) => c.key === key) ?? null;
@@ -71,6 +76,29 @@ export default function AdminClientDetail(props: { clientKey?: string }) {
       </ConsoleLayout>
     );
   }
+
+  const startEdit = () => {
+    setForm({ contactName: client.contactName ?? "", role: client.role ?? "", website: client.website ?? "", clientType: client.clientType ?? "" });
+    setEditing(true);
+  };
+  const saveEdit = async () => {
+    setSaving(true);
+    const { error } = await consoleSchema().rpc("admin_save_client", {
+      p_email: client.email,
+      p_contact_name: form.contactName,
+      p_role: form.role,
+      p_website: form.website,
+      p_client_type: form.clientType
+    });
+    setSaving(false);
+    if (error) {
+      toast.error(`Couldn't save: ${error.message}`);
+      return;
+    }
+    setEditing(false);
+    toast.success("Client details saved");
+    await portfolio.refresh();
+  };
 
   const money = moneyFor(client, finance.data);
   const ids = new Set(client.projects.map((p) => p.id));
@@ -124,7 +152,39 @@ export default function AdminClientDetail(props: { clientKey?: string }) {
 
       <div className="cp-grid">
         <div className="cp-card">
-          <div className="cp-card-head"><span>Contact</span></div>
+          <div className="cp-card-head">
+            <span>Contact</span>
+            {canOps && client.email && !editing && (
+              <button type="button" className="cp-head-link" onClick={startEdit}>Edit</button>
+            )}
+          </div>
+          {editing ? (
+            <form className="app-meta-list" onSubmit={(e) => { e.preventDefault(); void saveEdit(); }}>
+              <label className="app-meta-item">
+                <span className="meta-k">Name</span>
+                <input type="text" maxLength={120} value={form.contactName} onChange={(e) => setForm({ ...form, contactName: e.target.value })} />
+              </label>
+              <label className="app-meta-item">
+                <span className="meta-k">Role</span>
+                <input type="text" maxLength={120} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} />
+              </label>
+              <label className="app-meta-item">
+                <span className="meta-k">Website</span>
+                <input type="text" maxLength={200} placeholder="example.com" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
+              </label>
+              <label className="app-meta-item">
+                <span className="meta-k">Type</span>
+                <select value={form.clientType} onChange={(e) => setForm({ ...form, clientType: e.target.value })}>
+                  <option value="">Not set</option>
+                  {Object.entries(CLIENT_TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </label>
+              <div className="app-meta-item" style={{ gap: 8 }}>
+                <button type="submit" className="dash-tab-btn active" disabled={saving}>{saving ? "Saving…" : "Save"}</button>
+                <button type="button" className="dash-tab-btn" onClick={() => setEditing(false)} disabled={saving}>Cancel</button>
+              </div>
+            </form>
+          ) : (
           <div className="app-meta-list">
             <Field label="Name">{client.contactName}</Field>
             <Field label="Role">{client.role}</Field>
@@ -138,6 +198,7 @@ export default function AdminClientDetail(props: { clientKey?: string }) {
             </Field>
             <Field label="Type">{client.clientType ? CLIENT_TYPE_LABEL[client.clientType] ?? client.clientType : null}</Field>
           </div>
+          )}
         </div>
 
         <div className="cp-card">
