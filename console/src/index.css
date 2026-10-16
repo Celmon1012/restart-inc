@@ -3191,3 +3191,21 @@ html[data-theme="light"] .dash-user-avatar{ filter: none; }
 .task-strip-tile.ps-blocked span, .task-col.ps-blocked > header span{ color: #ff7b7b; }
 .task-strip-tile.ps-completed span, .task-col.ps-completed > header span{ color: var(--teal); }
 .project-card{ cursor: pointer; border-left-color: rgba(255,255,255,.2); }
+
+/* Leads and clients: stage tiles and the inline stage select. */
+.task-strip.four{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.task-strip-tile.ls-new span{ color: #f0b429; }
+.task-strip-tile.ls-contacted span{ color: #60a5fa; }
+.task-strip-tile.ls-qualified span{ color: #a78bfa; }
+.task-strip-tile.ls-won span{ color: var(--teal); }
+.task-strip-tile.ls-lost span{ color: #ff7b7b; }
+.task-strip-tile.cs-active span{ color: #34d399; }
+.task-strip-tile.cs-scoping span{ color: #f0b429; }
+.task-strip-tile.cs-idle span{ color: #8b91a1; }
+.status-select.ls-new{ color: #f0b429; }
+.status-select.ls-contacted{ color: #60a5fa; }
+.status-select.ls-qualified{ color: #a78bfa; }
+.status-select.ls-won{ color: var(--teal); }
+.status-select.ls-lost{ color: #ff7b7b; }
+.status-select.ls-archived{ color: #8b91a1; }
+.task-strip-tile span{ text-transform: capitalize; }

@@ -20,6 +20,7 @@ import { consoleSchema, supabase } from "@/lib/supabase";
 import { Mail, Phone, Send, Search, LayoutList, Columns3 } from "lucide-react";
 import { RowMenu } from "@/components/admin/RowMenu";
 import { PIPELINE_STAGES, OPEN_STAGES, queryParam, type PipelineStage } from "@/lib/admin";
+import { downloadCsv } from "@/lib/csv";
 import { formatDate } from "@/lib/format";
 import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components/AsyncStates";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
@@ -90,6 +91,7 @@ export default function Leads() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [dueOnly, setDueOnly] = useState(false);
   const [view, setView] = useState<"list" | "board">("list");
+  const [picked, setPicked] = useState<Set<string>>(new Set());
   const [noteDraft, setNoteDraft] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [stageSaving, setStageSaving] = useState(false);
@@ -163,6 +165,22 @@ export default function Leads() {
     (i) => OPEN_STAGES.includes(i.status) && i.next_follow_up_at && new Date(i.next_follow_up_at) <= new Date()
   ).length;
   const selected = inquiries.find((i) => i.id === selectedId) ?? null;
+  const shownIds = filtered.map((i) => i.id);
+  const pickedShown = shownIds.filter((id) => picked.has(id));
+  const allPicked = shownIds.length > 0 && pickedShown.length === shownIds.length;
+  const togglePick = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const exportLeads = () =>
+    downloadCsv(
+      `restart-leads-${new Date().toISOString().slice(0, 10)}.csv`,
+      ["reference", "name", "email", "phone", "company", "source", "stage", "budget", "follow_up", "received"],
+      filtered.map((i) => [i.reference_id, i.name, i.email, i.phone ?? "", i.company ?? "", i.source, i.status, i.budget_range ?? i.service_tier ?? "", i.next_follow_up_at ?? "", i.created_at])
+    );
 
   // Board drags show the new column immediately; the override clears once the
   // refreshed list (or a failed write) settles it.
@@ -297,28 +315,26 @@ export default function Leads() {
         </div>
       </div>
 
-      {inquiries.length > 0 && (
-        <div className="cp-stats mb-6">
-          <div>
-            <small>OPEN PIPELINE</small>
-            <strong>{openCount}</strong>
-            <em>new, contacted, or qualified</em>
-          </div>
-          <div>
-            <small>FOLLOW-UPS DUE</small>
-            <strong className={followUpsDue ? "warn" : undefined}>{followUpsDue}</strong>
-            <em>{followUpsDue ? "past their follow-up date" : "Nothing overdue"}</em>
-          </div>
-          <div>
-            <small>WON</small>
-            <strong>{wonCount}</strong>
-            <em>{inquiries.length} leads all-time</em>
-          </div>
-          <div>
-            <small>WIN RATE</small>
-            <strong>{closedCount ? `${Math.round((wonCount / closedCount) * 100)}%` : "—"}</strong>
-            <em>{closedCount ? `of ${closedCount} closed leads` : "No closed leads yet"}</em>
-          </div>
+      {inquiries.length > 0 && view === "list" && (
+        <div className="task-strip">
+          {(["new", "contacted", "qualified", "won", "lost"] as InquiryStatus[]).map((stage) => (
+            <button
+              key={stage}
+              type="button"
+              className={`task-strip-tile ls-${stage} ${stageFilter === stage ? "active" : ""}`}
+              onClick={() => setStageFilter(stageFilter === stage ? "all" : stage)}
+              aria-pressed={stageFilter === stage}
+            >
+              <span><strong>{inquiries.filter((i) => i.status === stage).length}</strong> {stage}</span>
+              <em>
+                {OPEN_STAGES.includes(stage as PipelineStage)
+                  ? `${inquiries.filter((i) => i.status === stage && isDue(i)).length} follow-ups due`
+                  : stage === "won"
+                    ? closedCount ? `${Math.round((wonCount / closedCount) * 100)}% win rate` : "No closed leads yet"
+                    : `of ${inquiries.length} all-time`}
+              </em>
+            </button>
+          ))}
         </div>
       )}
 
@@ -361,6 +377,7 @@ export default function Leads() {
               <input type="checkbox" checked={dueOnly} onChange={(e) => setDueOnly(e.target.checked)} /> Follow-up due
             </label>
             <span className="admin-toolbar-spacer" />
+            <button className="dash-tab-btn" onClick={exportLeads} disabled={filtered.length === 0}>Export CSV</button>
             <button
               className={`dash-tab-btn ${view === "list" ? "active" : ""}`}
               onClick={() => setView("list")}
@@ -439,13 +456,39 @@ export default function Leads() {
             </div>
           ) : (
           <>
+          {pickedShown.length > 0 && (
+            <div className="bulk-bar" role="region" aria-label="Bulk actions">
+              <strong>{pickedShown.length} selected</strong>
+              <select
+                value=""
+                onChange={async (e) => {
+                  const next = e.target.value as InquiryStatus;
+                  if (!next) return;
+                  for (const id of pickedShown) {
+                    const lead = inquiries.find((x) => x.id === id);
+                    if (lead) await handleStageChange(next, lead);
+                  }
+                  setPicked(new Set());
+                }}
+                aria-label="Move to stage"
+              >
+                <option value="">Move to stage…</option>
+                {PIPELINE_STAGES.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
+              </select>
+              <span className="admin-toolbar-spacer" />
+              <button className="dash-tab-btn" onClick={() => setPicked(new Set())}>Clear</button>
+            </div>
+          )}
           {filtered.length === 0 ? (
             <div className="dash-empty-state">No leads match this view.</div>
           ) : (
             <div className="admin-table-wrap">
-              <table className="admin-table">
+              <table className="admin-table tasks-compact">
                 <thead>
                   <tr>
+                    <th style={{ width: 32 }}>
+                      <input type="checkbox" checked={allPicked} onChange={() => setPicked(allPicked ? new Set() : new Set(shownIds))} aria-label="Select all shown leads" />
+                    </th>
                     <th>Lead</th>
                     <th>Source</th>
                     <th>Stage</th>
@@ -458,13 +501,26 @@ export default function Leads() {
                 <tbody>
                   {filtered.map((i) => (
                     <Fragment key={i.id}>
-                      <tr className="clickable" onClick={() => setSelectedId(selectedId === i.id ? null : i.id)}>
-                        <td>
+                      <tr className={`clickable ${isDue(i) ? "row-overdue" : ""}`} onClick={() => setSelectedId(selectedId === i.id ? null : i.id)}>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          <input type="checkbox" checked={picked.has(i.id)} onChange={() => togglePick(i.id)} aria-label={`Select ${i.name}`} />
+                        </td>
+                        <td className="task-name" title={`${i.name} · ${i.company ?? i.email}`}>
                           <strong>{i.name}</strong>
-                          <div className="admin-muted">{i.company ?? i.email}</div>
+                          <span className="admin-muted"> · {i.company ?? i.email}</span>
                         </td>
                         <td className="admin-muted">{i.source.replace(/_/g, " ")}</td>
-                        <td><StagePill status={i.status} /></td>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          <select
+                            className={`status-select ls-${stageOf(i)}`}
+                            value={stageOf(i)}
+                            onChange={(e) => void handleStageChange(e.target.value as InquiryStatus, i)}
+                            disabled={stageSaving}
+                            aria-label={`Stage of ${i.name}`}
+                          >
+                            {PIPELINE_STAGES.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
+                          </select>
+                        </td>
                         <td className="admin-muted">{i.budget_range ?? i.service_tier ?? "—"}</td>
                         <td className={isDue(i) ? "admin-danger" : "admin-muted"}>{i.next_follow_up_at ? formatDate(i.next_follow_up_at) : "—"}</td>
                         <td className="admin-muted">{formatDate(i.created_at)}</td>
@@ -481,7 +537,7 @@ export default function Leads() {
                       </tr>
                       {selectedId === i.id && selected && (
                         <tr>
-                          <td colSpan={7}>
+                          <td colSpan={8}>
                 <div className="console-card lead-detail-card">
                   <div className="card-top-header">
                     <span className="card-kicker">{selected.reference_id}</span>

@@ -10,6 +10,7 @@ import { EmptyState, ErrorAlert, LoadingState, StatusRegion } from "@/components
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { invokeFunction } from "@/lib/functions";
 import { formatDate } from "@/lib/format";
+import { downloadCsv } from "@/lib/csv";
 import { CLIENT_TYPE_LABEL, loadPortfolio } from "@/lib/admin";
 import { CLIENT_STATUS_LABEL, moneyFor, statusFor, type ClientStatus } from "@/lib/adminClients";
 import { formatTotals, loadFinanceOverview } from "./Finance";
@@ -57,6 +58,21 @@ export default function AdminClients() {
   );
   const count = (s: ClientStatus) => rows.filter((r) => r.status === s).length;
   const money = (v: string) => (finance.loading ? "…" : finance.error ? "—" : v);
+  // Totals across the shown clients, per currency.
+  const sumTotals = (pick: (r: (typeof rows)[number]) => Record<string, number>) => {
+    const out: Record<string, number> = {};
+    for (const r of visible) for (const [cur, amt] of Object.entries(pick(r))) out[cur] = (out[cur] ?? 0) + amt;
+    return out;
+  };
+  const exportClients = () =>
+    downloadCsv(
+      `restart-clients-${new Date().toISOString().slice(0, 10)}.csv`,
+      ["client", "type", "contact", "email", "phone", "status", "projects", "mrr", "outstanding", "open_tickets", "since"],
+      visible.map(({ client: c, money: m, status, openTickets }) => [
+        c.name, c.clientType ?? "", c.contactName ?? "", c.email ?? "", c.phone ?? "", CLIENT_STATUS_LABEL[status], c.projects.length,
+        formatTotals(m.mrr), formatTotals(m.outstanding), openTickets, c.since.slice(0, 10)
+      ])
+    );
 
   return (
     <ConsoleLayout area="admin" onRefresh={() => void portfolio.refresh()} isRefreshing={portfolio.refreshing}>
@@ -73,17 +89,28 @@ export default function AdminClients() {
       {portfolio.error && <ErrorAlert message={`Couldn't load clients: ${portfolio.error}`} onRetry={portfolio.retry} />}
       {finance.error && <p className="admin-muted mb-4">Billing figures unavailable: {finance.error}</p>}
 
+      {!portfolio.loading && rows.length > 0 && (
+        <div className="task-strip four">
+          {(["all", "active", "scoping", "idle"] as const).map((f) => (
+            <button key={f} type="button" className={`task-strip-tile cs-${f} ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)} aria-pressed={filter === f}>
+              <span><strong>{f === "all" ? rows.length : count(f)}</strong> {f === "all" ? "All clients" : CLIENT_STATUS_LABEL[f]}</span>
+              <em>
+                {f === "all"
+                  ? `${rows.reduce((n, r) => n + r.client.projects.length, 0)} projects`
+                  : `${rows.filter((r) => r.status === f).reduce((n, r) => n + r.client.projects.length, 0)} projects`}
+              </em>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="admin-toolbar">
-        {(["all", "active", "scoping", "idle"] as const).map((f) => (
-          <button key={f} className={`dash-tab-btn ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>
-            {f === "all" ? `All (${rows.length})` : `${CLIENT_STATUS_LABEL[f]} (${count(f)})`}
-          </button>
-        ))}
         <span className="admin-toolbar-spacer" />
         <div className="workspace-search-box">
           <Search size={13} />
           <input type="text" placeholder="Search clients, contacts, projects…" aria-label="Search clients" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
+        <button className="dash-tab-btn" onClick={exportClients} disabled={visible.length === 0}>Export CSV</button>
       </div>
 
       {portfolio.loading ? (
@@ -94,7 +121,7 @@ export default function AdminClients() {
         <div className="dash-empty-state">No clients match this view.</div>
       ) : (
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table tasks-compact">
             <thead>
               <tr>
                 <th>Client</th>
@@ -112,18 +139,18 @@ export default function AdminClients() {
                 const active = c.projects.filter((p) => p.status === "active" || p.status === "blocked").length;
                 return (
                   <tr key={c.key} className="clickable" onClick={() => setLocation(`/admin/clients/${encodeURIComponent(c.key)}`)}>
-                    <td>
+                    <td className="task-name" title={c.name}>
                       <strong>{c.name}</strong>
-                      <div className="admin-muted">{c.clientType ? CLIENT_TYPE_LABEL[c.clientType] ?? c.clientType : "—"}</div>
+                      <span className="admin-muted"> · {c.clientType ? CLIENT_TYPE_LABEL[c.clientType] ?? c.clientType : "—"}</span>
                     </td>
-                    <td>
+                    <td className="task-name" title={c.email ?? undefined}>
                       {c.contactName ?? <span className="admin-muted">—</span>}
-                      <div className="admin-muted">{c.email ?? "—"}</div>
+                      <span className="admin-muted"> · {c.email ?? "—"}</span>
                     </td>
                     <td><ClientStatusPill status={status} /></td>
                     <td className="num">
                       {c.projects.length}
-                      {active > 0 && <div className="admin-muted">{active} active</div>}
+                      {active > 0 && <span className="admin-muted"> · {active} active</span>}
                     </td>
                     <td className="num">{money(formatTotals(m.mrr))}</td>
                     <td className={`num ${Object.keys(m.overdue).length ? "admin-warn" : ""}`}>{money(formatTotals(m.outstanding))}</td>
@@ -133,6 +160,16 @@ export default function AdminClients() {
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={3}><strong>{visible.length} of {rows.length} clients</strong></td>
+                <td className="num"><strong>{visible.reduce((n, r) => n + r.client.projects.length, 0)}</strong></td>
+                <td className="num"><strong>{money(formatTotals(sumTotals((r) => r.money.mrr)))}</strong></td>
+                <td className="num"><strong>{money(formatTotals(sumTotals((r) => r.money.outstanding)))}</strong></td>
+                <td className="num"><strong>{tickets.loading ? "…" : tickets.error ? "—" : visible.reduce((n, r) => n + r.openTickets, 0)}</strong></td>
+                <td />
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}
