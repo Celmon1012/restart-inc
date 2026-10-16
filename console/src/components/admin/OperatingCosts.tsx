@@ -275,7 +275,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                     <th>Vendor</th>
                     <th>Category</th>
                     <th>Cadence</th>
-                    <th className="num">Amount</th>
                     <th className="num">Per month</th>
                     <th>Next due</th>
                     <th />
@@ -296,7 +295,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                               {CADENCE_LABEL[e.cadence]}
                               {e.cadence !== "one_off" && e.end_date && <div>until {formatDate(e.end_date)}</div>}
                             </td>
-                            <td className="num">{formatAmount(e.amount_cents, e.currency)}</td>
                             <td className="num">{e.cadence === "one_off" ? "—" : ngn(toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates))}</td>
                             <td className={overdue ? undefined : "admin-muted"}>
                               {e.cadence === "one_off" ? "—" : !due ? "ended" : overdue ? (
@@ -319,7 +317,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                           </tr>
                           {payingId === e.id && (
                             <tr>
-                              <td colSpan={8}>
+                              <td colSpan={7}>
                                 <PaymentForm books={books} expense={e} onClose={() => setPayingId(null)} onSaved={refresh} />
                               </td>
                             </tr>
@@ -333,7 +331,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                       <td className="admin-muted">—</td>
                       <td>{CATEGORIES.domains}</td>
                       <td className="admin-muted">Yearly</td>
-                      <td className="num admin-muted">—</td>
                       <td className="num">{ngn(domainsTotal)}</td>
                       <td className="admin-muted">{domainDue ? formatDate(domainDue) : "—"}</td>
                       <td className="num" onClick={(ev) => ev.stopPropagation()}>
@@ -349,7 +346,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                       <td className="admin-muted">—</td>
                       <td>{CATEGORIES.infrastructure}</td>
                       <td className="admin-muted">Monthly</td>
-                      <td className="num admin-muted">—</td>
                       <td className="num">{ngn(hostingTotal)}</td>
                       <td className="admin-muted">{hostingDue ? formatDate(hostingDue) : "—"}</td>
                       <td className="num" onClick={(ev) => ev.stopPropagation()}>
@@ -360,7 +356,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={5}><strong>Total per month</strong></td>
+                    <td colSpan={4}><strong>Total per month</strong></td>
                     <td className="num"><strong>{ngn(visibleExpenses.filter((e) => e.cadence !== "one_off").reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0) + (showHosting ? hostingTotal : 0) + (showDomains ? domainsTotal : 0))}</strong></td>
                     <td colSpan={2} />
                   </tr>
