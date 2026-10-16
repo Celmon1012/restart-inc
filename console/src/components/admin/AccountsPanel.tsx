@@ -28,13 +28,20 @@ export function AccountsPanel({ books, refresh }: { books: Books; refresh: () =>
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // What "paid out" adds up: this month (the default), this year, or everything.
+  const [period, setPeriod] = useState<"month" | "year" | "all">("month");
 
   if (!books.paymentsAvailable) {
     return <p className="admin-muted">Accounts aren't set up yet. Run the expense payments migration (20261012120000) and reload.</p>;
   }
 
-  const paidOut = (id: string) =>
-    books.payments.filter((p) => p.account_id === id && !p.voided_at).reduce((s, p) => s + p.amount_ngn_cents, 0);
+  const prefix = period === "month" ? new Date().toISOString().slice(0, 7) : period === "year" ? new Date().toISOString().slice(0, 4) : "";
+  const inPeriod = books.payments.filter((p) => !p.voided_at && p.paid_on.startsWith(prefix));
+  const paidOut = (id: string) => inPeriod.filter((p) => p.account_id === id).reduce((s, p) => s + p.amount_ngn_cents, 0);
+  const totalPaid = books.accounts.reduce((s, a) => s + paidOut(a.id), 0);
+  // Payments logged without an account still count towards what went out.
+  const noAccount = inPeriod.filter((p) => !p.account_id || !books.accounts.some((a) => a.id === p.account_id)).reduce((s, p) => s + p.amount_ngn_cents, 0);
+  const periodLabel = period === "month" ? "this month" : period === "year" ? "this year" : "all time";
 
   const openAdd = () => {
     setEditingId(null);
@@ -88,7 +95,12 @@ export function AccountsPanel({ books, refresh }: { books: Books; refresh: () =>
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <select value={period} onChange={(e) => setPeriod(e.target.value as "month" | "year" | "all")} aria-label="Paid out over">
+          <option value="month">This month</option>
+          <option value="year">This year</option>
+          <option value="all">All time</option>
+        </select>
         <button className="dash-tab-btn active" onClick={openAdd}>Add account</button>
       </div>
 
@@ -127,7 +139,7 @@ export function AccountsPanel({ books, refresh }: { books: Books; refresh: () =>
                 <th>Bank</th>
                 <th>Account name</th>
                 <th>Account number</th>
-                <th className="num">Paid out (₦)</th>
+                <th className="num">Paid out {periodLabel}</th>
                 <th />
               </tr>
             </thead>
@@ -155,6 +167,20 @@ export function AccountsPanel({ books, refresh }: { books: Books; refresh: () =>
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              {noAccount > 0 && (
+                <tr>
+                  <td colSpan={4} className="admin-muted">Paid with no account recorded</td>
+                  <td className="num admin-muted">{ngn(noAccount)}</td>
+                  <td />
+                </tr>
+              )}
+              <tr>
+                <td colSpan={4}><strong>Total paid out {periodLabel}</strong></td>
+                <td className="num"><strong>{ngn(totalPaid + noAccount)}</strong></td>
+                <td />
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}
