@@ -62,13 +62,13 @@ function slicesOf(items: ChartItem[]): Slice[] {
 
 const pct = (part: number, whole: number) => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : "0%");
 
-export function ExpenseCharts({ items, variant = "full", title = "Share by category" }: { items: ChartItem[]; /** "donut" leaves out the bars of single costs. */ variant?: "full" | "donut"; title?: string }) {
+export function ExpenseCharts({ items, variant = "full", title = "Share by category", period = "month" }: { items: ChartItem[]; period?: "month" | "year"; /** "donut" leaves out the bars of single costs. */ variant?: "full" | "donut"; title?: string }) {
   const [hover, setHover] = useState<string | null>(null);
   const [tip, setTip] = useState<{ x: number; y: number; name: string; detail: string; value: string } | null>(null);
 
   const live = items.filter((i) => i.monthly > 0);
   const total = live.reduce((s, i) => s + i.monthly, 0);
-  if (live.length === 0) return <div className="dash-empty-state">Nothing to chart for this selection this month.</div>;
+  if (live.length === 0) return <div className="dash-empty-state">Nothing to chart for this selection {period === "year" ? "this year" : "this month"}.</div>;
 
   const slices = slicesOf(live);
   const showDonut = slices.length >= 3;
@@ -102,7 +102,7 @@ export function ExpenseCharts({ items, variant = "full", title = "Share by categ
       <div className="viz-title">{title}</div>
       {showDonut ? (
         <div className="viz-donut-wrap">
-          <svg viewBox="0 0 200 200" className="viz-donut" role="img" aria-label={`This month's cost by category: ${slices.map((s) => `${s.label} ${pct(s.value, total)}`).join(", ")}`}>
+          <svg viewBox="0 0 200 200" className="viz-donut" role="img" aria-label={`${period === "year" ? "Yearly" : "This month's"} cost by category: ${slices.map((s) => `${s.label} ${pct(s.value, total)}`).join(", ")}`}>
             <g transform="rotate(-90 100 100)">
               {arcs.map(({ slice, dash, offset: off }) => (
                 <circle
@@ -126,14 +126,14 @@ export function ExpenseCharts({ items, variant = "full", title = "Share by categ
               ))}
             </g>
             <text x="100" y={active ? 90 : 96} textAnchor="middle" className="viz-center-main">{formatNairaCompact(active ? active.value : total)}</text>
-            <text x="100" y={active ? 108 : 114} textAnchor="middle" className="viz-center-sub">{active ? active.label : "per month"}</text>
+            <text x="100" y={active ? 108 : 114} textAnchor="middle" className="viz-center-sub">{active ? active.label : period === "year" ? "per year" : "per month"}</text>
             {active && <text x="100" y="124" textAnchor="middle" className="viz-center-sub">{pct(active.value, total)} of total</text>}
           </svg>
         </div>
       ) : (
         <div className="viz-total">
           <strong title={formatNairaWhole(total)}>{formatNairaCompact(total)}</strong>
-          <span>per month{slices.length === 1 ? `, all ${slices[0].label}` : ""}. Tick three or more categories to compare their shares.</span>
+          <span>{period === "year" ? "per year" : "per month"}{slices.length === 1 ? `, all ${slices[0].label}` : ""}. Tick three or more categories to compare their shares.</span>
         </div>
       )}
 
@@ -150,7 +150,7 @@ export function ExpenseCharts({ items, variant = "full", title = "Share by categ
 
       {variant === "full" && (
         <>
-        <div className="viz-title" style={{ marginTop: 22 }}>Biggest costs this month</div>
+        <div className="viz-title" style={{ marginTop: 22 }}>Biggest costs {period === "year" ? "per year" : "this month"}</div>
         <div className="viz-bars" role="list">
           {shown.map((it) => (
             <div

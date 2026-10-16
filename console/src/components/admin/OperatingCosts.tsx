@@ -40,6 +40,8 @@ const CATEGORIES: Record<Expense["category"], string> = EXPENSE_CATEGORIES;
 type Category = Expense["category"];
 
 const ngn = (cents: number) => formatAmount(Math.round(cents), "NGN");
+/** How many times a cost is paid in a year, to show every expense as a yearly cost. */
+const YEARLY_FACTOR: Record<Cadence, number> = { weekly: 52, monthly: 12, quarterly: 4, annual: 1, one_off: 1 };
 
 const emptyForm = { name: "", vendor: "", category: "software" as Category, amount: "", currency: "NGN" as CostCurrency, cadence: "monthly" as Cadence, start: new Date().toISOString().slice(0, 10), end: "" };
 
@@ -51,6 +53,8 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
   // Ticked categories; null means all of them, so a category added later shows up without a click.
   const [catSel, setCatSel] = useState<Category[] | null>(null);
   const [showForm, setShowForm] = useState(false);
+  // Costs are shown per month or per year (every expense scaled to a year, domains included).
+  const [period, setPeriod] = useState<"month" | "year">("month");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [edits, setEdits] = useState<Partial<Record<keyof Settings, string>>>({});
@@ -75,7 +79,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
       .filter((e) => e.category === "infrastructure" && !hostingIds.has(e.id))
       .map((e) => ({ id: e.id, name: e.name.replace(/\s+\((Hetzner|Contabo)\)$/, ""), monthly: toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates) }))
   ].filter((h) => h.monthly > 0);
-  const hostingTotal = hostingItems.reduce((sum, h) => sum + h.monthly, 0);
+  const hostingTotal = hostingItems.reduce((sum, h) => sum + h.monthly, 0) * (period === "year" ? 12 : 1);
   const hostingDue = [
     ...books.services.map((sv) => (sv.expense_id ? books.expenses.find((e) => e.id === sv.expense_id) : undefined)),
     ...books.expenses.filter((e) => e.category === "infrastructure" && !hostingIds.has(e.id))
@@ -87,10 +91,12 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
   // Domains are managed on the Domains page, so like servers they show here as one row.
   const domainList = books.expenses.filter((e) => e.category === "domains");
   const domainItems = domainList.filter((e) => !(e.end_date && e.end_date < calc.thisMonth + "-01"));
-  const domainsTotal = domainItems.reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0);
+  const costOf = (e: Expense) =>
+    period === "year" ? toNgn(e.amount_cents * YEARLY_FACTOR[e.cadence], e.currency, rates) : toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates);
+  const domainsTotal = domainItems.reduce((sum, e) => sum + costOf(e), 0);
   const domainDue = domainItems.map((e) => nextDue(e, books.payments)).filter((d): d is string => d !== null).sort()[0] ?? null;
 
-  const monthlyOf = (list: Expense[]) => list.reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0);
+  const monthlyOf = (list: Expense[]) => list.reduce((sum, e) => sum + costOf(e), 0);
   const presentCategories = (Object.keys(CATEGORIES) as Category[]).filter((c) => (c === "infrastructure" ? hostingItems.length > 0 : c === "domains" ? domainItems.length > 0 : operating.some((e) => e.category === c)));
   const showHosting = (catSel ?? presentCategories).includes("infrastructure") && hostingItems.length > 0;
   const showDomains = (catSel ?? presentCategories).includes("domains") && domainItems.length > 0;
@@ -102,7 +108,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
       name: e.name,
       category: e.category,
       categoryLabel: CATEGORIES[e.category],
-      monthly: toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates)
+      monthly: costOf(e)
     })),
     // All servers are one line in the charts too, the same as the row in the table.
     ...(showHosting ? [{ id: "servers", name: `Servers (${hostingItems.length})`, category: "infrastructure", categoryLabel: CATEGORIES.infrastructure, monthly: hostingTotal }] : []),
@@ -254,6 +260,10 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
         ) : (
           <>
             <div className="admin-toolbar" style={{ margin: "10px 0" }}>
+              <select value={period} onChange={(e) => setPeriod(e.target.value as "month" | "year")} aria-label="Show costs per">
+                <option value="month">Monthly</option>
+                <option value="year">Yearly</option>
+              </select>
               <MultiSelectFilter
                 label="Categories"
                 allLabel="All categories"
@@ -274,8 +284,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                     <th>Expense</th>
                     <th>Vendor</th>
                     <th>Category</th>
-                    <th>Cadence</th>
-                    <th className="num">Per month</th>
+                    <th className="num">{period === "year" ? "Per year" : "Per month"}</th>
                     <th>Next due</th>
                     <th />
                   </tr>
@@ -288,14 +297,15 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                       return (
                         <Fragment key={e.id}>
                           <tr className={overdue ? "row-overdue" : undefined}>
-                            <td><strong>{e.name}</strong></td>
+                            <td>
+                              <strong>{e.name}</strong>
+                              {(e.cadence === "one_off" || e.end_date) && (
+                                <div className="admin-muted">{e.cadence === "one_off" ? "One-time" : `until ${formatDate(e.end_date as string)}`}</div>
+                              )}
+                            </td>
                             <td className="admin-muted">{e.vendor ?? "—"}</td>
                             <td>{CATEGORIES[e.category]}</td>
-                            <td className="admin-muted">
-                              {CADENCE_LABEL[e.cadence]}
-                              {e.cadence !== "one_off" && e.end_date && <div>until {formatDate(e.end_date)}</div>}
-                            </td>
-                            <td className="num">{e.cadence === "one_off" ? "—" : ngn(toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates))}</td>
+                            <td className="num">{e.cadence === "one_off" ? "—" : ngn(costOf(e))}</td>
                             <td className={overdue ? undefined : "admin-muted"}>
                               {e.cadence === "one_off" ? "—" : !due ? "ended" : overdue ? (
                                 <span style={{ display: "inline-flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
@@ -317,7 +327,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                           </tr>
                           {payingId === e.id && (
                             <tr>
-                              <td colSpan={7}>
+                              <td colSpan={6}>
                                 <PaymentForm books={books} expense={e} onClose={() => setPayingId(null)} onSaved={refresh} />
                               </td>
                             </tr>
@@ -330,7 +340,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                       <td><strong>Domains ({domainItems.length})</strong></td>
                       <td className="admin-muted">—</td>
                       <td>{CATEGORIES.domains}</td>
-                      <td className="admin-muted">Yearly</td>
                       <td className="num">{ngn(domainsTotal)}</td>
                       <td className="admin-muted">{domainDue ? formatDate(domainDue) : "—"}</td>
                       <td className="num" onClick={(ev) => ev.stopPropagation()}>
@@ -345,7 +354,6 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                       </td>
                       <td className="admin-muted">—</td>
                       <td>{CATEGORIES.infrastructure}</td>
-                      <td className="admin-muted">Monthly</td>
                       <td className="num">{ngn(hostingTotal)}</td>
                       <td className="admin-muted">{hostingDue ? formatDate(hostingDue) : "—"}</td>
                       <td className="num" onClick={(ev) => ev.stopPropagation()}>
@@ -356,8 +364,8 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={4}><strong>Total per month</strong></td>
-                    <td className="num"><strong>{ngn(visibleExpenses.filter((e) => e.cadence !== "one_off").reduce((sum, e) => sum + toNgn(expenseInMonth(e, calc.thisMonth), e.currency, rates), 0) + (showHosting ? hostingTotal : 0) + (showDomains ? domainsTotal : 0))}</strong></td>
+                    <td colSpan={3}><strong>{period === "year" ? "Total per year" : "Total per month"}</strong></td>
+                    <td className="num"><strong>{ngn(visibleExpenses.filter((e) => e.cadence !== "one_off").reduce((sum, e) => sum + costOf(e), 0) + (showHosting ? hostingTotal : 0) + (showDomains ? domainsTotal : 0))}</strong></td>
                     <td colSpan={2} />
                   </tr>
                 </tfoot>
@@ -366,7 +374,7 @@ export function OperatingCosts({ finance, books, refresh, view }: { finance: Fin
             {visibleExpenses.length === 0 && <div className="dash-empty-state">No categories ticked. Open the filter and tick one or more.</div>}
             </div>
             <aside className="exp-charts" aria-label="Charts of this month's operating costs">
-              <ExpenseCharts items={chartItems} />
+              <ExpenseCharts items={chartItems} period={period} />
             </aside>
             </div>
           </>
