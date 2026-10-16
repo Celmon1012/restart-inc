@@ -401,8 +401,8 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
             <thead>
               <tr>
                 <th>Server</th>
-                <th>Provider</th>
                 <th>IP address</th>
+                <th>Provider</th>
                 <th>Client / project</th>
                 <th className="num">{period === "year" ? "Cost per year" : "Cost per month"}</th>
                 <th>Next due</th>
@@ -431,10 +431,10 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
                         ))}
                       </td>
                       <td className="admin-muted">
-                        {lines.map((l) => <div key={l.sv.id} className="srv-line">{PROVIDER_LABEL[l.sv.provider]}</div>)}
+                        {lines.map((l) => <div key={l.sv.id} className="srv-line">{where(ipFor(l.sv.coolify_server_uuid, l.sv.name, l.sv.ip_address))}</div>)}
                       </td>
                       <td className="admin-muted">
-                        {lines.map((l) => <div key={l.sv.id} className="srv-line">{where(ipFor(l.sv.coolify_server_uuid, l.sv.name, l.sv.ip_address))}</div>)}
+                        {lines.map((l) => <div key={l.sv.id} className="srv-line">{PROVIDER_LABEL[l.sv.provider]}</div>)}
                       </td>
                       <td>
                         <Link href={`/admin/projects/${r.id}`} className="text-teal"><strong>{nameOf(r.id)}</strong></Link>
@@ -496,8 +496,8 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
                     <td>
                       <strong style={{ fontWeight: 600 }}>{splitProvider(e.name).name}</strong>
                     </td>
-                    <td className="admin-muted">{splitProvider(e.name).provider ? PROVIDER_LABEL[splitProvider(e.name).provider as Service["provider"]] : "Not set"}</td>
                     <td className="admin-muted">{where(ipFor(null, splitProvider(e.name).name, e.ip_address))}</td>
+                    <td className="admin-muted">{splitProvider(e.name).provider ? PROVIDER_LABEL[splitProvider(e.name).provider as Service["provider"]] : "Not set"}</td>
                     <td className="admin-muted">Restart</td>
                     <td className="num">{ended ? "—" : ngn(monthly)}</td>
                     <td>
