@@ -57,6 +57,16 @@ export async function loadWorkspaceNames(): Promise<Map<string, string>> {
   return new Map((data ?? []).map((w) => [w.id as string, w.name as string]));
 }
 
+/**
+ * Projects that are Restart's own (contact email on restart.ng). Their servers and domains are tagged INTERNAL.
+ * Empty when the function isn't installed yet, so everything then falls back to its old tag.
+ */
+export async function loadInternalWorkspaceIds(): Promise<Set<string>> {
+  const { data, error } = await consoleSchema().rpc("internal_workspace_ids");
+  if (error) return new Set();
+  return new Set(((data ?? []) as Array<string | { internal_workspace_ids: string }>).map((r) => (typeof r === "string" ? r : r.internal_workspace_ids)));
+}
+
 // Pipeline stages in funnel order, shared by the Leads board and the overview.
 export const PIPELINE_STAGES = ["new", "contacted", "qualified", "won", "lost", "archived"] as const;
 export type PipelineStage = (typeof PIPELINE_STAGES)[number];

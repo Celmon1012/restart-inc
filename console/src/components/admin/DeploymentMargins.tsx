@@ -9,11 +9,12 @@
 // tracked server Coolify no longer sees is offered for ending. Contabo servers are kept by hand.
 
 import { Fragment, useMemo, useState } from "react";
+import { Link } from "wouter";
 import { BellRing } from "lucide-react";
 import { RowMenu } from "@/components/admin/RowMenu";
 import { PaymentForm } from "@/components/admin/ExpensePayments";
 import { consoleSchema } from "@/lib/supabase";
-import { loadWorkspaceNames, loadCoolifyProjects } from "@/lib/admin";
+import { loadWorkspaceNames, loadCoolifyProjects, loadInternalWorkspaceIds } from "@/lib/admin";
 import { formatAmount, formatDate, formatPercent } from "@/lib/format";
 import { CADENCE_LABEL, CADENCE_OPTIONS, COST_CURRENCIES, expenseInMonth, hostingExpenseIds, nextDue, toNgn, totalsToNgn, type Books, type Cadence, type CostCurrency, type Expense, type Service } from "@/lib/financeBooks";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
@@ -50,6 +51,9 @@ const blankForm = (): Form => ({ kind: "client", cadence: "monthly", workspaceId
 
 export function DeploymentMargins({ finance, books, refresh }: { finance: FinanceOverview; books: Books; refresh: () => Promise<void> }) {
   const names = useAsyncResource(() => loadWorkspaceNames(), [], { errorMessage: "Failed to load clients" });
+  // Restart's own projects: a server on one of them is tagged INTERNAL, not CLIENT.
+  const internalIds = useAsyncResource(() => loadInternalWorkspaceIds(), [], { errorMessage: "Failed to load clients" });
+  const isInternalWs = (id: string) => Boolean(internalIds.data?.has(id));
   // Coolify is a separate system; if it's down the margins still work, only the sync hints go.
   const coolify = useAsyncResource(() => loadCoolifyProjects(), [], { errorMessage: "Couldn't reach Coolify" });
 
@@ -106,7 +110,10 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
     .sort((a, b) => a.e.name.localeCompare(b.e.name));
   const internalCost = internal.reduce((s, r) => s + r.monthly, 0);
 
-  const totals = rows.reduce((t, r) => ({ sale: t.sale + r.hostingSale, cost: t.cost + r.cost }), { sale: 0, cost: 0 });
+  const clientRows = rows.filter((r) => !isInternalWs(r.id));
+  const ownProjectRows = rows.filter((r) => isInternalWs(r.id));
+  const totals = clientRows.reduce((t, r) => ({ sale: t.sale + r.hostingSale, cost: t.cost + r.cost }), { sale: 0, cost: 0 });
+  const ownProjectCost = ownProjectRows.reduce((sum, r) => sum + r.cost, 0);
 
   // Coolify sync hints.
   const liveServers = useMemo(() => {
@@ -285,7 +292,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
       <div className="admin-toolbar" style={{ margin: "0 0 10px" }}>
         {(["all", "client", "internal"] as const).map((k) => (
           <button key={k} className={`dash-tab-btn ${scope === k ? "active" : ""}`} onClick={() => setScope(k)} aria-pressed={scope === k}>
-            {k === "all" ? `All (${rows.length + internal.length})` : k === "client" ? `Client (${rows.length})` : `Internal (${internal.length})`}
+            {k === "all" ? `All (${rows.length + internal.length})` : k === "client" ? `Client (${clientRows.length})` : `Internal (${internal.length + ownProjectRows.length})`}
           </button>
         ))}
         <span className="admin-toolbar-spacer" />
@@ -359,9 +366,8 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Type</th>
-                <th>Client / project</th>
                 <th>Server</th>
+                <th>Client / project</th>
                 <th className="num">Hosting sale</th>
                 <th className="num">Server cost</th>
                 <th className="num">Margin</th>
@@ -370,7 +376,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
               </tr>
             </thead>
             <tbody>
-              {(scope === "internal" ? [] : rows).map((r) => {
+              {rows.filter((r) => scope === "all" || (scope === "client") === !isInternalWs(r.id)).map((r) => {
                 const lines = r.services.map((sv) => {
                   const expense = sv.expense_id ? books.expenses.find((e) => e.id === sv.expense_id) : undefined;
                   const due = expense ? nextDue(expense, books.payments) : null;
@@ -380,9 +386,20 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                 return (
                   <Fragment key={r.id}>
                     <tr className={lines.some((l) => l.overdue) ? "row-overdue" : undefined}>
-                      <td><span className="system-healthy-pill">CLIENT</span></td>
                       <td>
-                        <strong>{nameOf(r.id)}</strong>
+                        {lines.length === 0 && <span className="admin-warn">no server cost recorded</span>}
+                        {lines.map((l) => (
+                          <div key={l.sv.id} className="srv-line">
+                            <span className={isActive(l.sv) ? undefined : "admin-muted"}>
+                              <strong style={{ fontWeight: 600 }}>{l.sv.name}</strong>{" "}
+                              {isInternalWs(r.id) ? <span className="system-healthy-pill neutral">INTERNAL</span> : <span className="system-healthy-pill">CLIENT</span>}
+                              <div className="admin-muted">{PROVIDER_LABEL[l.sv.provider]} · {formatAmount(l.sv.monthly_cost_cents, l.sv.currency)}/mo</div>
+                            </span>
+                          </div>
+                        ))}
+                      </td>
+                      <td>
+                        <Link href={`/admin/projects/${r.id}`} className="text-teal"><strong>{nameOf(r.id)}</strong></Link>
                         {r.discount > 0 && (
                           <span
                             className="tip tip-warn"
@@ -393,17 +410,6 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                             <BellRing size={14} />
                           </span>
                         )}
-                      </td>
-                      <td>
-                        {lines.length === 0 && <span className="admin-warn">no server cost recorded</span>}
-                        {lines.map((l) => (
-                          <div key={l.sv.id} className="srv-line">
-                            <span className={isActive(l.sv) ? undefined : "admin-muted"}>
-                              <strong style={{ fontWeight: 600 }}>{l.sv.name}</strong>
-                              <div className="admin-muted">{PROVIDER_LABEL[l.sv.provider]} · {formatAmount(l.sv.monthly_cost_cents, l.sv.currency)}/mo</div>
-                            </span>
-                          </div>
-                        ))}
                       </td>
                       <td className="num">
                         {r.hostingSale > 0 ? ngn(r.hostingSale) : r.cost > 0 ? <span className="admin-danger">not billed</span> : <span className="admin-muted">—</span>}
@@ -449,7 +455,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                     </tr>
                     {paying?.expense && (
                       <tr>
-                        <td colSpan={8}>
+                        <td colSpan={7}>
                           <PaymentForm books={books} expense={paying.expense} onClose={() => setPayingId(null)} onSaved={refresh} />
                         </td>
                       </tr>
@@ -460,12 +466,12 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
               {(scope === "client" ? [] : internal).map(({ e, due, overdue, ended, monthly }) => (
                 <Fragment key={e.id}>
                   <tr className={overdue ? "row-overdue" : undefined} style={ended ? { opacity: 0.6 } : undefined}>
-                    <td><span className="system-healthy-pill neutral">INTERNAL</span></td>
-                    <td className="admin-muted">Restart</td>
                     <td>
-                      <strong style={{ fontWeight: 600 }}>{splitProvider(e.name).name}</strong>
+                      <strong style={{ fontWeight: 600 }}>{splitProvider(e.name).name}</strong>{" "}
+                      <span className="system-healthy-pill neutral">INTERNAL</span>
                       <div className="admin-muted">{splitProvider(e.name).provider ? PROVIDER_LABEL[splitProvider(e.name).provider as Service["provider"]] : "Provider not set"} · {formatAmount(e.amount_cents, e.currency)}{cadenceShort[e.cadence]}</div>
                     </td>
+                    <td className="admin-muted">Restart</td>
                     <td className="num admin-muted">—</td>
                     <td className="num">{ended ? "—" : ngn(monthly)}</td>
                     <td className="num admin-muted">—</td>
@@ -491,7 +497,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                   </tr>
                   {payingId === e.id && (
                     <tr>
-                      <td colSpan={8}>
+                      <td colSpan={7}>
                         <PaymentForm books={books} expense={e} onClose={() => setPayingId(null)} onSaved={refresh} />
                       </td>
                     </tr>
@@ -501,7 +507,7 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={3}><strong>Client hosting margin</strong></td>
+                <td colSpan={2}><strong>Client hosting margin</strong></td>
                 <td className="num">{ngn(totals.sale)}</td>
                 <td className="num">{ngn(totals.cost)}</td>
                 <td className="num">
@@ -510,18 +516,18 @@ export function DeploymentMargins({ finance, books, refresh }: { finance: Financ
                 </td>
                 <td colSpan={2} />
               </tr>
-              {internal.length > 0 && (
+              {internal.length + ownProjectRows.length > 0 && (
                 <tr>
-                  <td colSpan={3}><strong>Internal servers</strong></td>
+                  <td colSpan={2}><strong>Internal servers</strong></td>
                   <td className="num admin-muted">—</td>
-                  <td className="num"><strong>{ngn(internalCost)}</strong></td>
+                  <td className="num"><strong>{ngn(internalCost + ownProjectCost)}</strong></td>
                   <td colSpan={3} className="admin-muted">cost of Restart's own servers, not billed to anyone</td>
                 </tr>
               )}
               <tr>
-                <td colSpan={3}><strong>All hosting cost</strong></td>
+                <td colSpan={2}><strong>All hosting cost</strong></td>
                 <td className="num admin-muted">—</td>
-                <td className="num"><strong>{ngn(totals.cost + internalCost)}</strong></td>
+                <td className="num"><strong>{ngn(totals.cost + internalCost + ownProjectCost)}</strong></td>
                 <td colSpan={3} />
               </tr>
             </tfoot>

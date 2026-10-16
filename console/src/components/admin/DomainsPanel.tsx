@@ -17,7 +17,6 @@ const DEFAULT_REGISTRARS = ["Namecheap", "Upperlink"];
 const YEARLY_FACTOR = { annual: 1, monthly: 12, quarterly: 4, weekly: 52, one_off: 1 } as const;
 
 interface Form {
-  kind: "client" | "internal";
   workspaceId: string;
   domain: string;
   registrar: string;
@@ -26,7 +25,7 @@ interface Form {
   start: string;
   end: string;
 }
-const blankForm = (): Form => ({ kind: "internal", workspaceId: "", domain: "", registrar: "", cost: "", currency: "USD", start: today(), end: "" });
+const blankForm = (): Form => ({ workspaceId: "", domain: "", registrar: "", cost: "", currency: "USD", start: today(), end: "" });
 
 export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => Promise<void> }) {
   const names = useAsyncResource(() => loadWorkspaceNames(), [], { errorMessage: "Failed to load clients" });
@@ -35,7 +34,6 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
   const [payingId, setPayingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [scope, setScope] = useState<"all" | "client" | "internal">("all");
 
   const rates = books.settings;
   const registrars = Array.from(
@@ -58,9 +56,7 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
       };
     })
     .sort((a, b) => (a.ended === b.ended ? (a.due ?? "9999").localeCompare(b.due ?? "9999") : a.ended ? 1 : -1));
-  const visible = all.filter((r) => scope === "all" || (scope === "client" ? Boolean(r.e.workspace_id) : !r.e.workspace_id));
   const nameOf = (id: string | null | undefined) => (id ? names.data?.get(id) ?? "Unknown project" : "Restart");
-  const count = (k: "client" | "internal") => all.filter((r) => (k === "client" ? Boolean(r.e.workspace_id) : !r.e.workspace_id)).length;
 
   const openAdd = () => {
     setEditingId(null);
@@ -71,7 +67,6 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
     setEditingId(e.id);
     setFormError(null);
     setForm({
-      kind: e.workspace_id ? "client" : "internal",
       workspaceId: e.workspace_id ?? "",
       domain: e.name,
       registrar: e.vendor ?? "",
@@ -86,7 +81,6 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
     if (!form) return;
     const cost = Number(form.cost);
     if (!form.domain.trim() || !Number.isFinite(cost) || cost < 0) return setFormError("Enter the domain and its yearly cost.");
-    if (form.kind === "client" && !form.workspaceId) return setFormError("Pick the client project this domain belongs to.");
     setSaving(true);
     setFormError(null);
     const row = {
@@ -98,7 +92,7 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
       cadence: "annual",
       start_date: form.start,
       end_date: form.end || null,
-      workspace_id: form.kind === "client" ? form.workspaceId : null
+      workspace_id: form.workspaceId || null
     };
     const { error } = editingId ? await consoleSchema().from("expenses").update(row).eq("id", editingId) : await consoleSchema().from("expenses").insert(row);
     setSaving(false);
@@ -127,11 +121,7 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
   return (
     <div className="admin-section">
       <div className="admin-toolbar" style={{ margin: "0 0 10px" }}>
-        {(["all", "client", "internal"] as const).map((k) => (
-          <button key={k} className={`dash-tab-btn ${scope === k ? "active" : ""}`} onClick={() => setScope(k)} aria-pressed={scope === k}>
-            {k === "all" ? `All (${all.length})` : k === "client" ? `Client (${count("client")})` : `Internal (${count("internal")})`}
-          </button>
-        ))}
+        <span className="admin-muted">{all.length} domain{all.length === 1 ? "" : "s"}</span>
         <span className="admin-toolbar-spacer" />
         <button className="dash-tab-btn active" onClick={openAdd}>Add domain</button>
       </div>
@@ -141,16 +131,10 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
           <input type="text" required placeholder="Domain (e.g. kumoda.io)" value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} />
           <input type="text" list="domain-registrars" maxLength={120} placeholder="Registrar (e.g. Namecheap)" value={form.registrar} onChange={(e) => setForm({ ...form, registrar: e.target.value })} />
           <datalist id="domain-registrars">{registrars.map((r) => <option key={r} value={r} />)}</datalist>
-          <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as Form["kind"] })} aria-label="Whose domain">
-            <option value="internal">Internal (Restart's own)</option>
-            <option value="client">Client's domain</option>
+          <select value={form.workspaceId} onChange={(e) => setForm({ ...form, workspaceId: e.target.value })} aria-label="Client or project">
+            <option value="">Restart (no project)</option>
+            {Array.from(names.data ?? [], ([id, n]) => ({ id, n })).sort((a, b) => a.n.localeCompare(b.n)).map((w) => <option key={w.id} value={w.id}>{w.n}</option>)}
           </select>
-          {form.kind === "client" && (
-            <select required value={form.workspaceId} onChange={(e) => setForm({ ...form, workspaceId: e.target.value })}>
-              <option value="">Client / project…</option>
-              {Array.from(names.data ?? [], ([id, n]) => ({ id, n })).sort((a, b) => a.n.localeCompare(b.n)).map((w) => <option key={w.id} value={w.id}>{w.n}</option>)}
-            </select>
-          )}
           <input type="number" required min="0" step="0.01" placeholder="Cost per year" style={{ width: 130 }} value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} />
           <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value as CostCurrency })}>
             {COST_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -179,12 +163,11 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
               </tr>
             </thead>
             <tbody>
-              {visible.map(({ e, ended, due, days, overdue }) => (
+              {all.map(({ e, ended, due, days, overdue }) => (
                 <Fragment key={e.id}>
                   <tr className={overdue ? "row-overdue" : undefined} style={ended ? { opacity: 0.6 } : undefined}>
                     <td>
-                      <strong>{e.name}</strong>{" "}
-                      {e.workspace_id ? <span className="system-healthy-pill">CLIENT</span> : <span className="system-healthy-pill neutral">INTERNAL</span>}
+                      <strong>{e.name}</strong>
                     </td>
                     <td className="admin-muted">
                       {e.workspace_id ? <Link href={`/admin/projects/${e.workspace_id}`} className="text-teal">{nameOf(e.workspace_id)}</Link> : nameOf(e.workspace_id)}
@@ -232,7 +215,7 @@ export function DomainsPanel({ books, refresh }: { books: Books; refresh: () => 
             <tfoot>
               <tr>
                 <td colSpan={3}><strong>Total per year</strong></td>
-                <td className="num"><strong>{ngn(visible.reduce((s, r) => s + r.yearly, 0))}</strong></td>
+                <td className="num"><strong>{ngn(all.reduce((s, r) => s + r.yearly, 0))}</strong></td>
                 <td colSpan={2} />
               </tr>
             </tfoot>
