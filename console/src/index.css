@@ -3209,3 +3209,19 @@ html[data-theme="light"] .dash-user-avatar{ filter: none; }
 .status-select.ls-lost{ color: #ff7b7b; }
 .status-select.ls-archived{ color: #8b91a1; }
 .task-strip-tile span{ text-transform: capitalize; }
+
+/* Support, server requests and invoices: tiles that match the other pages. */
+.task-strip.auto{ grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+div.task-strip-tile{ cursor: default; }
+.task-strip-tile.sp-open span{ color: #f0b429; }
+.task-strip-tile.sp-pending span{ color: #60a5fa; }
+.task-strip-tile.sp-resolved span{ color: var(--teal); }
+.task-strip-tile.sr-pending_review span{ color: #f0b429; }
+.task-strip-tile.sr-awaiting_payment span{ color: #60a5fa; }
+.task-strip-tile.sr-paid span{ color: #a78bfa; }
+.task-strip-tile.sr-in_progress span{ color: #34d399; }
+.task-strip-tile.sr-done span{ color: var(--teal); }
+.task-strip-tile.iv-unpaid span{ color: #f0b429; }
+.task-strip-tile.iv-partial span{ color: #a78bfa; }
+.task-strip-tile.iv-overdue span{ color: #ff7b7b; }
+.task-strip-tile.iv-paid span{ color: var(--teal); }

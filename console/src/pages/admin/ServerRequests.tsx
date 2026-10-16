@@ -67,22 +67,13 @@ export default function AdminServerRequests() {
       {error && <ErrorAlert message={`Couldn't load server requests: ${error}`} onRetry={retry} />}
 
       {!loading && requests.length > 0 && (
-        <div className="cp-stats mb-6" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
-          <div>
-            <small>OPEN</small>
-            <strong>{openCount}</strong>
-            <em>of {requests.length} requests</em>
-          </div>
-          <div>
-            <small>WAITING FOR REVIEW</small>
-            <strong className={awaitingReview ? "warn" : undefined}>{awaitingReview}</strong>
-            <em>{awaitingReview ? "an engineer needs to look" : "nothing waiting"}</em>
-          </div>
-          <div>
-            <small>AWAITING PAYMENT</small>
-            <strong>{requests.filter((r) => r.status === "awaiting_payment").length}</strong>
-            <em>quoted, not yet paid</em>
-          </div>
+        <div className="task-strip auto">
+          {(["pending_review", "awaiting_payment", "paid", "in_progress", "done"] as Status[]).map((s) => (
+            <button key={s} type="button" className={`task-strip-tile sr-${s} ${filter === s ? "active" : ""}`} onClick={() => setFilter(filter === s ? "open" : s)} aria-pressed={filter === s}>
+              <span><strong>{requests.filter((r) => r.status === s).length}</strong> {STATUS_LABEL[s]}</span>
+              <em>{s === "pending_review" ? (awaitingReview ? "an engineer needs to look" : "nothing waiting") : s === "awaiting_payment" ? "quoted, not yet paid" : `of ${requests.length} requests`}</em>
+            </button>
+          ))}
         </div>
       )}
 
@@ -111,7 +102,7 @@ export default function AdminServerRequests() {
         <div className="dash-empty-state">No requests in this view.</div>
       ) : (
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table tasks-compact">
             <thead>
               <tr>
                 <th>Client</th>
@@ -126,11 +117,9 @@ export default function AdminServerRequests() {
                 <Fragment key={r.id}>
                   <tr className={r.status === "pending_review" ? "clickable" : undefined} onClick={() => r.status === "pending_review" && setReviewingId(reviewingId === r.id ? null : r.id)}>
                     <td><strong>{r.workspace?.name ?? "—"}</strong></td>
-                    <td className="wrap">
-                      {r.kind === "upgrade" ? "Upgrade server" : "Add a server"}
-                      <div className="admin-muted">{requestSummary(r)}</div>
-                      {r.reason && <div className="admin-muted">“{r.reason}”</div>}
-                      {r.engineer_note && <div className="admin-muted">Engineer: {r.engineer_note}</div>}
+                    <td className="task-name" title={[requestSummary(r), r.reason && `“${r.reason}”`, r.engineer_note && `Engineer: ${r.engineer_note}`].filter(Boolean).join(" · ")}>
+                      <strong>{r.kind === "upgrade" ? "Upgrade server" : "Add a server"}</strong>
+                      <span className="admin-muted"> · {requestSummary(r)}{r.reason ? ` · “${r.reason}”` : ""}{r.engineer_note ? ` · Engineer: ${r.engineer_note}` : ""}</span>
                     </td>
                     <td><span className={`cp-status ${TONE_CLASS[STATUS_TONE[r.status]]}`}>{STATUS_LABEL[r.status].toUpperCase()}</span></td>
                     <td className="admin-muted">{formatRelative(r.created_at)}</td>
@@ -154,6 +143,11 @@ export default function AdminServerRequests() {
                 </Fragment>
               ))}
             </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={5} className="admin-muted">{visible.length} of {requests.length} requests · {openCount} open</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}

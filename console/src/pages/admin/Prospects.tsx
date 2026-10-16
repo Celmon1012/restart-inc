@@ -8,6 +8,7 @@
 // message: "Open" hands the draft to the mail app or WhatsApp, and "Mark
 // sent" records that the person sent it.
 
+import { downloadCsv } from "@/lib/csv";
 import { Fragment, useState } from "react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
 import { consoleSchema } from "@/lib/supabase";
@@ -314,6 +315,13 @@ export default function Prospects() {
   const contacted = prospects.filter((p) => !EARLY.includes(p.status) && p.status !== "disqualified").length;
   const replied = prospects.filter((p) => ["replied", "meeting", "proposal", "won"].includes(p.status)).length;
 
+  const exportProspects = () =>
+    downloadCsv(
+      `restart-prospects-${new Date().toISOString().slice(0, 10)}.csv`,
+      ["company", "contact", "email", "industry", "market", "tier", "fit", "status", "follow_up", "last_contacted"],
+      filtered.map((p) => [p.company, p.contact_name ?? "", p.email ?? "", p.industry ?? "", p.segment === "ng_sme" ? "Nigeria" : p.country ?? "International", p.tier, p.fit_score ?? "", p.status, p.next_followup_at ?? "", p.last_contacted_at ?? ""])
+    );
+
   const reloadAll = () => {
     void refresh();
     void refreshTouches();
@@ -477,6 +485,7 @@ export default function Prospects() {
                   <input type="checkbox" checked={dueOnly} onChange={(e) => setDueOnly(e.target.checked)} /> Follow-up due
                 </label>
                 <span className="admin-toolbar-spacer" />
+                <button className="dash-tab-btn" onClick={exportProspects} disabled={filtered.length === 0}>Export CSV</button>
                 <div className="workspace-search-box">
                   <Search size={13} />
                   <input
@@ -493,7 +502,7 @@ export default function Prospects() {
                 <div className="dash-empty-state">No prospects match this view.</div>
               ) : (
                 <div className="admin-table-wrap">
-                  <table className="admin-table">
+                  <table className="admin-table tasks-compact">
                     <thead>
                       <tr>
                         <th>Company</th>
@@ -510,14 +519,17 @@ export default function Prospects() {
                       {filtered.map((p) => (
                         <Fragment key={p.id}>
                           <tr className="clickable" onClick={() => setSelectedId(selectedId === p.id ? null : p.id)} style={p.do_not_contact ? { opacity: 0.6 } : undefined}>
-                            <td>
+                            <td className="task-name" title={p.company}>
                               <strong>{p.company}</strong>
-                              <div className="admin-muted">{[p.contact_name, p.industry].filter(Boolean).join(" · ") || "—"}</div>
+                              <span className="admin-muted"> · {[p.contact_name, p.industry].filter(Boolean).join(" · ") || "—"}</span>
                             </td>
                             <td className="admin-muted">{p.segment === "ng_sme" ? "Nigeria" : p.country ?? "International"}</td>
                             <td>{p.tier === "warm" ? "Warm" : p.tier}</td>
                             <td className="num">{p.fit_score ?? "—"}</td>
-                            <td><StatusPill status={p.status} />{p.do_not_contact && <div className="admin-warn">do not contact</div>}</td>
+                            <td>
+                              <StatusPill status={p.status} />
+                              {p.do_not_contact && <span className="admin-warn"> · do not contact</span>}
+                            </td>
                             <td className={isDue(p) ? "admin-danger" : "admin-muted"}>{p.next_followup_at ? formatDate(p.next_followup_at) : "—"}</td>
                             <td className="admin-muted">{p.last_contacted_at ? formatDate(p.last_contacted_at) : "—"}</td>
                             <td className="num" onClick={(e) => e.stopPropagation()}>

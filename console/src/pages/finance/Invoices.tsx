@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/AsyncStates";
 import { invokeFunction } from "@/lib/functions";
 import { formatAmount, formatDate } from "@/lib/format";
 import { formatTotals } from "@/pages/admin/Finance";
+import { downloadCsv } from "@/lib/csv";
 
 export default function FinanceInvoices() {
   const today = new Date().toISOString().slice(0, 10);
@@ -65,13 +66,49 @@ export default function FinanceInvoices() {
             <p className="admin-muted">Showing the most recent {data.invoiceCount} invoices; older ones aren't counted.</p>
           )}
 
+          {data.openInvoices.length + data.clients.length > 0 && (
+            <div className="task-strip four">
+              <div className="task-strip-tile iv-unpaid" role="group" aria-label="Unpaid">
+                <span><strong>{data.openInvoices.filter((i) => !i.overdue && i.totalDueAmountCents >= i.totalAmountCents).length}</strong> Unpaid</span>
+                <em>not yet due</em>
+              </div>
+              <div className="task-strip-tile iv-partial" role="group" aria-label="Partially paid">
+                <span><strong>{data.openInvoices.filter((i) => i.totalDueAmountCents < i.totalAmountCents).length}</strong> Partially paid</span>
+                <em>part-paid, balance owing</em>
+              </div>
+              <div className="task-strip-tile iv-overdue" role="group" aria-label="Overdue">
+                <span><strong>{data.openInvoices.filter((i) => i.overdue).length}</strong> Overdue</span>
+                <em>past their due date</em>
+              </div>
+              <div className="task-strip-tile iv-paid" role="group" aria-label="Collected">
+                <span><strong>{data.clients.reduce((n, c) => n + c.invoiceCount, 0) - data.openInvoices.length}</strong> Settled</span>
+                <em>of {data.clients.reduce((n, c) => n + c.invoiceCount, 0)} invoices</em>
+              </div>
+            </div>
+          )}
+
           <div className="admin-section">
-            <h2 className="admin-section-title">Unpaid invoices</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 className="admin-section-title">Unpaid invoices</h2>
+              <button
+                className="dash-tab-btn"
+                disabled={data.openInvoices.length === 0}
+                onClick={() =>
+                  downloadCsv(
+                    `restart-unpaid-invoices-${today}.csv`,
+                    ["invoice", "client", "issued", "due", "status", "amount_due", "total", "currency"],
+                    data.openInvoices.map((i) => [i.number, i.client, i.issuingDate, i.dueDate ?? "", i.overdue ? "overdue" : i.paymentStatus, i.totalDueAmountCents / 100, i.totalAmountCents / 100, i.currency])
+                  )
+                }
+              >
+                Export CSV
+              </button>
+            </div>
             {data.openInvoices.length === 0 ? (
               <div className="dash-empty-state">Nothing outstanding.</div>
             ) : (
               <div className="admin-table-wrap">
-                <table className="admin-table">
+                <table className="admin-table tasks-compact">
                   <thead>
                     <tr>
                       <th>Invoice</th>
@@ -137,6 +174,13 @@ export default function FinanceInvoices() {
                       </Fragment>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={5}><strong>{data.openInvoices.length} unpaid · {data.openInvoices.filter((i) => i.overdue).length} overdue</strong></td>
+                      <td className="num"><strong>{formatTotals(data.openInvoices.reduce<Record<string, number>>((t, i) => ({ ...t, [i.currency]: (t[i.currency] ?? 0) + i.totalDueAmountCents }), {}))}</strong></td>
+                      <td />
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}
@@ -148,7 +192,7 @@ export default function FinanceInvoices() {
               <EmptyState title="No billed clients yet" hint="Link a project to its billing customer (Ops, the project's Billing tab) and it appears here." />
             ) : (
               <div className="admin-table-wrap">
-                <table className="admin-table">
+                <table className="admin-table tasks-compact">
                   <thead>
                     <tr>
                       <th>Client</th>
@@ -197,6 +241,16 @@ export default function FinanceInvoices() {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr>
+                      <td><strong>{data.clients.length} billed clients</strong></td>
+                      <td className="num"><strong>{formatTotals(data.clients.reduce<Record<string, number>>((t, c) => { for (const [k, v] of Object.entries(c.mrr)) t[k] = (t[k] ?? 0) + (v as number); return t; }, {}))}</strong></td>
+                      <td className="num"><strong>{formatTotals(data.clients.reduce<Record<string, number>>((t, c) => { for (const [k, v] of Object.entries(c.collected)) t[k] = (t[k] ?? 0) + (v as number); return t; }, {}))}</strong></td>
+                      <td className="num"><strong>{formatTotals(data.clients.reduce<Record<string, number>>((t, c) => { for (const [k, v] of Object.entries(c.outstanding)) t[k] = (t[k] ?? 0) + (v as number); return t; }, {}))}</strong></td>
+                      <td className="num"><strong>{data.clients.reduce((n, c) => n + c.invoiceCount, 0)}</strong></td>
+                      <td colSpan={2} />
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}

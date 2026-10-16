@@ -156,12 +156,18 @@ export default function AdminSupport() {
 
       {error && <ErrorAlert message={`Couldn't load conversations: ${error}`} onRetry={retry} retryLabel="Reload conversations" />}
 
+      {!loading && conversations.length > 0 && (
+        <div className="task-strip four">
+          {(["open", "pending", "resolved", "all"] as StatusFilter[]).map((s) => (
+            <button key={s} type="button" className={`task-strip-tile sp-${s} ${statusFilter === s ? "active" : ""}`} onClick={() => setStatusFilter(s)} aria-pressed={statusFilter === s}>
+              <span><strong>{s === "all" ? conversations.length : count(s)}</strong> {s === "all" ? "All tickets" : `${s[0].toUpperCase()}${s.slice(1)}`}</span>
+              <em>{s === "all" ? `${clients.length} client${clients.length === 1 ? "" : "s"}` : s === "open" ? "need a reply" : s === "pending" ? "waiting on the client" : "closed out"}</em>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="admin-toolbar">
-        {(["open", "pending", "resolved", "all"] as StatusFilter[]).map((s) => (
-          <button key={s} className={`dash-tab-btn ${statusFilter === s ? "active" : ""}`} onClick={() => setStatusFilter(s)}>
-            {s === "all" ? `All (${conversations.length})` : `${s[0].toUpperCase()}${s.slice(1)} (${count(s)})`}
-          </button>
-        ))}
         <span className="admin-toolbar-spacer" />
         <select className="console-select" value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} aria-label="Client">
           <option value="all">All clients</option>
