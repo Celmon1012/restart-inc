@@ -65,6 +65,18 @@ export default function AdminTasks() {
   const [project, setProject] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState<"all" | TaskPriority>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // List or board; remembered between visits.
+  const [view, setViewState] = useState<"list" | "board">(() => {
+    try { return localStorage.getItem("restart.tasks.view") === "board" ? "board" : "list"; } catch { return "list"; }
+  });
+  const setView = (v: "list" | "board") => {
+    setViewState(v);
+    try { localStorage.setItem("restart.tasks.view", v); } catch { /* a private window: the choice just is not remembered */ }
+  };
+  // Cards moved on the board show in their new column at once, while the write is on its way.
+  const [moved, setMoved] = useState<Map<string, TaskStatus>>(new Map());
+  const [dragOver, setDragOver] = useState<TaskStatus | null>(null);
+  const [showAllDone, setShowAllDone] = useState(false);
   const [bulkDue, setBulkDue] = useState("");
   const [, setLocation] = useLocation();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -136,32 +148,40 @@ export default function AdminTasks() {
   const mine = (t: TaskRow) => t.owner === "team" && t.assignee_id === user?.id;
 
   const needle = search.trim().toLowerCase();
+  const otherFilters = (t: TaskRow) =>
+    (priorityFilter === "all" || priorityOfTask(t) === priorityFilter) &&
+    (project === "all" || t.deliverable?.workspace?.id === project) &&
+    (who === "anyone" ||
+      (who === "client"
+        ? t.owner === "client"
+        : who === "mine"
+          ? mine(t)
+          : who === "unassigned"
+            ? t.owner === "team" && !t.assignee_id
+            : t.owner === "team" && t.assignee_id === who)) &&
+    (!needle || [t.title, t.deliverable?.title, t.deliverable?.workspace?.name].some((v) => v?.toLowerCase().includes(needle)));
+  // Soonest deadline first, tasks without one last; then the more urgent first, then project and milestone order.
+  const byDeadline = (a: TaskRow, b: TaskRow) =>
+    (a.due_at ?? "9999").localeCompare(b.due_at ?? "9999") ||
+    TASK_PRIORITY_RANK[priorityOfTask(b)] - TASK_PRIORITY_RANK[priorityOfTask(a)] ||
+    (a.deliverable?.workspace?.name ?? "").localeCompare(b.deliverable?.workspace?.name ?? "") ||
+    (a.deliverable?.sort_order ?? 0) - (b.deliverable?.sort_order ?? 0) ||
+    a.sort_order - b.sort_order;
   const visible = tasks
-    .filter(
-      (t) =>
-        (filter === "all" ||
-          (filter === "open" ? !isDone(t) : filter === "overdue" ? isOverdue(t) : statusOfTask(t) === filter)) &&
-        (priorityFilter === "all" || priorityOfTask(t) === priorityFilter) &&
-        (project === "all" || t.deliverable?.workspace?.id === project) &&
-        (who === "anyone" ||
-          (who === "client"
-            ? t.owner === "client"
-            : who === "mine"
-              ? mine(t)
-              : who === "unassigned"
-                ? t.owner === "team" && !t.assignee_id
-                : t.owner === "team" && t.assignee_id === who)) &&
-        (!needle || [t.title, t.deliverable?.title, t.deliverable?.workspace?.name].some((v) => v?.toLowerCase().includes(needle)))
-    )
-    // Soonest deadline first, tasks without one last; then the more urgent first, then project and milestone order.
-    .sort(
-      (a, b) =>
-        (a.due_at ?? "9999").localeCompare(b.due_at ?? "9999") ||
-        TASK_PRIORITY_RANK[priorityOfTask(b)] - TASK_PRIORITY_RANK[priorityOfTask(a)] ||
-        (a.deliverable?.workspace?.name ?? "").localeCompare(b.deliverable?.workspace?.name ?? "") ||
-        (a.deliverable?.sort_order ?? 0) - (b.deliverable?.sort_order ?? 0) ||
-        a.sort_order - b.sort_order
-    );
+    .filter((t) => (filter === "all" || (filter === "open" ? !isDone(t) : filter === "overdue" ? isOverdue(t) : statusOfTask(t) === filter)) && otherFilters(t))
+    .sort(byDeadline);
+  // The board has a column for every status, so only "overdue" narrows it by status.
+  const boardTasks = tasks.filter((t) => (filter === "overdue" ? isOverdue(t) : true) && otherFilters(t)).sort(byDeadline);
+  const boardStatus = (t: TaskRow) => moved.get(t.id) ?? statusOfTask(t);
+  const moveTask = async (id: string, status: TaskStatus) => {
+    setMoved((prev) => new Map(prev).set(id, status));
+    await update([id], { status });
+    setMoved((prev) => {
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
+  };
   const projects = Array.from(
     new Map(tasks.filter((t) => t.deliverable?.workspace).map((t) => [t.deliverable!.workspace!.id, t.deliverable!.workspace!.name])).entries()
   ).sort((a, b) => a[1].localeCompare(b[1]));
@@ -203,6 +223,86 @@ export default function AdminTasks() {
       ])
     );
 
+  const DONE_CAP = 12;
+  const renderBoard = () => (
+    <div className="task-board">
+      {TASK_STATUSES.map((st) => {
+        const all = boardTasks.filter((t) => boardStatus(t) === st);
+        const cards = st === "complete" && !showAllDone ? all.slice(0, DONE_CAP) : all;
+        return (
+          <section
+            key={st}
+            className={`task-col st-${st} ${dragOver === st ? "over" : ""}`}
+            onDragOver={(e) => { e.preventDefault(); if (dragOver !== st) setDragOver(st); }}
+            onDragLeave={() => setDragOver((cur) => (cur === st ? null : cur))}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(null);
+              const id = e.dataTransfer.getData("text/plain");
+              const t = tasks.find((x) => x.id === id);
+              if (t && boardStatus(t) !== st) void moveTask(id, st);
+            }}
+            aria-label={`${TASK_STATUS_LABEL[st]}, ${all.length} tasks`}
+          >
+            <header><span>{TASK_STATUS_LABEL[st]}</span><em>{all.length}</em></header>
+            <div className="task-col-body">
+              {cards.map((t) => {
+                const ws = t.deliverable?.workspace;
+                const pr = priorityOfTask(t);
+                return (
+                  <article
+                    key={t.id}
+                    className={`task-card pr-${pr} ${isOverdue(t) ? "overdue" : ""}`}
+                    draggable
+                    onDragStart={(e) => { e.dataTransfer.setData("text/plain", t.id); e.dataTransfer.effectAllowed = "move"; }}
+                  >
+                    <div className="task-card-top">
+                      <strong className={st === "complete" ? "done" : undefined}>{t.title}</strong>
+                      <RowMenu
+                        label={`Actions for ${t.title}`}
+                        items={[
+                          { label: "Edit", onClick: () => setEditingId(editingId === t.id ? null : t.id) },
+                          ...(ws ? [{ label: "Open project", onClick: () => setLocation(`/admin/projects/${ws.id}`) }] : [])
+                        ]}
+                      />
+                    </div>
+                    <div className="admin-muted task-card-sub">{[ws?.name, t.deliverable?.title].filter(Boolean).join(" · ") || "—"}</div>
+                    <div className="task-card-foot">
+                      <span className={isOverdue(t) ? "admin-danger" : "admin-muted"}>{t.due_at ? formatDate(t.due_at) : "No date"}</span>
+                      <span className="admin-muted">{assigneeLabel(t, team.data ?? [])}</span>
+                      <span className={`priority-tag pr-${pr}`}>{TASK_PRIORITY_LABEL[pr]}</span>
+                    </div>
+                    <select
+                      className="task-card-move"
+                      value={st}
+                      onChange={(e) => void moveTask(t.id, e.target.value as TaskStatus)}
+                      aria-label={`Move ${t.title} to`}
+                    >
+                      {TASK_STATUSES.map((s) => <option key={s} value={s}>{TASK_STATUS_LABEL[s]}</option>)}
+                    </select>
+                    {editingId === t.id && (
+                      <TaskEditForm
+                        task={t}
+                        team={team.data ?? []}
+                        onDone={async (saved) => { setEditingId(null); if (saved) await refresh(); }}
+                      />
+                    )}
+                  </article>
+                );
+              })}
+              {all.length === 0 && <p className="task-col-empty admin-muted">Nothing here</p>}
+              {st === "complete" && all.length > DONE_CAP && (
+                <button type="button" className="dash-tab-btn" onClick={() => setShowAllDone(!showAllDone)}>
+                  {showAllDone ? "Show fewer" : `Show all ${all.length}`}
+                </button>
+              )}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+
   return (
     <ConsoleLayout area="admin" onRefresh={() => void refresh()} isRefreshing={refreshing}>
       <StatusRegion message={loading ? "Loading tasks" : error ? `Could not load tasks: ${error}` : `${visible.length} tasks shown`} />
@@ -217,7 +317,7 @@ export default function AdminTasks() {
 
       {error && <ErrorAlert message={`Couldn't load tasks: ${error}`} onRetry={retry} retryLabel="Reload tasks" />}
 
-      {!loading && tasks.length > 0 && (
+      {!loading && tasks.length > 0 && view === "list" && (
         <div className="task-strip">
           {TASK_STATUSES.map((s) => (
             <button
@@ -235,6 +335,10 @@ export default function AdminTasks() {
       )}
 
       <div className="admin-toolbar">
+        <div role="group" aria-label="View" style={{ display: "inline-flex", gap: 4 }}>
+          <button className={`dash-tab-btn ${view === "list" ? "active" : ""}`} onClick={() => setView("list")} aria-pressed={view === "list"}>List</button>
+          <button className={`dash-tab-btn ${view === "board" ? "active" : ""}`} onClick={() => setView("board")} aria-pressed={view === "board"}>Board</button>
+        </div>
         <select value={filter} onChange={(e) => setFilter(e.target.value as Filter)} aria-label="Status">
           <option value="open">Open</option>
           <option value="overdue">Overdue ({overdueTasks})</option>
@@ -261,10 +365,10 @@ export default function AdminTasks() {
           <Search size={13} />
           <input type="text" placeholder="Search tasks, milestones, projects…" aria-label="Search tasks" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <button className="dash-tab-btn" onClick={exportCsv} disabled={visible.length === 0}>Export CSV</button>
+        <button className="dash-tab-btn" onClick={exportCsv} disabled={(view === "board" ? boardTasks : visible).length === 0}>Export CSV</button>
       </div>
 
-      {picked.length > 0 && (
+      {view === "list" && picked.length > 0 && (
         <div className="bulk-bar" role="region" aria-label="Bulk actions">
           <strong>{picked.length} selected</strong>
           <button className="dash-tab-btn" onClick={() => void bulk({ status: "complete" }, "Marked complete")}>Mark complete</button>
@@ -303,8 +407,10 @@ export default function AdminTasks() {
         <LoadingState label="Loading tasks…" />
       ) : error ? null : tasks.length === 0 ? (
         <EmptyState title="No checklist items yet" hint="Add checklist items to milestones from Projects and they appear here." />
-      ) : visible.length === 0 ? (
+      ) : (view === "board" ? boardTasks.length === 0 : visible.length === 0) ? (
         <div className="dash-empty-state">No tasks match this view.</div>
+      ) : view === "board" ? (
+        renderBoard()
       ) : (
         <div className="admin-table-wrap">
           <table className="admin-table tasks-compact">
