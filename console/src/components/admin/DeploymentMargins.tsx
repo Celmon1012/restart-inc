@@ -118,8 +118,13 @@ export function DeploymentMargins({ books, refresh }: { books: Books; refresh: (
     return live?.ip ?? typed ?? null;
   };
   const tracked = new Set(books.services.filter(isActive).map((s) => s.coolify_server_uuid).filter(Boolean));
+  // Coolify calls its own host "localhost". That is Restart's control-plane server (cp.restart.ng), already listed as an
+  // internal server, and the projects on it (TAXIQ...) are not servers, so it is never offered for tracking.
+  const ownHostTracked = internal.some((r) => /coolify|^cp./i.test(splitProvider(r.e.name).name) || /(coolify)/i.test(r.e.name));
   const untracked = coolify.data
-    ? Array.from(liveServers, ([uuid, s]) => ({ uuid, ...s })).filter((s) => s.workspaceId && !tracked.has(s.uuid))
+    ? Array.from(liveServers, ([uuid, s]) => ({ uuid, ...s })).filter(
+        (s) => s.workspaceId && !tracked.has(s.uuid) && !(ownHostTracked && s.name.toLowerCase() === "localhost")
+      )
     : [];
   const vanished = coolify.data
     ? books.services.filter((s) => isActive(s) && s.coolify_server_uuid && !liveServers.has(s.coolify_server_uuid))
