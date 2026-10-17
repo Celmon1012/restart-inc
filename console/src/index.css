@@ -42,7 +42,7 @@
   background: var(--teal);
   box-shadow: 0 0 8px var(--teal);
 }.auth-loading-shell{
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -65,7 +65,7 @@
   gap: 8px;
 }.simple-login-shell{
   position: relative;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: radial-gradient(circle at 50% -4%, rgba(46,229,193,.06), transparent 32rem), var(--bg);
   color: var(--text);
   display: flex;
@@ -296,7 +296,7 @@
    Obsidian Black Client Console (console.restart.ng)
    ========================================================================== */
 .console-app-shell{
-  min-height: 100vh;
+  min-height: 100dvh;
   background: #030305;
   color: #e6edfd;
   display: flex;
@@ -312,7 +312,7 @@
   flex-direction: column;
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
   transition: width 0.18s var(--ease-out);
 }.console-sidebar-brand-row{
@@ -2673,7 +2673,7 @@
 .ws-switcher-name{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; font-weight: 700; }
 .ws-switcher-tier{ color: #767c8b; font-size: 0.6875rem; }
 .ws-switcher-chevron{ flex-shrink: 0; color: #767c8b; }
-.ws-menu{ position: fixed; z-index: 300; max-height: calc(100vh - 24px); overflow-y: auto; padding: 6px; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; background: #0d0e12; box-shadow: 0 18px 40px rgba(0,0,0,.55); }
+.ws-menu{ position: fixed; z-index: 300; max-height: calc(100dvh - 24px); overflow-y: auto; padding: 6px; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; background: #0d0e12; box-shadow: 0 18px 40px rgba(0,0,0,.55); }
 .ws-menu-label{ display: block; padding: 8px 10px 6px; color: #767c8b; font-size: 0.75rem; font-weight: 600; }
 .ws-menu .workspace-search-box{ margin: 0 4px 6px; }
 .ws-menu-list{ max-height: 260px; overflow-y: auto; }
@@ -2708,7 +2708,7 @@
 @media (prefers-reduced-motion: reduce){ .sidebar-edge-toggle{ transition: none; } }
 
 /* --- New project (split layout with live console preview) -------------------- */
-.np-shell{ display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); min-height: 100vh; background: #121214; }
+.np-shell{ display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); min-height: 100dvh; background: #121214; }
 .np-left{ display: flex; align-items: center; justify-content: center; padding: 48px 24px; }
 .np-form{ display: flex; flex-direction: column; width: min(460px, 100%); }
 .np-mark{ width: 40px; height: 40px; margin: 0 auto 18px; }
@@ -2742,7 +2742,7 @@
 .np-back{ display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; padding: 10px; border: 0; background: none; color: #a6abb9; font: inherit; font-size: 0.9375rem; cursor: pointer; }
 .np-back:hover{ color: #f2f5ff; }
 .np-right{ display: flex; align-items: center; padding: 48px 0 48px 24px; overflow: hidden; }
-.np-preview{ display: grid; grid-template-columns: 240px 1fr; width: 100%; min-width: 640px; height: min(760px, calc(100vh - 96px)); border: 1px solid rgba(255,255,255,.08); border-right: 0; border-radius: 12px 0 0 12px; background: #19191c; overflow: hidden; }
+.np-preview{ display: grid; grid-template-columns: 240px 1fr; width: 100%; min-width: 640px; height: min(760px, calc(100dvh - 96px)); border: 1px solid rgba(255,255,255,.08); border-right: 0; border-radius: 12px 0 0 12px; background: #19191c; overflow: hidden; }
 .np-preview-side{ padding: 14px 12px; border-right: 1px solid rgba(255,255,255,.06); background: #161618; }
 .np-preview-ws{ display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 18px; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; }
 .np-preview-avatar{ display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; background: var(--teal); color: #04120e; font-size: 0.75rem; font-weight: 800; }
@@ -2789,7 +2789,7 @@
 .sr-admin select, .sr-admin input, .sr-admin textarea, .sr-textarea{ padding: 9px 10px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; background: #0b0b0e; color: #f2f5ff; font: inherit; font-size: 0.875rem; }
 .sr-admin-wide{ grid-column: 1 / -1; }
 .sr-admin-actions{ grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
-.sr-dialog{ position: fixed; inset: 0; margin: auto; width: min(560px, calc(100vw - 32px)); height: fit-content; max-height: calc(100vh - 32px); overflow: auto; padding: 24px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: #0d0e12; color: #f2f5ff; box-shadow: 0 30px 80px rgba(0,0,0,.7); }
+.sr-dialog{ position: fixed; inset: 0; margin: auto; width: min(560px, calc(100vw - 32px)); height: fit-content; max-height: calc(100dvh - 32px); overflow: auto; padding: 24px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: #0d0e12; color: #f2f5ff; box-shadow: 0 30px 80px rgba(0,0,0,.7); }
 .sr-dialog::backdrop{ background: rgba(0,0,0,.6); }
 .sr-dialog-head{ display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sr-dialog h2{ margin: 0; font-size: 1.125rem; }
@@ -3304,3 +3304,30 @@ html[data-theme="light"] .dash-user-avatar{ filter: none; }
   }
   .admin-muted, .msf-detail, .inline-edit { color: #c3c8d4; }
 }
+
+/* --- Mobile-native pass: the platform layer that separates "installed" from "a website" --- */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+:where(button, a, [role="button"], summary, label, select, input[type="checkbox"], input[type="radio"]) {
+  touch-action: manipulation;
+}
+/* Controls aren't content: no long-press text selection or callout. */
+:where(button, [role="button"], summary, .dash-tab-btn) {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+/* iOS zooms the page into any focused field under 16px. */
+@media (pointer: coarse) {
+  input, textarea, select { font-size: max(16px, 1em); }
+}
+/* Dialogs track the visible viewport, not the URL-bar-collapsed one. */
+.ws-menu, .sr-dialog, .confirm-dialog-card { max-height: calc(100dvh - 24px); }
+
+/* Safe areas: all env() values are 0 outside notched/standalone contexts. */
+body { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.console-sidebar { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.sidebar-edge-toggle { top: calc(20px + env(safe-area-inset-top, 0px)); }

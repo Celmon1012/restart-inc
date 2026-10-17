@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import hoverGate from "./console/postcss-hover-gate";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -211,6 +212,7 @@ const plugins = [react(), tailwindcss(), jsxLocPlugin(), { ...vitePluginManusRun
 
 export default defineConfig({
   plugins,
+  css: { postcss: { plugins: [hoverGate()] } },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
