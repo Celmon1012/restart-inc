@@ -1,11 +1,15 @@
-// Admin-only: record an offline payment (bank transfer / direct deposit) against
-// a Lago invoice. Lago's own "Record a payment" UI is license-gated on self-hosted,
-// but the invoice update API is not -- setting payment_status to "succeeded" is
-// what marks it paid. Lago keeps no payment date or reference on that path, so
-// we write them to the invoice's metadata for the audit trail.
+// Admin-only: record an offline payment (bank transfer / direct deposit) against a Lago invoice.
+//
+// The payment is created through Lago's payments API for the amount actually received, so a part
+// payment shows as one, the invoice's balance and its payment list in Lago stay right, and Lago
+// marks the invoice paid itself once the payments cover it. If that API is not available (Lago's
+// manual payments are license-gated on self-hosted builds), a payment of the full balance falls
+// back to the older route: setting payment_status to "succeeded" through the invoice update API,
+// with the date and reference written to the invoice's metadata. A part payment needs the API.
 //
 // POST /functions/v1/console-admin-record-payment
-// { invoiceId: string (Lago lago_id), paidOn?: "YYYY-MM-DD", reference?: string, method?: string }
+// { invoiceId: string (Lago lago_id), amountCents?: number (default: the whole balance),
+//   paidOn?: "YYYY-MM-DD", reference?: string, method?: string }
 //
 // Zero external imports, same cold-start reasoning as every other function here.
 
@@ -66,7 +70,7 @@ Deno.serve(async (req) => {
   if (!caller) return json({ error: "Unauthorized" }, 401);
   if (!caller.isAdmin) return json({ error: "Forbidden" }, 403);
 
-  let body: { invoiceId?: string; paidOn?: string; reference?: string; method?: string };
+  let body: { invoiceId?: string; amountCents?: number; paidOn?: string; reference?: string; method?: string };
   try {
     body = await req.json();
   } catch {
@@ -90,6 +94,35 @@ Deno.serve(async (req) => {
     const { invoice } = await current.json();
     if (invoice.status !== "finalized") return json({ error: `Invoice is ${invoice.status}, not finalized` }, 409);
     if (invoice.payment_status === "succeeded") return json({ error: "Invoice is already paid" }, 409);
+
+    // What is still owing; a payment can be for all of it or part of it, never more.
+    const due = Number(invoice.total_due_amount_cents ?? invoice.total_amount_cents);
+    const requested = body.amountCents === undefined || body.amountCents === null ? due : Math.round(Number(body.amountCents));
+    if (!Number.isFinite(requested) || requested <= 0) return json({ error: "Enter an amount greater than zero" }, 400);
+    if (requested > due) return json({ error: `That is more than the ${due / 100} still owing on this invoice` }, 400);
+
+    // First choice: a real payment record for the amount received.
+    const paymentRes = await fetch(`${LAGO_API_URL}/api/v1/payments`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        payment: {
+          invoice_id: invoiceId,
+          amount_cents: requested,
+          reference: [reference, `recorded by ${caller.email ?? caller.id}`].filter(Boolean).join(" · ").slice(0, 250),
+          paid_at: `${paidOn}T12:00:00Z`,
+        },
+      }),
+    });
+    if (paymentRes.ok) {
+      const after = await fetch(`${LAGO_API_URL}/api/v1/invoices/${invoiceId}`, { headers }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      return json({ ok: true, number: invoice.number, paymentStatus: after?.invoice?.payment_status ?? null, via: "payment" });
+    }
+    const paymentDetail = await paymentRes.text().catch(() => "");
+    // The older route can only say "paid in full", so it is used only for a full payment.
+    if (requested < due) {
+      return json({ error: `Lago would not record the part payment (${paymentRes.status}): ${paymentDetail.slice(0, 300)}` }, 502);
+    }
 
     const metadata = [
       { key: "payment_method", value: method },

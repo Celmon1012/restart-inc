@@ -44,6 +44,8 @@ export default function FinanceInvoices() {
   const [payingId, setPayingId] = useState<string | null>(null);
   const [paidOn, setPaidOn] = useState(today);
   const [reference, setReference] = useState("");
+  // What was received, in whole currency units (naira), not kobo.
+  const [amount, setAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [relinkingId, setRelinkingId] = useState<string | null>(null);
@@ -62,18 +64,24 @@ export default function FinanceInvoices() {
     { enabled: Boolean(detailId), errorMessage: "Failed to load the invoice" }
   );
 
-  const openPayForm = (id: string) => {
+  const openPayForm = (id: string, dueCents: number) => {
     setPayingId(id);
     setPaidOn(today);
+    setAmount(String(dueCents / 100));
     setReference("");
     setPayError(null);
   };
 
   const submitPayment = async (invoiceId: string, reload: () => Promise<void>) => {
+    const received = Math.round(Number(amount) * 100);
+    if (!Number.isFinite(received) || received <= 0) {
+      setPayError("Enter the amount received.");
+      return;
+    }
     setSaving(true);
     setPayError(null);
     try {
-      await invokeFunction("console-admin-record-payment", { body: { invoiceId, paidOn, reference, method: "bank_transfer" } });
+      await invokeFunction("console-admin-record-payment", { body: { invoiceId, amountCents: received, paidOn, reference, method: "bank_transfer" } });
       setPayingId(null);
       await reload();
     } catch (err) {
@@ -240,7 +248,7 @@ export default function FinanceInvoices() {
                                         </a>
                                       )}
                                       {owing && (
-                                        <button className="dash-tab-btn" onClick={() => { setDetailId(inv.id); setTab("invoice"); openPayForm(inv.id); }}>Record payment</button>
+                                        <button className="dash-tab-btn" onClick={() => { setDetailId(inv.id); setTab("invoice"); openPayForm(inv.id, inv.totalDueAmountCents); }}>Record payment</button>
                                       )}
                                     </div>
                                   </td>
@@ -288,7 +296,7 @@ export default function FinanceInvoices() {
                               </a>
                             )}
                             {row && owing && (
-                              <button className="dash-tab-btn active" onClick={() => openPayForm(row.id)}>Record payment</button>
+                              <button className="dash-tab-btn active" onClick={() => openPayForm(row.id, row.totalDueAmountCents)}>Record payment</button>
                             )}
                             <button className="dash-tab-btn" onClick={() => setListHidden(!listHidden)} aria-label={listHidden ? "Show the invoice list" : "Hide the invoice list"} title={listHidden ? "Show the list" : "Hide the list"}>
                               {listHidden ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />}
@@ -304,11 +312,13 @@ export default function FinanceInvoices() {
                             onSubmit={(e) => { e.preventDefault(); void submitPayment(row.id, async () => { await reloadAll(); await detail.refresh(); }); }}
                             className="inv-pay-form"
                           >
+                            <label>Amount received <input type="number" required min="0.01" step="0.01" style={{ width: 150 }} value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
                             <label>Paid on <input type="date" required value={paidOn} max={today} onChange={(e) => setPaidOn(e.target.value)} /></label>
                             <label>Reference <input type="text" placeholder="Bank ref / narration" value={reference} onChange={(e) => setReference(e.target.value)} /></label>
                             <button type="submit" className="dash-tab-btn active" disabled={saving}>
-                              {saving ? "Saving…" : `Mark ${formatAmount(row.totalAmountCents, row.currency)} paid`}
+                              {saving ? "Saving…" : `Record ${formatAmount(Math.round((Number(amount) || 0) * 100), row.currency)} payment`}
                             </button>
+                            <span className="admin-muted">{formatAmount(row.totalDueAmountCents, row.currency)} owing</span>
                             <button type="button" className="dash-tab-btn" onClick={() => setPayingId(null)} disabled={saving}>Cancel</button>
                             {payError && <span className="admin-warn" role="alert">{payError}</span>}
                           </form>
