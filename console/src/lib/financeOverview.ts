@@ -43,6 +43,8 @@ export interface FinanceOverview {
   subscriptions?: SubscriptionLine[];
   /** Every invoice with its state (absent until the finance function has been redeployed). */
   allInvoices?: InvoiceRow[];
+  /** Every payment received from clients (absent until the finance function has been redeployed). */
+  paymentsReceived?: PaymentReceived[];
   openInvoices: Array<{
     id: string;
     number: string;
@@ -57,6 +59,21 @@ export interface FinanceOverview {
     currency: string;
     fileUrl: string | null;
   }>;
+}
+
+/** One payment received from a client (VAT included). "marked_paid" is the rest of an invoice that was marked paid without a payment record. */
+export interface PaymentReceived {
+  id: string;
+  date: string;
+  client: string;
+  workspaceId: string | null;
+  invoiceId: string;
+  invoiceNumber: string;
+  amountCents: number;
+  vatCents: number;
+  currency: string;
+  kind: "payment" | "marked_paid";
+  reference: string | null;
 }
 
 export type InvoiceState = "draft" | "unpaid" | "partial" | "overdue" | "paid";

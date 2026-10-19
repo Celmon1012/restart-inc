@@ -537,6 +537,43 @@ Deno.serve(async (req) => {
         fileUrl: inv.file_url,
       }));
 
+    // Every payment received from clients, one row each: the payments recorded in Lago, plus, for an
+    // invoice that was marked paid without a payment record, the rest of it on the date it was marked paid.
+    // Amounts are what the client paid (VAT included); vatCents is the VAT inside it.
+    const paymentsReceived: Array<{
+      id: string; date: string; client: string; workspaceId: string | null; invoiceId: string; invoiceNumber: string;
+      amountCents: number; vatCents: number; currency: string; kind: "payment" | "marked_paid"; reference: string | null;
+    }> = [];
+    for (const inv of invoices) {
+      if (inv.status !== "finalized") continue;
+      const total = inv.total_amount_cents;
+      const paid = inv.payment_status === "succeeded" ? total : Math.min(inv.total_paid_amount_cents ?? 0, total);
+      if (paid <= 0) continue;
+      const vatIn = (cents: number) => (total > 0 ? Math.round((cents * Math.min(Math.max(inv.taxes_amount_cents ?? 0, 0), total)) / total) : 0);
+      const customerId = inv.customer?.external_id ?? "unknown";
+      const client = clientFor(customerId, inv.customer?.name).name;
+      const workspaceId = byCustomer.get(customerId)?.id ?? null;
+      let remaining = paid;
+      let n = 0;
+      for (const p of paymentsByInvoice.get(inv.lago_id) ?? []) {
+        const cents = Math.min(p.cents, remaining);
+        if (cents <= 0) continue;
+        remaining -= cents;
+        paymentsReceived.push({ id: `${inv.lago_id}:${n++}`, date: p.date, client, workspaceId, invoiceId: inv.lago_id, invoiceNumber: inv.number, amountCents: cents, vatCents: vatIn(cents), currency: inv.currency, kind: "payment", reference: null });
+      }
+      if (remaining > 0) {
+        const paidOn = inv.metadata?.find((m) => m.key === "paid_on")?.value;
+        const ref = inv.metadata?.find((m) => m.key === "payment_reference")?.value ?? null;
+        paymentsReceived.push({
+          id: `${inv.lago_id}:${n++}`,
+          date: paidOn && /^\d{4}-\d{2}-\d{2}/.test(paidOn) ? paidOn.slice(0, 10) : inv.issuing_date,
+          client, workspaceId, invoiceId: inv.lago_id, invoiceNumber: inv.number,
+          amountCents: remaining, vatCents: vatIn(remaining), currency: inv.currency, kind: "marked_paid", reference: ref,
+        });
+      }
+    }
+    paymentsReceived.sort((a, b) => b.date.localeCompare(a.date) || b.invoiceNumber.localeCompare(a.invoiceNumber));
+
     // Every invoice, not only the unpaid ones, each with the state a person would call it:
     // draft, paid, overdue (unpaid and past due), partial (some paid, not yet due) or unpaid.
     // Voided invoices are left out.
@@ -585,6 +622,7 @@ Deno.serve(async (req) => {
       subscriptions: subscriptionLines,
       openInvoices,
       allInvoices,
+      paymentsReceived,
     });
   } catch (err) {
     return json({ error: `Failed to load finance data: ${(err as Error).message}` }, 502);

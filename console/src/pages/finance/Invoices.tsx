@@ -14,7 +14,7 @@ import { invokeFunction } from "@/lib/functions";
 import { formatAmount, formatDate } from "@/lib/format";
 import { formatTotals } from "@/pages/admin/Finance";
 import { downloadCsv } from "@/lib/csv";
-import type { InvoiceDetail, InvoiceRow, InvoiceState } from "@/lib/financeOverview";
+import type { InvoiceDetail, InvoiceRow, InvoiceState, PaymentReceived } from "@/lib/financeOverview";
 
 const STATE_LABEL: Record<InvoiceState, string> = { unpaid: "Unpaid", partial: "Partially paid", overdue: "Overdue", paid: "Paid", draft: "Draft" };
 const STATES: InvoiceState[] = ["unpaid", "partial", "overdue", "paid", "draft"];
@@ -50,6 +50,8 @@ export default function FinanceInvoices() {
   const [payError, setPayError] = useState<string | null>(null);
   const [relinkingId, setRelinkingId] = useState<string | null>(null);
   const [relinkResult, setRelinkResult] = useState<Record<string, { ok: boolean; text: string }>>({});
+  const [view, setView] = useState<"invoices" | "received">("invoices");
+  const [receivedMonth, setReceivedMonth] = useState("all");
   const [filter, setFilter] = useState<Filter>("all");
   const [clientFilter, setClientFilter] = useState("all");
   const [year, setYear] = useState("all");
@@ -145,7 +147,100 @@ export default function FinanceInvoices() {
               <p className="admin-muted">Showing the most recent {data.invoiceCount} invoices; older ones aren't counted.</p>
             )}
 
-            {all.length > 0 && (
+            <div className="admin-toolbar" role="group" aria-label="View">
+              <button className={`dash-tab-btn ${view === "invoices" ? "active" : ""}`} onClick={() => setView("invoices")} aria-pressed={view === "invoices"}>Invoices ({all.length})</button>
+              <button className={`dash-tab-btn ${view === "received" ? "active" : ""}`} onClick={() => setView("received")} aria-pressed={view === "received"}>Payments received ({(data.paymentsReceived ?? []).length})</button>
+            </div>
+
+            {view === "received" && (() => {
+              const received: PaymentReceived[] = data.paymentsReceived ?? [];
+              const months = Array.from(new Set(received.map((p) => p.date.slice(0, 7)))).sort().reverse();
+              const needle2 = search.trim().toLowerCase();
+              const rows = received.filter(
+                (p) =>
+                  (receivedMonth === "all" || p.date.startsWith(receivedMonth)) &&
+                  (clientFilter === "all" || p.client === clientFilter) &&
+                  (!needle2 || [p.client, p.invoiceNumber, p.reference ?? ""].some((v) => v.toLowerCase().includes(needle2)))
+              );
+              const receivedClients = Array.from(new Set(received.map((p) => p.client))).sort();
+              const total = rows.reduce<Record<string, number>>((t, p) => addTo(t, p.currency, p.amountCents), {});
+              const vat = rows.reduce<Record<string, number>>((t, p) => addTo(t, p.currency, p.vatCents), {});
+              const net = rows.reduce<Record<string, number>>((t, p) => addTo(t, p.currency, p.amountCents - p.vatCents), {});
+              const monthName = (m: string) => new Date(`${m}-01T00:00:00Z`).toLocaleString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
+              return (
+                <div className="admin-section">
+                  <div className="admin-toolbar">
+                    <select value={receivedMonth} onChange={(e) => setReceivedMonth(e.target.value)} aria-label="Month">
+                      <option value="all">All months</option>
+                      {months.map((m) => <option key={m} value={m}>{monthName(m)}</option>)}
+                    </select>
+                    <select value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} aria-label="Client">
+                      <option value="all">All clients</option>
+                      {receivedClients.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <span className="admin-toolbar-spacer" />
+                    <div className="workspace-search-box">
+                      <Search size={13} />
+                      <input type="text" placeholder="Search client, invoice or reference…" aria-label="Search payments received" value={search} onChange={(e) => setSearch(e.target.value)} />
+                    </div>
+                    <button
+                      className="dash-tab-btn"
+                      disabled={rows.length === 0}
+                      onClick={() =>
+                        downloadCsv(
+                          `restart-payments-received-${today}.csv`,
+                          ["date", "client", "invoice", "source", "reference", "amount", "vat_included", "net_ex_vat", "currency"],
+                          rows.map((p) => [p.date, p.client, p.invoiceNumber, p.kind === "payment" ? "payment" : "marked paid", p.reference ?? "", p.amountCents / 100, p.vatCents / 100, (p.amountCents - p.vatCents) / 100, p.currency])
+                        )
+                      }
+                    >
+                      Export CSV
+                    </button>
+                  </div>
+                  {data.paymentsReceived === undefined ? (
+                    <div className="dash-empty-state">The payments list needs the latest finance function; it appears once that has been redeployed.</div>
+                  ) : rows.length === 0 ? (
+                    <div className="dash-empty-state">No payments received in this view.</div>
+                  ) : (
+                    <div className="admin-table-wrap">
+                      <table className="admin-table tasks-compact">
+                        <thead>
+                          <tr><th>Date</th><th>Client</th><th>Invoice</th><th>Source</th><th className="num">VAT included</th><th className="num">Amount</th></tr>
+                        </thead>
+                        <tbody>
+                          {rows.map((p) => (
+                            <tr key={p.id}>
+                              <td>{formatDate(p.date)}</td>
+                              <td>{p.workspaceId ? <Link href={`/admin/projects/${p.workspaceId}`} className="text-teal">{p.client}</Link> : p.client}</td>
+                              <td><strong>{p.invoiceNumber}</strong></td>
+                              <td className="admin-muted">{p.kind === "payment" ? "Payment" : "Marked paid"}{p.reference ? ` · ${p.reference}` : ""}</td>
+                              <td className="num admin-muted">{p.vatCents > 0 ? formatAmount(p.vatCents, p.currency) : "—"}</td>
+                              <td className="num">{formatAmount(p.amountCents, p.currency)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <td colSpan={5}><strong>{rows.length} payment{rows.length === 1 ? "" : "s"} · total received</strong></td>
+                            <td className="num"><strong>{formatTotals(total)}</strong></td>
+                          </tr>
+                          <tr>
+                            <td colSpan={5} className="admin-muted">VAT included</td>
+                            <td className="num admin-muted">{formatTotals(vat)}</td>
+                          </tr>
+                          <tr>
+                            <td colSpan={5}><strong>Net of VAT (this is what Overview counts as collected)</strong></td>
+                            <td className="num"><strong>{formatTotals(net)}</strong></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {view === "invoices" && all.length > 0 && (
               <div className="task-strip">
                 {STATES.map((s) => (
                   <button
@@ -162,6 +257,7 @@ export default function FinanceInvoices() {
               </div>
             )}
 
+            {view === "invoices" && (
             <div className="admin-section">
               <div className="admin-toolbar">
                 <select value={filter} onChange={(e) => setFilter(e.target.value as Filter)} aria-label="Status">
@@ -406,6 +502,7 @@ export default function FinanceInvoices() {
                 </div>
               )}
             </div>
+            )}
 
             <div className="admin-section">
               <h2 className="admin-section-title">By client</h2>
