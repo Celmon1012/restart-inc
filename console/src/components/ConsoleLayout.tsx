@@ -144,7 +144,10 @@ const FINANCE_NAV: NavGroup[] = [
   },
   {
     label: "Income",
-    items: [{ href: "/finance/invoices", label: "Invoices", icon: Receipt }]
+    items: [
+      { href: "/finance/invoices", label: "Invoices", icon: Receipt },
+      { href: "/finance/received", label: "Received", icon: Wallet }
+    ]
   },
   {
     label: "Expenses",

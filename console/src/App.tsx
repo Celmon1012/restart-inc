@@ -33,6 +33,7 @@ import AdminFinance from "./pages/admin/Finance";
 import FinanceInvoices from "./pages/finance/Invoices";
 import FinanceHosting from "./pages/finance/Hosting";
 import FinanceDomains from "./pages/finance/Domains";
+import FinanceReceived from "./pages/finance/Received";
 import FinanceExpenses from "./pages/finance/Expenses";
 import FinancePayments from "./pages/finance/Payments";
 import FinanceAccounts from "./pages/finance/Accounts";
@@ -268,6 +269,11 @@ function Router() {
       <Route path="/finance/invoices">
         <FinanceRoute>
           <FinanceInvoices />
+        </FinanceRoute>
+      </Route>
+      <Route path="/finance/received">
+        <FinanceRoute>
+          <FinanceReceived />
         </FinanceRoute>
       </Route>
       <Route path="/finance/hosting">

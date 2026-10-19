@@ -1,7 +1,7 @@
 // Link a console project to its Lago customer (workspaces.lago_customer_id).
 // Candidates come from console-admin-finance (?customers=1), which holds the
 // Lago key. After linking, the customer is re-linked to the Flutterwave
-// integration so "Pay Now" works, the same call as Finance's "Re-link payments".
+// integration so "Pay Now" works; "Re-link payments" below makes the same call again.
 
 import { confirmAction } from "@/components/confirmAction";
 import { useState } from "react";
@@ -59,13 +59,30 @@ export function LinkBilling({
         text = "Linked, and payments connected.";
       } catch (err) {
         ok = false;
-        text = `Linked, but connecting payments failed: ${(err as Error).message}. Retry with Re-link payments on Finance.`;
+        text = `Linked, but connecting payments failed: ${(err as Error).message}. Retry with Re-link payments on this tab.`;
       }
       setMessage({ ok, text });
       setSelected("");
       await onChanged();
     } catch (err) {
       setMessage({ ok: false, text: (err as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Re-creates the customer's link to the Flutterwave integration in Lago. Needed after the integration
+  // is deleted and re-added (its code changes), or when "Pay Now" stops working for this client.
+  const relink = async () => {
+    if (!linkedCustomerId) return;
+    if (!(await confirmAction({ title: "Re-link payments?", description: "Reconnect this client to the Flutterwave integration in Lago?", confirmLabel: "Re-link", tone: "default" }))) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      await invokeFunction("sync-lago-payment-provider", { body: { externalCustomerId: linkedCustomerId } });
+      setMessage({ ok: true, text: "Payments connected." });
+    } catch (err) {
+      setMessage({ ok: false, text: `Connecting payments failed: ${(err as Error).message}` });
     } finally {
       setBusy(false);
     }
@@ -89,6 +106,7 @@ export function LinkBilling({
     return (
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "8px 0 16px" }}>
         <span className="admin-muted">Linked to Lago customer <strong>{linkedCustomerId}</strong></span>
+        <button className="dash-tab-btn" onClick={() => void relink()} disabled={busy} title="Reconnect this client to the Flutterwave integration so Pay Now works">Re-link payments</button>
         <button className="dash-tab-btn" onClick={() => void unlink()} disabled={busy}>Unlink</button>
         {message && <span className={message.ok ? "admin-ok" : "admin-warn"} role="status">{message.text}</span>}
       </div>

@@ -2,19 +2,16 @@
 // paid) and the revenue position of every billed client. Record a payment received by bank transfer
 // from the row. Data comes from Lago through console-admin-finance.
 
-import { confirmAction } from "@/components/confirmAction";
 import { Fragment, useState } from "react";
 import { Link } from "wouter";
 import { ChevronsLeft, ChevronsRight, ExternalLink, Search, X } from "lucide-react";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { FinancePage } from "@/components/admin/FinancePage";
-import { RowMenu } from "@/components/admin/RowMenu";
-import { EmptyState } from "@/components/AsyncStates";
 import { invokeFunction } from "@/lib/functions";
 import { formatAmount, formatDate } from "@/lib/format";
 import { formatTotals } from "@/pages/admin/Finance";
 import { downloadCsv } from "@/lib/csv";
-import type { InvoiceDetail, InvoiceRow, InvoiceState, PaymentReceived } from "@/lib/financeOverview";
+import type { InvoiceDetail, InvoiceRow, InvoiceState } from "@/lib/financeOverview";
 
 const STATE_LABEL: Record<InvoiceState, string> = { unpaid: "Unpaid", partial: "Partially paid", overdue: "Overdue", paid: "Paid", draft: "Draft" };
 const STATES: InvoiceState[] = ["unpaid", "partial", "overdue", "paid", "draft"];
@@ -48,10 +45,6 @@ export default function FinanceInvoices() {
   const [amount, setAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
-  const [relinkingId, setRelinkingId] = useState<string | null>(null);
-  const [relinkResult, setRelinkResult] = useState<Record<string, { ok: boolean; text: string }>>({});
-  const [view, setView] = useState<"invoices" | "received">("invoices");
-  const [receivedMonth, setReceivedMonth] = useState("all");
   const [filter, setFilter] = useState<Filter>("all");
   const [clientFilter, setClientFilter] = useState("all");
   const [year, setYear] = useState("all");
@@ -93,23 +86,8 @@ export default function FinanceInvoices() {
     }
   };
 
-  // Re-creates the customer's link to the Flutterwave integration in Lago. Needed after the
-  // integration is deleted and re-added (its code changes), or when "Pay Now" stops working.
-  const relinkPayments = async (customerId: string, name: string) => {
-    if (!(await confirmAction({ title: "Re-link payments?", description: `Re-link ${name} to the Flutterwave integration in Lago?`, confirmLabel: "Re-link", tone: "default" }))) return;
-    setRelinkingId(customerId);
-    try {
-      await invokeFunction("sync-lago-payment-provider", { body: { externalCustomerId: customerId } });
-      setRelinkResult((r) => ({ ...r, [customerId]: { ok: true, text: "Linked" } }));
-    } catch (err) {
-      setRelinkResult((r) => ({ ...r, [customerId]: { ok: false, text: (err as Error).message } }));
-    } finally {
-      setRelinkingId(null);
-    }
-  };
-
   return (
-    <FinancePage title="Invoices" description="Every invoice and where it stands, and revenue per client." needs={["finance"]}>
+    <FinancePage title="Invoices" description="Every invoice and where it stands." needs={["finance"]}>
       {({ finance: data, reloadAll }) => {
         // Before the finance function is redeployed only the unpaid invoices come back; show those.
         const all: InvoiceRow[] =
@@ -147,100 +125,7 @@ export default function FinanceInvoices() {
               <p className="admin-muted">Showing the most recent {data.invoiceCount} invoices; older ones aren't counted.</p>
             )}
 
-            <div className="admin-toolbar" role="group" aria-label="View">
-              <button className={`dash-tab-btn ${view === "invoices" ? "active" : ""}`} onClick={() => setView("invoices")} aria-pressed={view === "invoices"}>Invoices ({all.length})</button>
-              <button className={`dash-tab-btn ${view === "received" ? "active" : ""}`} onClick={() => setView("received")} aria-pressed={view === "received"}>Payments received ({(data.paymentsReceived ?? []).length})</button>
-            </div>
-
-            {view === "received" && (() => {
-              const received: PaymentReceived[] = data.paymentsReceived ?? [];
-              const months = Array.from(new Set(received.map((p) => p.date.slice(0, 7)))).sort().reverse();
-              const needle2 = search.trim().toLowerCase();
-              const rows = received.filter(
-                (p) =>
-                  (receivedMonth === "all" || p.date.startsWith(receivedMonth)) &&
-                  (clientFilter === "all" || p.client === clientFilter) &&
-                  (!needle2 || [p.client, p.invoiceNumber, p.reference ?? ""].some((v) => v.toLowerCase().includes(needle2)))
-              );
-              const receivedClients = Array.from(new Set(received.map((p) => p.client))).sort();
-              const total = rows.reduce<Record<string, number>>((t, p) => addTo(t, p.currency, p.amountCents), {});
-              const vat = rows.reduce<Record<string, number>>((t, p) => addTo(t, p.currency, p.vatCents), {});
-              const net = rows.reduce<Record<string, number>>((t, p) => addTo(t, p.currency, p.amountCents - p.vatCents), {});
-              const monthName = (m: string) => new Date(`${m}-01T00:00:00Z`).toLocaleString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
-              return (
-                <div className="admin-section">
-                  <div className="admin-toolbar">
-                    <select value={receivedMonth} onChange={(e) => setReceivedMonth(e.target.value)} aria-label="Month">
-                      <option value="all">All months</option>
-                      {months.map((m) => <option key={m} value={m}>{monthName(m)}</option>)}
-                    </select>
-                    <select value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} aria-label="Client">
-                      <option value="all">All clients</option>
-                      {receivedClients.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                    <span className="admin-toolbar-spacer" />
-                    <div className="workspace-search-box">
-                      <Search size={13} />
-                      <input type="text" placeholder="Search client, invoice or reference…" aria-label="Search payments received" value={search} onChange={(e) => setSearch(e.target.value)} />
-                    </div>
-                    <button
-                      className="dash-tab-btn"
-                      disabled={rows.length === 0}
-                      onClick={() =>
-                        downloadCsv(
-                          `restart-payments-received-${today}.csv`,
-                          ["date", "client", "invoice", "source", "reference", "amount", "vat_included", "net_ex_vat", "currency"],
-                          rows.map((p) => [p.date, p.client, p.invoiceNumber, p.kind === "payment" ? "payment" : "marked paid", p.reference ?? "", p.amountCents / 100, p.vatCents / 100, (p.amountCents - p.vatCents) / 100, p.currency])
-                        )
-                      }
-                    >
-                      Export CSV
-                    </button>
-                  </div>
-                  {data.paymentsReceived === undefined ? (
-                    <div className="dash-empty-state">The payments list needs the latest finance function; it appears once that has been redeployed.</div>
-                  ) : rows.length === 0 ? (
-                    <div className="dash-empty-state">No payments received in this view.</div>
-                  ) : (
-                    <div className="admin-table-wrap">
-                      <table className="admin-table tasks-compact">
-                        <thead>
-                          <tr><th>Date</th><th>Client</th><th>Invoice</th><th>Source</th><th className="num">VAT included</th><th className="num">Amount</th></tr>
-                        </thead>
-                        <tbody>
-                          {rows.map((p) => (
-                            <tr key={p.id}>
-                              <td>{formatDate(p.date)}</td>
-                              <td>{p.workspaceId ? <Link href={`/admin/projects/${p.workspaceId}`} className="text-teal">{p.client}</Link> : p.client}</td>
-                              <td><strong>{p.invoiceNumber}</strong></td>
-                              <td className="admin-muted">{p.kind === "payment" ? "Payment" : "Marked paid"}{p.reference ? ` · ${p.reference}` : ""}</td>
-                              <td className="num admin-muted">{p.vatCents > 0 ? formatAmount(p.vatCents, p.currency) : "—"}</td>
-                              <td className="num">{formatAmount(p.amountCents, p.currency)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot>
-                          <tr>
-                            <td colSpan={5}><strong>{rows.length} payment{rows.length === 1 ? "" : "s"} · total received</strong></td>
-                            <td className="num"><strong>{formatTotals(total)}</strong></td>
-                          </tr>
-                          <tr>
-                            <td colSpan={5} className="admin-muted">VAT included</td>
-                            <td className="num admin-muted">{formatTotals(vat)}</td>
-                          </tr>
-                          <tr>
-                            <td colSpan={5}><strong>Net of VAT (this is what Overview counts as collected)</strong></td>
-                            <td className="num"><strong>{formatTotals(net)}</strong></td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {view === "invoices" && all.length > 0 && (
+            {all.length > 0 && (
               <div className="task-strip">
                 {STATES.map((s) => (
                   <button
@@ -257,7 +142,6 @@ export default function FinanceInvoices() {
               </div>
             )}
 
-            {view === "invoices" && (
             <div className="admin-section">
               <div className="admin-toolbar">
                 <select value={filter} onChange={(e) => setFilter(e.target.value as Filter)} aria-label="Status">
@@ -502,72 +386,8 @@ export default function FinanceInvoices() {
                 </div>
               )}
             </div>
-            )}
 
             <div className="admin-section">
-              <h2 className="admin-section-title">By client</h2>
-              {data.clients.length === 0 ? (
-                <EmptyState title="No billed clients yet" hint="Link a project to its billing customer (Ops, the project's Billing tab) and it appears here." />
-              ) : (
-                <div className="admin-table-wrap">
-                  <table className="admin-table tasks-compact">
-                    <thead>
-                      <tr>
-                        <th>Client</th>
-                        <th className="num">MRR</th>
-                        <th className="num">Collected</th>
-                        <th className="num">Outstanding</th>
-                        <th className="num">Invoices</th>
-                        <th>Last invoice</th>
-                        <th />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.clients.map((c) => (
-                        <tr key={c.customerId}>
-                          <td>
-                            {c.workspaceId ? <Link href={`/admin/projects/${c.workspaceId}`}><strong>{c.name}</strong></Link> : <strong>{c.name}</strong>}
-                          </td>
-                          <td className="num">{formatTotals(c.mrr)}</td>
-                          <td className="num">{formatTotals(c.collected)}</td>
-                          <td className={`num ${Object.keys(c.overdue).length ? "admin-warn" : ""}`}>{formatTotals(c.outstanding)}</td>
-                          <td className="num">{c.invoiceCount}</td>
-                          <td className="admin-muted">{c.lastInvoiceAt ? formatDate(c.lastInvoiceAt) : "—"}</td>
-                          <td className="num">
-                            <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-                              {relinkResult[c.customerId] && (
-                                <small className={relinkResult[c.customerId].ok ? "admin-ok" : "admin-warn"} role="status">
-                                  {relinkResult[c.customerId].text}
-                                </small>
-                              )}
-                              <RowMenu
-                                label={`More actions for ${c.name}`}
-                                items={[
-                                  {
-                                    label: relinkingId === c.customerId ? "Linking…" : "Re-link payments",
-                                    disabled: relinkingId === c.customerId,
-                                    onClick: () => void relinkPayments(c.customerId, c.name)
-                                  }
-                                ]}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td><strong>{data.clients.length} billed clients</strong></td>
-                        <td className="num"><strong>{formatTotals(data.clients.reduce<Record<string, number>>((t, c) => { for (const [k, v] of Object.entries(c.mrr)) t[k] = (t[k] ?? 0) + (v as number); return t; }, {}))}</strong></td>
-                        <td className="num"><strong>{formatTotals(data.clients.reduce<Record<string, number>>((t, c) => { for (const [k, v] of Object.entries(c.collected)) t[k] = (t[k] ?? 0) + (v as number); return t; }, {}))}</strong></td>
-                        <td className="num"><strong>{formatTotals(data.clients.reduce<Record<string, number>>((t, c) => { for (const [k, v] of Object.entries(c.outstanding)) t[k] = (t[k] ?? 0) + (v as number); return t; }, {}))}</strong></td>
-                        <td className="num"><strong>{data.clients.reduce((n, c) => n + c.invoiceCount, 0)}</strong></td>
-                        <td colSpan={2} />
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              )}
               {data.unbilledClients > 0 && (
                 <p className="admin-muted mt-2">
                   {data.unbilledClients} client project{data.unbilledClients === 1 ? " has" : "s have"} no billing customer linked yet.
