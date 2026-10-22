@@ -20,6 +20,18 @@ Founders and operators of small and mid-sized companies whose business already r
 
 Offer ladder to match against (see `pricing-strategy.md`): Architecture Audit (lead-in), MVP Build or Medusa Commerce Build (core), DevOps Retainer (recurring). **Lead with the Audit** unless the prospect clearly has a build in mind.
 
+## Current offer (set 2026-10-09)
+
+Goal is fast revenue plus proof, so the opening offer is the **Architecture Audit**, sold on outcome: "why your checkout or ops system is slow or goes down, and a priced fix plan in 5 days". Not "architecture audit" as jargon.
+
+- **List price (Nigeria):** ₦3.5-4M excl. VAT. Target first-deal value ₦4.5M = Audit plus a first retainer month (₦400-600k) or a small fix sprint.
+- **Founding-client rate: ₦3M excl. VAT**, for the first 3-5 Nigerian clients only. In return: a published case study with a hard number, a testimonial, and one referral intro. State the give-and-get plainly in the message or call; never present ₦3M as the normal price.
+- **Credit:** the Audit fee is credited against an MVP or Medusa build signed within 30 days.
+- **Next steps the Audit sells:** DevOps Retainer (₦400-600k/mo), then MVP Build (₦9-25M). Do not pitch the build to a cold prospect.
+- International SMEs: use the USD Audit price from `pricing-strategy.md`; the founding rate does not apply.
+
+Sender: `adeusuf@restart.ng` (sign as Ademola Usuf). Drafts are sent by hand. Before volume sending (100+ a week), move to a separate lookalike domain so billing mail from restart.ng is not put at risk.
+
 ## Workflow
 
 1. **Intake.** `add_prospect` with whatever is known. Always set `segment`; set `tier` `warm` for referrals and past contacts.
@@ -53,7 +65,7 @@ Restart's voice rule applies: **a metric or a named stack, never an adjective.**
 - Open with the specific, verifiable observation about *them*. Not "I came across your company".
 - One sentence on what Restart would do about it, tied to an offer and, where honest, a number from a real engagement (only numbers from `content/` or the case studies; never invent one).
 - One low-friction ask: a 20-minute call, or a fixed-scope, fixed-price Architecture Audit. No multi-option menus.
-- Sign with a named senior person, not "the team".
+- Sign with a named senior person, not "the team" (Ademola Usuf).
 - Email must carry a plain one-line opt-out ("Reply 'no' and I won't write again"). Honour it immediately via `log_reply` with `unsubscribe`.
 - WhatsApp: only for `warm` prospects or ones who replied or gave their number themselves. Never cold-message a number scraped from a directory. Two sentences, no attachments.
 - LinkedIn: connection note under 280 characters, no pitch.
