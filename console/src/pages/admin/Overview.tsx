@@ -2,30 +2,49 @@
 // delivery, support, and money. Each source loads independently, so a slow or
 // failing one (Chatwoot, Lago) degrades its own tile instead of the page.
 
+import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { ArrowRight } from "lucide-react";
 import { ConsoleLayout } from "@/components/ConsoleLayout";
-import { OPEN_STAGES, PIPELINE_STAGES } from "@/lib/admin";
+import { Sparkline } from "@/components/Sparkline";
+import { TrendBars } from "@/components/admin/TrendBars";
+import { loadPortfolio, OPEN_STAGES, PIPELINE_STAGES } from "@/lib/admin";
 import { OPEN as OPEN_REQUEST_STATUSES, STATUS_LABEL as REQUEST_STATUS_LABEL } from "@/components/ServerRequests";
-import { formatRelative } from "@/lib/format";
+import { formatNairaCompact, formatNumber, formatRelative } from "@/lib/format";
 import { useAdminAttention } from "@/lib/adminAttention";
+import { arpuNgn, buildWindow, countByBucket, paymentsByBucket, percentChange, RANGES, type RangeKey } from "@/lib/platformStats";
+import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { formatTotals, TotalsValue } from "./Finance";
 
-function Tile({ label, value, hint, warn, href }: { label: string; value: React.ReactNode; hint: string; warn?: boolean; href: string }) {
+function Tile({ label, value, hint, warn, href, spark, delta }: { label: string; value: React.ReactNode; hint: string; warn?: boolean; href: string; spark?: number[]; delta?: number | null }) {
   return (
     <Link href={href} className="cp-stat-link">
       <small>{label}</small>
       <strong className={warn ? "warn" : undefined}>{value}</strong>
-      <em>{hint}</em>
+      <em>
+        {delta !== undefined && delta !== null && delta !== 0 && <span className={`cp-delta ${delta > 0 ? "up" : "down"}`}>{delta > 0 ? "↑" : "↓"} {Math.abs(delta)}% </span>}
+        {hint}
+      </em>
+      {spark && <Sparkline values={spark} width={60} height={24} className="cp-spark" />}
     </Link>
   );
 }
 
 export default function AdminOverview() {
-  const { isOwner, canFinance } = useWorkspace();
+  const { isOwner, canOps, canFinance } = useWorkspace();
   const { sources } = useAdminAttention();
   const { leads, delivery, support, finance } = sources;
+  const portfolio = useAsyncResource(() => loadPortfolio(), [canOps], { enabled: canOps });
+
+  const [range, setRange] = useState<RangeKey>("30d");
+  const win = useMemo(() => buildWindow(range), [range]);
+  const rangeLabel = RANGES.find((r) => r.key === range)!.label;
+  const leadsInRange = useMemo(() => countByBucket(win, (leads.data ?? []).map((l) => l.created_at)), [win, leads.data]);
+  const projectsInRange = useMemo(() => countByBucket(win, (portfolio.data?.projects ?? []).map((p) => p.created_at)), [win, portfolio.data]);
+  const payments = useMemo(() => paymentsByBucket(win, finance.data?.paymentsReceived ?? []), [win, finance.data]);
+  const collectedDelta = percentChange(payments.current.NGN ?? 0, payments.previous.NGN ?? 0);
+  const arpu = arpuNgn(finance.data);
 
   const leadRows = leads.data ?? [];
   const openLeads = leadRows.filter((l) => OPEN_STAGES.includes(l.status));
@@ -45,10 +64,19 @@ export default function AdminOverview() {
 
   return (
     <ConsoleLayout area="admin">
-      <div className="cp-head">
-        <span className="cp-eyebrow">RESTART ADMIN</span>
-        <h1>Operations Overview</h1>
-        <p>Pipeline, delivery, support, and revenue across every client.</p>
+      <div className="cp-head cp-head-row">
+        <div>
+          <span className="cp-eyebrow">RESTART ADMIN</span>
+          <h1>Operations Overview</h1>
+          <p>Pipeline, delivery, support, and revenue across every client.</p>
+        </div>
+        <div className="cp-range" role="group" aria-label="Time range">
+          {RANGES.map((r) => (
+            <button key={r.key} type="button" className={`dash-tab-btn${range === r.key ? " active" : ""}`} aria-pressed={range === r.key} onClick={() => setRange(r.key)}>
+              {r.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="cp-stats">
@@ -83,6 +111,88 @@ export default function AdminOverview() {
             hint={finance.error ? "Couldn't reach billing" : `${formatTotals(finance.data?.totals.outstanding)} outstanding`}
             warn={Boolean(finance.data && Object.keys(finance.data.totals.overdue).length)}
           />
+        )}
+      </div>
+
+      <div className="cp-stats admin-section">
+        {canFinance && (
+          <Tile
+            label={`COLLECTED · ${rangeLabel.toUpperCase()}`}
+            href="/finance/received"
+            value={dash(finance.loading, finance.error, <TotalsValue totals={payments.current} />)}
+            hint={`vs ${formatTotals(payments.previous)} before`}
+            spark={payments.series}
+            delta={collectedDelta}
+          />
+        )}
+        {canFinance && (
+          <Tile
+            label="ACTIVE SUBSCRIPTIONS"
+            href="/finance"
+            value={dash(finance.loading, finance.error, formatNumber(finance.data?.activeSubscriptions))}
+            hint={arpu === null ? `${finance.data?.billedClients ?? 0} billed clients` : `ARPU ${formatNairaCompact(arpu)} · ${finance.data?.billedClients} billed clients`}
+          />
+        )}
+        {isOwner && (
+          <Tile
+            label={`NEW LEADS · ${rangeLabel.toUpperCase()}`}
+            href="/admin/leads"
+            value={dash(leads.loading, leads.error, leadsInRange.current)}
+            hint={`vs ${leadsInRange.previous} before`}
+            spark={leadsInRange.series}
+            delta={percentChange(leadsInRange.current, leadsInRange.previous)}
+          />
+        )}
+        {canOps && (
+          <Tile
+            label={`NEW PROJECTS · ${rangeLabel.toUpperCase()}`}
+            href="/admin/projects"
+            value={dash(portfolio.loading, portfolio.error, projectsInRange.current)}
+            hint={`vs ${projectsInRange.previous} before${portfolio.data ? ` · ${portfolio.data.clients.length} clients` : ""}`}
+            spark={projectsInRange.series}
+            delta={percentChange(projectsInRange.current, projectsInRange.previous)}
+          />
+        )}
+      </div>
+
+      <div className="cp-grid cp-grid-even admin-section">
+        {canFinance && (
+          <div className="cp-card">
+            <div className="cp-card-head">
+              <span>Collected</span>
+              <span className="cp-head-note">{rangeLabel} · naira{win.size === 7 ? " · weekly" : ""}</span>
+            </div>
+            {finance.error ? (
+              <p className="cp-empty">Couldn't reach billing.</p>
+            ) : finance.loading ? (
+              <p className="cp-empty">Loading…</p>
+            ) : (
+              <TrendBars
+                buckets={win.buckets}
+                series={[{ name: "Collected", color: "var(--series-1)", values: payments.series }]}
+                format={(v) => (v === 0 ? "₦0" : formatNairaCompact(v))}
+                empty={`No naira payments in the last ${rangeLabel}.`}
+              />
+            )}
+          </div>
+        )}
+        {(isOwner || canOps) && (
+          <div className="cp-card">
+            <div className="cp-card-head">
+              <span>New leads and projects</span>
+              <span className="cp-head-note">{rangeLabel}{win.size === 7 ? " · weekly" : ""}</span>
+            </div>
+            <TrendBars
+              buckets={win.buckets}
+              series={[
+                ...(isOwner ? [{ name: "Leads", color: "var(--series-1)", values: leadsInRange.series }] : []),
+                ...(canOps ? [{ name: "Projects", color: "var(--series-3)", values: projectsInRange.series }] : [])
+              ]}
+              format={formatNumber}
+              whole
+              empty={`No new leads or projects in the last ${rangeLabel}.`}
+            />
+          </div>
         )}
       </div>
 

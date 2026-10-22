@@ -38,7 +38,9 @@ const tableFixtures: Record<string, unknown[]> = {
     { deliverable_id: "m2", is_done: true }, { deliverable_id: "m2", is_done: false }, { deliverable_id: "m2", is_done: false }, { deliverable_id: "m4", is_done: false },
   ],
   server_requests: [{ workspace_id: "dev-ws", status: "pending_review" }],
-  inquiries: [],
+  inquiries: [1, 2, 4, 5, 9, 12, 13, 20, 26, 33, 41, 47, 55].map((days, i) => ({
+    id: `q${i}`, name: `Lead ${i + 1}`, company: null, status: i % 4 === 0 ? "new" : "contacted", created_at: d(days), next_follow_up_at: null,
+  })),
 };
 
 
@@ -62,6 +64,9 @@ const financeFixture = {
     const d = new Date(); d.setMonth(d.getMonth() - 11 + i);
     return { month: d.toISOString().slice(0, 7), collected: i === 9 ? { NGN: 1953226 } : {} };
   }),
+  paymentsReceived: [[2, 4500000], [6, 17333333], [11, 2500000], [19, 6000000], [24, 4500000], [38, 17333333], [52, 8000000], [70, 4500000]].map(([days, amountCents], i) => ({
+    id: `p${i}`, date: d(days), client: "Acme Operations", workspaceId: "dev-ws", invoiceId: `i${i}`, invoiceNumber: `RES-${i}`, amountCents, vatCents: 0, currency: "NGN", kind: "payment", reference: null,
+  })),
   clients: [
     { workspaceId: "dev-ws", name: "Acme Operations", customerId: "c1", collected: { NGN: 1953226 }, outstanding: { NGN: 162919355 }, overdue: { NGN: 162919355 }, mrr: { NGN: 17333333 }, invoiceCount: 13, lastInvoiceAt: "2026-07-17" },
     { workspaceId: null, name: "Northwind Commerce", customerId: "c2", collected: {}, outstanding: { USD: 14900 }, overdue: { USD: 14900 }, mrr: {}, invoiceCount: 2, lastInvoiceAt: "2026-08-01" },

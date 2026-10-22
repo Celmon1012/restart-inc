@@ -3331,3 +3331,17 @@ html {
 body { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
 .console-sidebar { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 .sidebar-edge-toggle { top: calc(20px + env(safe-area-inset-top, 0px)); }
+
+/* Admin Overview: range toggle, tile deltas and sparklines, even two-column chart row */
+.cp-head-row{ display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.cp-range{ display: inline-flex; gap: 4px; padding: 3px; border: 1px solid rgba(255,255,255,.075); border-radius: 8px; }
+.cp-range .dash-tab-btn{ padding: 6px 14px; border-color: transparent; }
+.cp-head-note{ color: #767c8b; font-size: 0.75rem; font-weight: 500; }
+.cp-grid-even{ grid-template-columns: 1fr 1fr; }
+.cp-stats > a.cp-stat-link{ position: relative; }
+.cp-stats .cp-spark{ position: absolute; right: 16px; top: 36px; color: var(--teal); opacity: .8; }
+@media (max-width: 1100px){ .cp-stats .cp-spark{ display: none; } }
+.cp-delta{ font-weight: 600; }
+.cp-delta.up{ color: var(--teal); }
+.cp-delta.down{ color: var(--amber); }
+@media (max-width: 900px){ .cp-grid-even{ grid-template-columns: 1fr; } }
