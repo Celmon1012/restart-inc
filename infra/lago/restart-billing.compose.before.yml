@@ -81,6 +81,14 @@ services:
       - 'LAGO_API_URL=${LAGO_API_URL}'
       - 'LAGO_FRONT_URL=${LAGO_FRONT_URL}'
       - LAGO_DISABLE_PDF_GENERATION=false
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl -f http://localhost:80 || exit 1'
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 30s
   api-worker:
     image: 'getlago/api:v1.48.1'
     command:
