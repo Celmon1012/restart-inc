@@ -10,7 +10,7 @@
 import { consoleSchema } from "./supabase";
 import { invokeFunction } from "./functions";
 import { formatDate, formatRelative } from "./format";
-import { loadCoolifyProjects, loadWorkspaceNames, OPEN_STAGES, summarizeResources, type CoolifyProject, type PipelineStage } from "./admin";
+import { backupState, loadCoolifyProjects, loadWorkspaceNames, OPEN_STAGES, summarizeResources, type CoolifyProject, type PipelineStage } from "./admin";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import type { Status as RequestStatus } from "@/components/ServerRequests";
@@ -127,6 +127,11 @@ function infraAttention(projects: CoolifyProject[]): AttentionItem[] {
     const { down } = summarizeResources(p.resources);
     if (down.length > 0) {
       items.push({ key: `inf-down-${p.uuid}`, category: "infrastructure", text: `${p.name}: ${down.join(", ")} ${down.length === 1 ? "is" : "are"} down`, href });
+    }
+    for (const b of p.backups ?? []) {
+      const state = backupState(b);
+      const why = state === "none" ? "has no backup schedule" : state === "failed" ? "last backup failed" : state === "stale" ? "hasn't been backed up lately" : null;
+      if (why) items.push({ key: `inf-bak-${p.uuid}-${b.name}`, category: "infrastructure", text: `${p.name}: database ${b.name} ${why}`, href });
     }
     for (const s of p.servers) {
       if (seenServers.has(s.uuid)) continue;

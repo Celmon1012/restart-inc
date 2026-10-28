@@ -10,7 +10,8 @@
 // GET (or POST with no action) /functions/v1/console-admin-infra
 //   -> every Coolify project, which console project (if any) it's linked to,
 //      the server(s) its production resources run on (with the OS patch state
-//      Coolify last found), and each resource's Coolify status
+//      Coolify last found), each resource's Coolify status, and the backup
+//      state of each database (schedules and the latest run)
 // POST /functions/v1/console-admin-infra  { action, ... }
 //   link    { workspace_id, coolify_project_uuid }  attach an existing Coolify project
 //   create  { workspace_id }                        create a Coolify project for it, then link
@@ -110,21 +111,49 @@ const RESOURCE_KEYS = [
 async function projectInfra(uuid: string) {
   const servers = new Map<string, { name: string; ip: string | null }>();
   const resources: Array<{ type: string; name: string; status: string }> = [];
+  const databases: Array<{ uuid: string; name: string }> = [];
   let env: Record<string, any> | null;
   try {
     env = await coolify(`/projects/${uuid}/production`);
   } catch {
-    return { servers: [], resources };
+    return { servers: [], resources, databases };
   }
-  if (!env) return { servers: [], resources };
+  if (!env) return { servers: [], resources, databases };
   for (const key of RESOURCE_KEYS) {
     for (const r of env[key] ?? []) {
       const s = r.destination?.server ?? r.server;
       if (s?.uuid) servers.set(s.uuid, { name: s.name ?? s.uuid, ip: typeof s.ip === "string" && s.ip ? s.ip : null });
       if (typeof r.name === "string") resources.push({ type: key, name: r.name, status: typeof r.status === "string" ? r.status : "unknown" });
+      // Caches (redis, keydb, dragonfly) aren't worth backing up; data stores are.
+      if (BACKUP_KEYS.includes(key) && typeof r.uuid === "string" && typeof r.name === "string") databases.push({ uuid: r.uuid, name: r.name });
     }
   }
-  return { servers: Array.from(servers, ([uuid, v]) => ({ uuid, name: v.name, ip: v.ip })), resources };
+  return { servers: Array.from(servers, ([uuid, v]) => ({ uuid, name: v.name, ip: v.ip })), resources, databases };
+}
+
+const BACKUP_KEYS = ["postgresqls", "mysqls", "mariadbs", "mongodbs", "clickhouses"];
+
+// Backup state of one database: how many enabled schedules it has and the most
+// recent run across them. schedules is null when Coolify couldn't be read, so
+// "unknown" is never reported as "no backups".
+async function databaseBackups(db: { uuid: string; name: string }) {
+  try {
+    const found = await coolify(`/databases/${db.uuid}/backups`);
+    const list: Array<Record<string, any>> = Array.isArray(found) ? found : (found?.data ?? []);
+    const enabled = list.filter((s) => s.enabled !== false && typeof s.uuid === "string");
+    let last: { status: string | null; created_at: string } | null = null;
+    for (const s of enabled) {
+      const res = await coolify(`/databases/${db.uuid}/backups/${s.uuid}/executions`);
+      for (const e of res?.executions ?? []) {
+        if (typeof e.created_at === "string" && (!last || e.created_at > last.created_at)) {
+          last = { status: typeof e.status === "string" ? e.status : null, created_at: e.created_at };
+        }
+      }
+    }
+    return { name: db.name, schedules: enabled.length, lastStatus: last?.status ?? null, lastAt: last?.created_at ?? null };
+  } catch {
+    return { name: db.name, schedules: null, lastStatus: null, lastAt: null };
+  }
 }
 
 // OS patch state Coolify's weekly check stored for a server, or null when the
@@ -165,6 +194,7 @@ async function listProjects(jwt: string) {
         workspaceName: ws?.name ?? null,
         servers: infra.servers,
         resources: infra.resources,
+        backups: await Promise.all(infra.databases.map(databaseBackups)),
       };
     })
   );

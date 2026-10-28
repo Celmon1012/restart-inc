@@ -7,7 +7,7 @@ import { confirmAction } from "@/components/confirmAction";
 import { useState } from "react";
 import { AlertTriangle, Link2, Plus } from "lucide-react";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
-import { loadCoolifyProjects, runInfraAction, summarizeResources, type CoolifyProject } from "@/lib/admin";
+import { backupState, loadCoolifyProjects, runInfraAction, summarizeResources, type CoolifyProject } from "@/lib/admin";
 import { formatRelative } from "@/lib/format";
 
 type CoolifyServer = CoolifyProject["servers"][number];
@@ -29,6 +29,18 @@ function ServerPatchChips({ server }: { server: CoolifyServer }) {
       {p.checkedAt && <span className="admin-muted" title={p.checkedAt}>checked {formatRelative(p.checkedAt)}</span>}
     </>
   );
+}
+
+// One database's backup state. "None" is the one to notice: a data store with
+// no schedule has nothing to restore from.
+function BackupChip({ backup }: { backup: NonNullable<CoolifyProject["backups"]>[number] }) {
+  const state = backupState(backup);
+  const when = backup.lastAt ? formatRelative(backup.lastAt) : null;
+  if (state === "none") return <span className="health-badge down">No backup</span>;
+  if (state === "failed") return <span className="health-badge down">Last backup failed{when ? ` ${when}` : ""}</span>;
+  if (state === "stale") return <span className="health-badge warn">{when ? `Last backup ${when}` : "No backup has run yet"}</span>;
+  if (state === "ok") return <span className="health-badge ok">Backed up {when}</span>;
+  return <span className="health-badge muted">Backups unknown</span>;
 }
 
 export function InfraCard({
@@ -115,6 +127,12 @@ export function InfraCard({
                 </span>
               </div>
             )}
+            {linked?.backups?.map((b) => (
+              <div className="app-meta-item" key={`backup-${b.name}`}>
+                <span className="meta-k">{b.name} backups</span>
+                <span className="meta-v infra-chips"><BackupChip backup={b} /></span>
+              </div>
+            ))}
             {linked?.servers.map((s) => (
               <div className="app-meta-item" key={s.uuid}>
                 <span className="meta-k">{s.name} updates</span>

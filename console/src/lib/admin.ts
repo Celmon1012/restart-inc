@@ -254,6 +254,21 @@ export interface CoolifyProject {
   }>;
   /** Coolify status per resource, e.g. "running:healthy". Absent on older deploys. */
   resources?: Array<{ type: string; name: string; status: string }>;
+  /** Per database: enabled backup schedules (null if Coolify couldn't be read) and the latest run. Absent on older deploys. */
+  backups?: Array<{ name: string; schedules: number | null; lastStatus: string | null; lastAt: string | null }>;
+}
+
+export type BackupState = "none" | "failed" | "stale" | "ok" | "unknown";
+
+const BACKUP_STALE_DAYS = 3;
+
+/** none = no schedule at all; failed = the latest run failed; stale = scheduled but nothing has run lately. */
+export function backupState(b: NonNullable<CoolifyProject["backups"]>[number], now = Date.now()): BackupState {
+  if (b.schedules === null) return "unknown";
+  if (b.schedules === 0) return "none";
+  if (b.lastStatus && b.lastStatus !== "success" && b.lastStatus !== "running") return "failed";
+  if (!b.lastAt || now - new Date(b.lastAt).getTime() > BACKUP_STALE_DAYS * 86_400_000) return "stale";
+  return "ok";
 }
 
 export async function loadCoolifyProjects(): Promise<CoolifyProject[]> {
