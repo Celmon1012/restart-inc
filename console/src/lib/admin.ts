@@ -243,12 +243,42 @@ export interface CoolifyProject {
   description: string | null;
   workspaceId: string | null;
   workspaceName: string | null;
-  servers: Array<{ uuid: string; name: string; sharedWith: string[]; ip?: string | null }>;
+  servers: Array<{
+    uuid: string;
+    name: string;
+    sharedWith: string[];
+    ip?: string | null;
+    /** Absent until console-admin-infra is redeployed with patch state. */
+    reachable?: boolean;
+    patches?: { updates: number; security: number; rebootRequired: boolean; checkedAt: string | null } | null;
+  }>;
+  /** Coolify status per resource, e.g. "running:healthy". Absent on older deploys. */
+  resources?: Array<{ type: string; name: string; status: string }>;
 }
 
 export async function loadCoolifyProjects(): Promise<CoolifyProject[]> {
   const res = await invokeFunction<{ projects: CoolifyProject[] }>("console-admin-infra");
   return res.projects ?? [];
+}
+
+export type ResourceState = "healthy" | "no-check" | "down";
+
+/** Coolify reports "<state>:<health>". Anything not running, or running unhealthy, is down; running with no health data has no healthcheck. */
+export function resourceState(status: string): ResourceState {
+  const [state, health] = status.split(":");
+  if (state !== "running" || health === "unhealthy") return "down";
+  return health === "healthy" ? "healthy" : "no-check";
+}
+
+export function summarizeResources(resources: CoolifyProject["resources"]) {
+  const out = { healthy: 0, noCheck: 0, down: [] as string[] };
+  for (const r of resources ?? []) {
+    const s = resourceState(r.status);
+    if (s === "healthy") out.healthy++;
+    else if (s === "no-check") out.noCheck++;
+    else out.down.push(r.name);
+  }
+  return out;
 }
 
 export type InfraAction =

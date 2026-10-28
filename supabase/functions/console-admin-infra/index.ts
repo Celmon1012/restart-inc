@@ -9,7 +9,8 @@
 //
 // GET (or POST with no action) /functions/v1/console-admin-infra
 //   -> every Coolify project, which console project (if any) it's linked to,
-//      and the server(s) its production resources run on
+//      the server(s) its production resources run on (with the OS patch state
+//      Coolify last found), and each resource's Coolify status
 // POST /functions/v1/console-admin-infra  { action, ... }
 //   link    { workspace_id, coolify_project_uuid }  attach an existing Coolify project
 //   create  { workspace_id }                        create a Coolify project for it, then link
@@ -102,24 +103,51 @@ const RESOURCE_KEYS = [
   "redis", "keydbs", "clickhouses", "dragonflies",
 ];
 
-// Servers a project's production resources sit on. Same shapes console-data
-// reads: applications/databases carry destination.server, services carry server.
-async function projectServers(uuid: string): Promise<Array<{ uuid: string; name: string; ip: string | null }>> {
+// Servers a project's production resources sit on, and the resources
+// themselves with Coolify's status string ("running:healthy",
+// "restarting:unhealthy", ...). Same shapes console-data reads:
+// applications/databases carry destination.server, services carry server.
+async function projectInfra(uuid: string) {
+  const servers = new Map<string, { name: string; ip: string | null }>();
+  const resources: Array<{ type: string; name: string; status: string }> = [];
   let env: Record<string, any> | null;
   try {
     env = await coolify(`/projects/${uuid}/production`);
   } catch {
-    return [];
+    return { servers: [], resources };
   }
-  if (!env) return [];
-  const servers = new Map<string, { name: string; ip: string | null }>();
+  if (!env) return { servers: [], resources };
   for (const key of RESOURCE_KEYS) {
     for (const r of env[key] ?? []) {
       const s = r.destination?.server ?? r.server;
       if (s?.uuid) servers.set(s.uuid, { name: s.name ?? s.uuid, ip: typeof s.ip === "string" && s.ip ? s.ip : null });
+      if (typeof r.name === "string") resources.push({ type: key, name: r.name, status: typeof r.status === "string" ? r.status : "unknown" });
     }
   }
-  return Array.from(servers, ([uuid, v]) => ({ uuid, name: v.name, ip: v.ip }));
+  return { servers: Array.from(servers, ([uuid, v]) => ({ uuid, name: v.name, ip: v.ip })), resources };
+}
+
+// OS patch state Coolify's weekly check stored for a server, or null when the
+// check has never run or the server can't be read. Never throws: one
+// unreachable server must not blank the whole infrastructure listing.
+async function serverPatches(uuid: string) {
+  try {
+    const s = await coolify(`/servers/${uuid}`);
+    const patch = s?.settings?.patch_check_result;
+    return {
+      reachable: Boolean(s?.settings?.is_reachable ?? true),
+      patches: patch
+        ? {
+            updates: Number(patch.total_updates ?? 0),
+            security: Number(patch.security_updates ?? 0),
+            rebootRequired: Boolean(patch.reboot_required),
+            checkedAt: (s?.settings?.patch_checked_at as string | null) ?? null,
+          }
+        : null,
+    };
+  } catch {
+    return { reachable: true, patches: null };
+  }
 }
 
 async function listProjects(jwt: string) {
@@ -128,13 +156,15 @@ async function listProjects(jwt: string) {
   const rows = await Promise.all(
     ((projects ?? []) as Array<Record<string, any>>).map(async (p) => {
       const ws = byUuid.get(p.uuid) ?? null;
+      const infra = await projectInfra(p.uuid);
       return {
         uuid: p.uuid as string,
         name: p.name as string,
         description: (p.description as string | null) ?? null,
         workspaceId: ws?.id ?? null,
         workspaceName: ws?.name ?? null,
-        servers: await projectServers(p.uuid),
+        servers: infra.servers,
+        resources: infra.resources,
       };
     })
   );
@@ -143,10 +173,19 @@ async function listProjects(jwt: string) {
   const hosts = new Map<string, string[]>();
   for (const r of rows) for (const s of r.servers) hosts.set(s.uuid, [...(hosts.get(s.uuid) ?? []), r.name]);
 
+  // Patch state once per server, not once per project that sits on it.
+  const patchState = new Map(
+    await Promise.all(Array.from(hosts.keys(), async (uuid) => [uuid, await serverPatches(uuid)] as const))
+  );
+
   return rows
     .map((r) => ({
       ...r,
-      servers: r.servers.map((s) => ({ ...s, sharedWith: (hosts.get(s.uuid) ?? []).filter((n) => n !== r.name) })),
+      servers: r.servers.map((s) => ({
+        ...s,
+        sharedWith: (hosts.get(s.uuid) ?? []).filter((n) => n !== r.name),
+        ...(patchState.get(s.uuid) ?? { reachable: true, patches: null }),
+      })),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }

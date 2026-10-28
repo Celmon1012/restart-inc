@@ -2879,6 +2879,13 @@
 .health-badge.due-soon{ background: rgba(245, 158, 11, 0.15); color: var(--amber); }
 .health-badge.on-track{ background: rgba(96, 165, 250, 0.15); color: #93c5fd; }
 .health-badge.completed{ background: rgba(46, 229, 193, 0.15); color: var(--teal); }
+/* Tone aliases for infrastructure state, where "overdue" and "due-soon" read wrong. */
+.health-badge.down{ background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+.health-badge.warn{ background: rgba(245, 158, 11, 0.15); color: var(--amber); }
+.health-badge.ok{ background: rgba(46, 229, 193, 0.15); color: var(--teal); }
+.health-badge.muted{ background: rgba(255, 255, 255, 0.06); color: #8e9bb0; }
+.infra-chips{ display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.infra-chips .health-badge{ margin-left: 0; }
 .admin-down{ color: #f87171; }
 .admin-ok{ color: var(--teal); }
 

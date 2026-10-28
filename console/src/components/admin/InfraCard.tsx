@@ -7,7 +7,29 @@ import { confirmAction } from "@/components/confirmAction";
 import { useState } from "react";
 import { AlertTriangle, Link2, Plus } from "lucide-react";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
-import { loadCoolifyProjects, runInfraAction } from "@/lib/admin";
+import { loadCoolifyProjects, runInfraAction, summarizeResources, type CoolifyProject } from "@/lib/admin";
+import { formatRelative } from "@/lib/format";
+
+type CoolifyServer = CoolifyProject["servers"][number];
+
+// What Coolify's last OS patch check found on a server. Security updates and a
+// pending reboot are the two things worth acting on; a pile of routine updates
+// is only noted.
+function ServerPatchChips({ server }: { server: CoolifyServer }) {
+  if (server.reachable === false) return <span className="health-badge down">Unreachable</span>;
+  const p = server.patches;
+  if (!p) return <span className="health-badge muted" title="Coolify hasn't checked this server for updates yet">Not checked</span>;
+  const clear = p.security === 0 && !p.rebootRequired;
+  return (
+    <>
+      {p.security > 0 && <span className="health-badge down">{p.security} security update{p.security === 1 ? "" : "s"}</span>}
+      {p.rebootRequired && <span className="health-badge warn">Reboot required</span>}
+      {p.updates > p.security && <span className="health-badge muted">{p.updates - p.security} other update{p.updates - p.security === 1 ? "" : "s"}</span>}
+      {clear && p.updates === 0 && <span className="health-badge ok">Up to date</span>}
+      {p.checkedAt && <span className="admin-muted" title={p.checkedAt}>checked {formatRelative(p.checkedAt)}</span>}
+    </>
+  );
+}
 
 export function InfraCard({
   workspaceId,
@@ -76,7 +98,35 @@ export function InfraCard({
                     : <span className="admin-muted">Nothing deployed yet</span>}
               </span>
             </div>
+            {linked?.resources && linked.resources.length > 0 && (
+              <div className="app-meta-item">
+                <span className="meta-k">Health</span>
+                <span className="meta-v infra-chips">
+                  {(() => {
+                    const h = summarizeResources(linked.resources);
+                    return (
+                      <>
+                        {h.down.length > 0 && <span className="health-badge down" title={h.down.join(", ")}>{h.down.length} down</span>}
+                        {h.healthy > 0 && <span className="health-badge ok">{h.healthy} healthy</span>}
+                        {h.noCheck > 0 && <span className="health-badge muted" title="Running, but Coolify has no healthcheck for these, so a failure wouldn't show">{h.noCheck} no healthcheck</span>}
+                      </>
+                    );
+                  })()}
+                </span>
+              </div>
+            )}
+            {linked?.servers.map((s) => (
+              <div className="app-meta-item" key={s.uuid}>
+                <span className="meta-k">{s.name} updates</span>
+                <span className="meta-v infra-chips"><ServerPatchChips server={s} /></span>
+              </div>
+            ))}
           </div>
+          {linked && summarizeResources(linked.resources).down.length > 0 && (
+            <p className="infra-note admin-warn">
+              <AlertTriangle size={13} /> Not running or unhealthy: {summarizeResources(linked.resources).down.join(", ")}.
+            </p>
+          )}
           {linked?.servers.some((s) => s.sharedWith.length > 0) && (
             <p className="infra-note admin-muted">
               Server shared with {Array.from(new Set(linked.servers.flatMap((s) => s.sharedWith))).join(", ")}.

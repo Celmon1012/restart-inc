@@ -10,7 +10,7 @@
 import { consoleSchema } from "./supabase";
 import { invokeFunction } from "./functions";
 import { formatDate, formatRelative } from "./format";
-import { loadWorkspaceNames, OPEN_STAGES, type PipelineStage } from "./admin";
+import { loadCoolifyProjects, loadWorkspaceNames, OPEN_STAGES, summarizeResources, type CoolifyProject, type PipelineStage } from "./admin";
 import { useAsyncResource } from "@/hooks/useAsyncResource";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import type { Status as RequestStatus } from "@/components/ServerRequests";
@@ -91,6 +91,8 @@ const loadSupport = () =>
 
 const loadFinance = () => cached("finance", () => invokeFunction<FinanceOverview>("console-admin-finance"));
 
+const loadInfra = () => cached("infra", () => loadCoolifyProjects());
+
 // Each source loads only for the roles that may read it: leads for the owner, delivery and
 // support for Ops, finance for Finance. Others get an empty result without a request.
 export function useAdminSources() {
@@ -99,19 +101,46 @@ export function useAdminSources() {
     leads: useAsyncResource(() => (isOwner ? loadLeads() : Promise.resolve([] as LeadRow[])), [isOwner]),
     delivery: useAsyncResource(() => (canOps ? loadDelivery() : Promise.resolve(null)), [canOps]),
     support: useAsyncResource(() => (canOps ? loadSupport() : Promise.resolve([] as ConversationSummary[])), [canOps]),
-    finance: useAsyncResource(() => (canFinance ? loadFinance() : Promise.resolve(null)), [canFinance])
+    finance: useAsyncResource(() => (canFinance ? loadFinance() : Promise.resolve(null)), [canFinance]),
+    infra: useAsyncResource(() => (canOps ? loadInfra() : Promise.resolve([] as CoolifyProject[])), [canOps])
   };
 }
 
-export type AttentionCategory = "delivery" | "requests" | "leads" | "support" | "billing";
+export type AttentionCategory = "delivery" | "requests" | "leads" | "support" | "billing" | "infrastructure";
 
 export const ATTENTION_CATEGORY_LABEL: Record<AttentionCategory, string> = {
   delivery: "Delivery",
   requests: "Server requests",
   leads: "Follow-ups",
   support: "Support",
-  billing: "Billing"
+  billing: "Billing",
+  infrastructure: "Infrastructure"
 };
+
+// Resources that are down, and servers with security updates or a pending
+// reboot. A server shared by several projects is one line, not one per project.
+function infraAttention(projects: CoolifyProject[]): AttentionItem[] {
+  const items: AttentionItem[] = [];
+  const seenServers = new Set<string>();
+  for (const p of projects) {
+    const href = p.workspaceId ? `/admin/projects/${p.workspaceId}` : "/admin/projects";
+    const { down } = summarizeResources(p.resources);
+    if (down.length > 0) {
+      items.push({ key: `inf-down-${p.uuid}`, category: "infrastructure", text: `${p.name}: ${down.join(", ")} ${down.length === 1 ? "is" : "are"} down`, href });
+    }
+    for (const s of p.servers) {
+      if (seenServers.has(s.uuid)) continue;
+      seenServers.add(s.uuid);
+      const bits = [
+        s.reachable === false ? "unreachable" : null,
+        s.patches && s.patches.security > 0 ? `${s.patches.security} security update${s.patches.security === 1 ? "" : "s"}` : null,
+        s.patches?.rebootRequired ? "reboot required" : null
+      ].filter(Boolean);
+      if (bits.length > 0) items.push({ key: `inf-srv-${s.uuid}`, category: "infrastructure", text: `Server ${s.name}: ${bits.join(", ")}`, href });
+    }
+  }
+  return items;
+}
 
 export interface AttentionItem {
   key: string;
@@ -174,7 +203,8 @@ export function buildAttention(s: ReturnType<typeof useAdminSources>): Attention
       category: "billing" as const,
       text: n === 1 ? `${client} has an overdue invoice` : `${client} has ${n} overdue invoices`,
       href: "/finance/invoices"
-    }))
+    })),
+    ...infraAttention(s.infra.data ?? [])
   ];
 }
 
