@@ -18,8 +18,9 @@ import { faqs } from "@/data/faqs";
 import { useInsights } from "@/hooks/useInsights";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
-// Four Disciplines, Referenceable engagements and the Platform band are hidden
-// on the home page. Flip to true to bring them back.
+// Four Disciplines, Referenceable engagements, the Platform band, the tech wall,
+// the process strip and Insights are hidden on the home page (the tech wall and
+// process now live on /platform). Flip to true to bring them back.
 const SHOW_HIDDEN_HOME_SECTIONS = false;
 
 const stackLogos: Record<string, string> = {
@@ -204,7 +205,28 @@ export default function Home() {
       </section>
       </>}
 
-      <section className="offers-section container" id="work"><div className="section-intro centered"><SectionLabel>WAYS TO ENGAGE / SCOPED DELIVERY</SectionLabel><h2>Choose the next move.</h2><p>Every Restart engagement is designed to create useful momentum. Start with a defined outcome, make the important decisions visible, and leave with a system your team can operate or a clear path to build it.</p></div><div className="offer-list">{offers.map((offer, i) => <article className={`offer-row ${i % 2 ? "reverse" : ""}`} key={offer.kicker}><div className="offer-copy"><div className="offer-kicker"><SectionLabel tone={i % 2 ? "violet" : "teal"}>{offer.kicker}</SectionLabel><span>{offer.duration}</span></div><h2>{offer.title}</h2><p>{offer.text}</p><Link href={`/start-project?tier=${encodeURIComponent(offer.kicker)}`} className="button outline small">{offer.cta} <ArrowUpRight size={14} /></Link></div><div className={`offer-visual ${offer.visual}`}><Visual kind={offer.visual} /></div><div className="offer-specs"><div className="spec-tabs"><span className="active">SCOPE</span><span>DELIVERABLES</span><span>NOTES</span></div><ul>{offer.tags.map((tag) => <li key={tag}><Check size={13} />{tag}</li>)}</ul></div></article>)}</div></section>
+      <section className="offers-section container" id="work">
+        <div className="section-intro centered">
+          <SectionLabel>WAYS TO ENGAGE / SCOPED DELIVERY</SectionLabel>
+          <h2>Choose the next move.</h2>
+          <p>Start with a defined outcome. A short technical review sets scope, timeline, and cost; you get weekly checkpoints and a system your team can run.</p>
+        </div>
+        <div className="lane-grid offer-grid">
+          {offers.map((offer, i) => (
+            <article className={`lane-card ${i % 2 ? "violet" : "teal"}`} key={offer.kicker}>
+              <div className="lane-top">
+                <span className="lane-number">{offer.kicker}</span>
+                <span className="lane-number">{offer.duration}</span>
+              </div>
+              <h3>{offer.title}</h3>
+              <p>{offer.text}</p>
+              <Link href={`/start-project?tier=${encodeURIComponent(offer.kicker)}`} className="card-link">
+                {offer.cta} <ArrowUpRight size={14} />
+              </Link>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section className="case-studies-section container" id="case-studies">
         <div className="section-intro centered">
@@ -291,7 +313,7 @@ export default function Home() {
       </section>
 
       {/* Integration wall: the technologies we deploy on, named on hover/focus. */}
-      <section className="integration-section"><div className="container integration-wrap"><div className="section-copy"><SectionLabel>WE BUILD ON</SectionLabel><h2>Make the work lighter <span>—not more connected for its own sake.</span></h2><p>Your tools should reduce friction, not create another system to manage. Restart connects the product, platform, automation, and operational surfaces that keep your business moving.</p></div><ul className="integration-wall">{platformStack.map((item) => <li key={item.name} className="integration-icon" tabIndex={0}><img src={item.logo} alt="" aria-hidden="true" /><span className="integration-name">{item.name}</span></li>)}</ul></div></section>
+      {SHOW_HIDDEN_HOME_SECTIONS && <section className="integration-section"><div className="container integration-wrap"><div className="section-copy"><SectionLabel>WE BUILD ON</SectionLabel><h2>Make the work lighter <span>—not more connected for its own sake.</span></h2><p>Your tools should reduce friction, not create another system to manage. Restart connects the product, platform, automation, and operational surfaces that keep your business moving.</p></div><ul className="integration-wall">{platformStack.map((item) => <li key={item.name} className="integration-icon" tabIndex={0}><img src={item.logo} alt="" aria-hidden="true" /><span className="integration-name">{item.name}</span></li>)}</ul></div></section>}
 
       {/*
         Previously two sections ("SEAMLESS INTEGRATION FOR" and "PLATFORM") making
@@ -320,9 +342,9 @@ export default function Home() {
         </div>
       </section>}
 
-      <section className="proof-section" id="process"><div className="container"><div className="section-intro centered"><SectionLabel>SIMPLE 4 STEPS PROCESS</SectionLabel><h2>A straightforward path.</h2><p>No lengthy proposals or open-ended retainers — just a clear sequence from your first message to a system your team can run.</p></div><div className="proof-grid"><div><CircleCheck size={18} /><strong>01. Start the conversation.</strong><p>Tell us what you are building and where it is stuck. We reply quickly with whether the timing and fit make sense.</p></div><div><ShieldCheck size={18} /><strong>02. Scope the real work.</strong><p>A short technical review turns your constraint into a concrete plan — deliverables, timeline, and cost, with no surprises later.</p></div><div><Layers3 size={18} /><strong>03. Build in the open.</strong><p>Weekly checkpoints, visible progress, and decisions made together — not a black box that reappears at the deadline.</p></div><div><Network size={18} /><strong>04. Launch and hand off.</strong><p>Ship to production with documentation and context your team can operate without us.</p></div></div></div></section>
+      {SHOW_HIDDEN_HOME_SECTIONS && <section className="proof-section" id="process"><div className="container"><div className="section-intro centered"><SectionLabel>SIMPLE 4 STEPS PROCESS</SectionLabel><h2>A straightforward path.</h2><p>No lengthy proposals or open-ended retainers — just a clear sequence from your first message to a system your team can run.</p></div><div className="proof-grid"><div><CircleCheck size={18} /><strong>01. Start the conversation.</strong><p>Tell us what you are building and where it is stuck. We reply quickly with whether the timing and fit make sense.</p></div><div><ShieldCheck size={18} /><strong>02. Scope the real work.</strong><p>A short technical review turns your constraint into a concrete plan — deliverables, timeline, and cost, with no surprises later.</p></div><div><Layers3 size={18} /><strong>03. Build in the open.</strong><p>Weekly checkpoints, visible progress, and decisions made together — not a black box that reappears at the deadline.</p></div><div><Network size={18} /><strong>04. Launch and hand off.</strong><p>Ship to production with documentation and context your team can operate without us.</p></div></div></div></section>}
 
-      <section className="insights-section container" id="insights"><div className="section-intro centered"><SectionLabel>INSIGHTS</SectionLabel><h2>Insights for making decisions.</h2><p>Practical perspectives on architecture, operations, AI, cloud infrastructure, and the decisions that determine whether a system holds up under pressure.</p></div><div className="insight-grid">{insights.slice(0, 3).map((insight) => { return <Link key={insight.id} href={`/insights/${insight.id}`} className="insight-card"><InsightArt insight={insight} /><span>{insight.kicker}{insight.date && <time dateTime={insight.date} className="insight-date"> · {new Date(insight.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</time>}</span><h3>{insight.title}</h3><ArrowUpRight size={15} /></Link>; })}</div><Link className="button outline small center-button" href="/insights">Read all insights <ArrowRight size={14} /></Link></section>
+      {SHOW_HIDDEN_HOME_SECTIONS && <section className="insights-section container" id="insights"><div className="section-intro centered"><SectionLabel>INSIGHTS</SectionLabel><h2>Insights for making decisions.</h2><p>Practical perspectives on architecture, operations, AI, cloud infrastructure, and the decisions that determine whether a system holds up under pressure.</p></div><div className="insight-grid">{insights.slice(0, 3).map((insight) => { return <Link key={insight.id} href={`/insights/${insight.id}`} className="insight-card"><InsightArt insight={insight} /><span>{insight.kicker}{insight.date && <time dateTime={insight.date} className="insight-date"> · {new Date(insight.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</time>}</span><h3>{insight.title}</h3><ArrowUpRight size={15} /></Link>; })}</div><Link className="button outline small center-button" href="/insights">Read all insights <ArrowRight size={14} /></Link></section>}
 
       <section className="faq-section container" id="faq"><div className="faq-heading"><SectionLabel>FAQS</SectionLabel><h2>Good questions.<br /><span>Useful answers.</span></h2><p>The questions we hear most from founders and operators before their first project — answered plainly, no sales language.</p><Link href="/contact" className="button outline small">Still have a question? Get in touch <ArrowRight size={14} /></Link></div><div className="faq-list">{faqs.map(([question, answer], i) => <div className={`faq-item ${openFaq === i ? "open" : ""}`} key={question}><button onClick={() => setOpenFaq(openFaq === i ? null : i)} aria-expanded={openFaq === i}><span>{question}</span><ChevronDown size={20} strokeWidth={2.75} /></button>{openFaq === i && <p>{answer}</p>}</div>)}</div></section>
 

@@ -70,7 +70,7 @@ export default function Platform() {
   useEffect(() => {
     applyPageSeo({
       title: "Platform",
-      description: "How Restart turns operational friction into technical leverage: map the workflows and costs, automate the repeatable work, and build the platform underneath — tracked in the Restart Console.",
+      description: "The Restart Console: every system we build, with its health, delivery milestones, activity, access, billing, and support in one client workspace.",
       path: "/platform",
     });
     return () => resetSeoToDefault();
@@ -122,19 +122,39 @@ export default function Platform() {
         <section className="saas-section container platform-page-hero">
           <div className="saas-wrap">
             <div className="saas-copy">
-              <span className="section-label teal">PLATFORM</span>
-              <h1>Turn operational friction into <span>technical leverage.</span></h1>
+              <span className="section-label teal">THE RESTART CONSOLE</span>
+              <h1>Every system we build, <span>visible in one place.</span></h1>
               <p>
-                We map that work, automate what repeats, and build the platform underneath when the business has
-                outgrown its tools. You follow every step in the Restart Console.
+                Each client gets a Restart Console: system health, delivery milestones, activity, access, billing,
+                and support in one workspace. Nothing happens to your system off the record.
               </p>
               <div className="final-cta-buttons platform-page-actions">
-                <Link href="/start-project" className="button solid">Tell us where it's stuck <ArrowUpRight size={15} /></Link>
-                <a href={consoleHref} className="button outline">{session ? "Open your console" : "Console login"}</a>
+                <a href={consoleHref} className="button solid">{session ? "Open your console" : "Console login"} <ArrowUpRight size={15} /></a>
+                <Link href="/scorecard" className="button outline">Score your system</Link>
               </div>
             </div>
             <div className="saas-art platform-art platform-page-art">
               <DeliveryPreview />
+            </div>
+          </div>
+        </section>
+
+        {/* The console */}
+        <section className="proof-section" id="console">
+          <div className="container">
+            <div className="section-intro centered">
+              <span className="section-label teal">THE RESTART CONSOLE</span>
+              <h2>No black box <span>between you and the work.</span></h2>
+              <p>Every client workspace gets its own Restart Console. These are its sections.</p>
+            </div>
+            <div className="proof-grid platform-console-grid">
+              {consoleFeatures.map(({ icon: Icon, title, text }) => (
+                <div key={title}>
+                  <Icon size={18} />
+                  <strong>{title}</strong>
+                  <p>{text}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -161,26 +181,6 @@ export default function Platform() {
                 </div>
               </article>
             ))}
-          </div>
-        </section>
-
-        {/* The console */}
-        <section className="proof-section" id="console">
-          <div className="container">
-            <div className="section-intro centered">
-              <span className="section-label teal">THE RESTART CONSOLE</span>
-              <h2>No black box <span>between you and the work.</span></h2>
-              <p>Every client workspace gets its own Restart Console. These are its sections.</p>
-            </div>
-            <div className="proof-grid platform-console-grid">
-              {consoleFeatures.map(({ icon: Icon, title, text }) => (
-                <div key={title}>
-                  <Icon size={18} />
-                  <strong>{title}</strong>
-                  <p>{text}</p>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
 
