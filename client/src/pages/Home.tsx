@@ -166,20 +166,6 @@ export default function Home() {
         items={caseStudiesData.flatMap((c) => c.metrics.map((m) => ({ ...m, href: `/case-studies?study=${c.id}`, title: c.title, onSelect: () => setSelectedCaseStudy(c) })))}
       />
 
-      <section className="leverage-chain container" aria-labelledby="how-it-works-heading">
-        <div className="leverage-chain-intro">
-          <SectionLabel>HOW IT WORKS</SectionLabel>
-          <h2 id="how-it-works-heading">From stuck to <span>moving.</span></h2>
-        </div>
-        <div className="leverage-chain-steps">
-          <div className="leverage-chain-step"><span>01</span><strong>Friction mapped</strong><p>We find the workflows costing you time, money, and attention.</p></div>
-          <div className="leverage-chain-connector" aria-hidden="true"><ArrowRight size={16} /></div>
-          <div className="leverage-chain-step"><span>02</span><strong>System built</strong><p>We remove the constraint with a focused, production-ready engagement.</p></div>
-          <div className="leverage-chain-connector" aria-hidden="true"><ArrowRight size={16} /></div>
-          <div className="leverage-chain-step"><span>03</span><strong>Progress visible</strong><p>You follow the work, decisions, and operating result in the Console.</p></div>
-        </div>
-      </section>
-
       {SHOW_HIDDEN_HOME_SECTIONS && <>
       <div id="platform" />
 
