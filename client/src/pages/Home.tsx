@@ -18,6 +18,10 @@ import { faqs } from "@/data/faqs";
 import { useInsights } from "@/hooks/useInsights";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
+// Four Disciplines, Referenceable engagements and the Platform band are hidden
+// on the home page. Flip to true to bring them back.
+const SHOW_HIDDEN_HOME_SECTIONS = false;
+
 const stackLogos: Record<string, string> = {
   "Laravel": "/logos/stacks/laravel.svg",
   "PostgreSQL": "/logos/stacks/postgresql.svg",
@@ -162,6 +166,7 @@ export default function Home() {
         items={caseStudiesData.flatMap((c) => c.metrics.map((m) => ({ ...m, href: `/case-studies?study=${c.id}`, title: c.title, onSelect: () => setSelectedCaseStudy(c) })))}
       />
 
+      {SHOW_HIDDEN_HOME_SECTIONS && <>
       <div id="platform" />
 
       <section className="lanes-section container" id="solutions">
@@ -197,6 +202,7 @@ export default function Home() {
           })}
         </div>
       </section>
+      </>}
 
       <section className="offers-section container" id="work"><div className="section-intro centered"><SectionLabel>WAYS TO ENGAGE / SCOPED DELIVERY</SectionLabel><h2>Choose the next move.</h2><p>Every Restart engagement is designed to create useful momentum. Start with a defined outcome, make the important decisions visible, and leave with a system your team can operate or a clear path to build it.</p></div><div className="offer-list">{offers.map((offer, i) => <article className={`offer-row ${i % 2 ? "reverse" : ""}`} key={offer.kicker}><div className="offer-copy"><div className="offer-kicker"><SectionLabel tone={i % 2 ? "violet" : "teal"}>{offer.kicker}</SectionLabel><span>{offer.duration}</span></div><h2>{offer.title}</h2><p>{offer.text}</p><Link href={`/start-project?tier=${encodeURIComponent(offer.kicker)}`} className="button outline small">{offer.cta} <ArrowUpRight size={14} /></Link></div><div className={`offer-visual ${offer.visual}`}><Visual kind={offer.visual} /></div><div className="offer-specs"><div className="spec-tabs"><span className="active">SCOPE</span><span>DELIVERABLES</span><span>NOTES</span></div><ul>{offer.tags.map((tag) => <li key={tag}><Check size={13} />{tag}</li>)}</ul></div></article>)}</div></section>
 
@@ -204,7 +210,7 @@ export default function Home() {
         <div className="section-intro centered">
           <SectionLabel>CASE STUDIES / PROOF SYSTEM</SectionLabel>
           <h2>Show the constraint.<br /><span>Prove the change.</span></h2>
-          <p>Two kinds of proof, in sequence. First the measurable results on anonymised engagements. Then the two clients we can name, with systems you can open yourself.</p>
+          <p>{SHOW_HIDDEN_HOME_SECTIONS ? "Two kinds of proof, in sequence. First the measurable results on anonymised engagements. Then the two clients we can name, with systems you can open yourself." : "Measurable results on anonymised engagements: the starting condition, the intervention, and the production result."}</p>
         </div>
 
         <div className="proof-sequence">
@@ -275,6 +281,7 @@ export default function Home() {
           scale and the named work establish that it is checkable -- which is
           the claim a referral-driven buyer actually acts on.
         */}
+        {SHOW_HIDDEN_HOME_SECTIONS && <>
         <div className="proof-interstitial">
           <span className="proof-interstitial-rule" />
           <span className="proof-interstitial-mark">THEN, THE CLIENTS WE CAN NAME</span>
@@ -289,6 +296,7 @@ export default function Home() {
 
           <NamedClients />
         </div>
+        </>}
         </div>
       </section>
 
@@ -302,7 +310,7 @@ export default function Home() {
         twelve-icon wall (unlabelled Lucide glyphs carrying no information) is
         replaced by the real technologies we deploy on.
       */}
-      <section className="platform-section" id="platform-detail">
+      {SHOW_HIDDEN_HOME_SECTIONS && <section className="platform-section" id="platform-detail">
         <div className="container platform-wrap">
           <div className="platform-copy">
             <SectionLabel>PLATFORM</SectionLabel>
@@ -320,7 +328,7 @@ export default function Home() {
             <DeliveryPreview />
           </div>
         </div>
-      </section>
+      </section>}
 
       <section className="proof-section" id="process"><div className="container"><div className="section-intro centered"><SectionLabel>SIMPLE 4 STEPS PROCESS</SectionLabel><h2>A straightforward path.</h2><p>No lengthy proposals or open-ended retainers — just a clear sequence from your first message to a system your team can run.</p></div><div className="proof-grid"><div><CircleCheck size={18} /><strong>01. Start the conversation.</strong><p>Tell us what you are building and where it is stuck. We reply quickly with whether the timing and fit make sense.</p></div><div><ShieldCheck size={18} /><strong>02. Scope the real work.</strong><p>A short technical review turns your constraint into a concrete plan — deliverables, timeline, and cost, with no surprises later.</p></div><div><Layers3 size={18} /><strong>03. Build in the open.</strong><p>Weekly checkpoints, visible progress, and decisions made together — not a black box that reappears at the deadline.</p></div><div><Network size={18} /><strong>04. Launch and hand off.</strong><p>Ship to production with documentation and context your team can operate without us.</p></div></div></div></section>
 
