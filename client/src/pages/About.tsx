@@ -35,7 +35,7 @@ export default function About() {
   useEffect(() => {
     applyPageSeo({
       title: "About",
-      description: "Restart Inc. is an engineering firm built on senior ownership, production discipline, and scoped delivery — not open-ended retainers.",
+      description: "Restart Inc. builds the systems your growth depends on — turning operational friction into technical leverage and giving your team time back.",
       path: "/about",
     });
     return () => resetSeoToDefault();
@@ -89,17 +89,14 @@ export default function About() {
           <div className="saas-wrap">
             <div className="saas-copy">
               <span className="section-label teal">OUR STORY</span>
-              <h1>Why Restart exists.</h1>
+              <h1>Build the systems <span>your growth depends on.</span></h1>
               <p>
-                Restart exists for the point where a good product idea meets real-world complexity — tangled workflows,
-                systems that stop communicating, AI added without the controls to make it trustworthy, and growth that
-                exposes assumptions no one documented.
+                Restart helps ambitious teams turn operational friction into technical leverage. We map the workflows
+                costing you most, build the systems that remove them, and stay accountable through production.
               </p>
               <p>
-                Most technical failures there aren't dramatic. They're a tenancy boundary that leaks quietly, a
-                migration that goes fine until it doesn't, an AI feature that worked in the demo and nowhere else. We
-                make sure the decisions holding your system together are made by someone senior enough to see them
-                coming — and stay accountable for them through production, not just through launch.
+                The result is not more software to manage. It is fewer manual handoffs, clearer ownership, and more
+                capacity for the work only your team can do. We give you back your most precious asset — your time.
               </p>
             </div>
             <div className="saas-art">
@@ -153,7 +150,7 @@ export default function About() {
           <div className="container final-cta-content">
             <span className="section-label teal">READY FOR THE NEXT STAGE?</span>
             <h2>Bring us <span>the hard part.</span></h2>
-            <p>Restart will help you build systems your growth can depend on—reliable enough for today, structured enough for tomorrow, and clear enough for your team to keep improving.</p>
+            <p>Restart will help you build systems your growth can depend on—reliable enough for today, structured enough for tomorrow, and clear enough to give your team time back.</p>
             <div className="final-cta-buttons">
               <Link href="/start-project" className="button solid">Tell us what you're building <ArrowUpRight size={15} /></Link>
               <Link href="/contact" className="button outline">Get in touch</Link>
