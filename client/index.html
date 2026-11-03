@@ -51,22 +51,21 @@
     <blockquote class="sr-only" aria-hidden="true"><a href="/llms.txt" tabindex="-1">llms.txt</a></blockquote>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Chatwoot widget disabled. Change type to "text/javascript" to re-enable. -->
-    <script type="text/plain" data-disabled="chatwoot">
-      window.chatwootSettings = {"position":"right","type":"standard","launcherTitle":""};
-      (function(d,t) {
-        var BASE_URL="https://support.restart.ng";
-        var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
-        g.src=BASE_URL+"/packs/js/sdk.js";
-        g.async = true;
-        s.parentNode.insertBefore(g,s);
-        g.onload=function(){
-          window.chatwootSDK.run({
-            websiteToken: 'LuuHFapPBAL1kUKzVMfiSRnX',
-            baseUrl: BASE_URL
-          })
-        }
-      })(document,"script");
+    <!-- Chat widget (crm.restart.ng). Replaces the old Chatwoot embed on support.restart.ng. -->
+    <script>
+      (function(d,t){
+        var SDK_BASE = 'https://crm.restart.ng';
+        var WIDGET_BASE = 'https://crm.restart.ng';
+        var s = d.createElement(t); var x = d.getElementsByTagName(t)[0];
+        window.evoChatSettings = {"position":"right","type":"expanded_bubble","launcherTitle":"Chat our team","apiBase":"https://api-crm.restart.ng"};
+        s.src = SDK_BASE + '/widget-sdk/sdk.min.js'; s.async = true; s.defer = true;
+        x.parentNode.insertBefore(s,x);
+        s.onload = function(){
+          if(window.evoChatSDK && window.evoChatSDK.run){
+            window.evoChatSDK.run({ baseUrl: WIDGET_BASE, websiteToken: 'Hfruti68QWiskKuDm8RrvC5N' });
+          }
+        };
+      })(document,'script');
     </script>
   </body>
 </html>
