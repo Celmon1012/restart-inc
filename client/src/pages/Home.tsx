@@ -74,13 +74,13 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const session = useAuthSession();
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
-  const consoleLabel = session ? "Dashboard" : "Console Login";
+  const consoleLabel = "Sign in";
   const { insights } = useInsights();
 
   useEffect(() => {
     applyPageSeo({
       title: "Restart Inc.",
-      description: "We help ambitious businesses turn complex workflows and product ideas into reliable, scalable production systems.",
+      description: "Turn operational friction into technical leverage. Restart maps the workflows costing you most, builds the systems that remove them, and makes every step visible in the Console.",
       path: "/",
     });
     return () => resetSeoToDefault();
@@ -107,7 +107,7 @@ export default function Home() {
       </Link>
       <nav className={menuOpen ? "open" : ""}>
         <Link href="/platform" onClick={() => setMenuOpen(false)}>
-          <span>PLATFORM</span>
+          <span>CONSOLE</span>
           <span className="nav-indicator" />
         </Link>
         <Link href="/solutions" onClick={() => setMenuOpen(false)}>
@@ -128,12 +128,12 @@ export default function Home() {
         </Link>
           <div className="mobile-nav-actions">
 <a href={consoleHref}>{consoleLabel}</a>
-            <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
+            <Link href="/scorecard" className="header-cta">Get an assessment <ArrowUpRight size={14} /></Link>
           </div>
         </nav>
         <div className="header-actions">
 <a href={consoleHref} className="login-link">{consoleLabel}</a>
-          <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
+          <Link href="/scorecard" className="header-cta">Get an assessment <ArrowUpRight size={14} /></Link>
         <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
@@ -147,11 +147,11 @@ export default function Home() {
         <ConsolePreview href={consoleHref} />
         <div className="hero-shell">
           <div className="hero-content">
-            <h1>Build systems <span>your growth depends on.</span></h1>
-            <p>We help ambitious businesses turn complex workflows and product ideas into reliable, scalable production systems.</p>
+            <h1>Turn operational friction into <span>technical leverage.</span></h1>
+            <p>We map the workflows costing you most, build the systems that remove them, and you follow every step in the Restart Console.</p>
             <div className="hero-buttons">
-              <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
-              <Link href="/platform" className="button outline">See how we build <ChevronRight size={15} /></Link>
+              <Link href="/start-project" className="button solid">Tell us where it’s stuck <ArrowUpRight size={15} /></Link>
+              <Link href="/platform" className="button outline">See the Console <ChevronRight size={15} /></Link>
             </div>
             <div className="hero-proof-row">
               <span><Check size={13} /> Senior technical ownership</span>
@@ -165,6 +165,20 @@ export default function Home() {
         label="Measured in production"
         items={caseStudiesData.flatMap((c) => c.metrics.map((m) => ({ ...m, href: `/case-studies?study=${c.id}`, title: c.title, onSelect: () => setSelectedCaseStudy(c) })))}
       />
+
+      <section className="leverage-chain container" aria-labelledby="how-it-works-heading">
+        <div className="leverage-chain-intro">
+          <SectionLabel>HOW IT WORKS</SectionLabel>
+          <h2 id="how-it-works-heading">From stuck to <span>moving.</span></h2>
+        </div>
+        <div className="leverage-chain-steps">
+          <div className="leverage-chain-step"><span>01</span><strong>Friction mapped</strong><p>We find the workflows costing you time, money, and attention.</p></div>
+          <div className="leverage-chain-connector" aria-hidden="true"><ArrowRight size={16} /></div>
+          <div className="leverage-chain-step"><span>02</span><strong>System built</strong><p>We remove the constraint with a focused, production-ready engagement.</p></div>
+          <div className="leverage-chain-connector" aria-hidden="true"><ArrowRight size={16} /></div>
+          <div className="leverage-chain-step"><span>03</span><strong>Progress visible</strong><p>You follow the work, decisions, and operating result in the Console.</p></div>
+        </div>
+      </section>
 
       {SHOW_HIDDEN_HOME_SECTIONS && <>
       <div id="platform" />
@@ -215,11 +229,6 @@ export default function Home() {
 
         <div className="proof-sequence">
         <div className="proof-stage">
-        <div className="proof-stage-head">
-          <h3>Measurable results, anonymised</h3>
-          <p>Enterprise-scale engagements where the client asked not to be named. The starting condition, the intervention, and the production result are all documented.</p>
-        </div>
-
         <div className="case-study-grid">
           {caseStudiesData.slice(0, 3).map((study, i) => (
             <article
@@ -266,11 +275,6 @@ export default function Home() {
             <span>View all case studies and delivery files</span>
             <ArrowRight size={15} />
           </Link>
-        </div>
-
-        <div className="case-study-note">
-          <ShieldCheck size={16} />
-          <span>Verified outcomes are sourced from published technical case files. Additional project metrics are available during architecture review.</span>
         </div>
         </div>
 

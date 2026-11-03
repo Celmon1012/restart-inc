@@ -55,7 +55,7 @@ export default function ConsolePreview({ href }: { href: string }) {
             <div className="cp-tabs"><a className="active">Overview</a><a>Systems</a><a>Delivery</a></div>
             <div className="cpv-top-right">
               <span className="cpv-icon"><Bell size={15} /></span>
-              <span className="cpv-cta">Start a Project <ArrowUpRight size={13} /></span>
+              <span className="cpv-cta">Get an assessment <ArrowUpRight size={13} /></span>
               <span className="cpv-icon"><User size={14} /></span>
             </div>
           </div>
@@ -63,16 +63,18 @@ export default function ConsolePreview({ href }: { href: string }) {
           <div className="cpv-body">
             <div className="cp-head">
               <span className="cp-eyebrow">Acme Operations</span>
-              <h1>Systems Overview</h1>
-              <p>Your systems are healthy — every system, deploy, and delivery milestone in one place.</p>
+              <h1>Operating Overview</h1>
+              <p>See what is moving, what needs attention, and where your next operating gain is coming from.</p>
             </div>
 
             <div className="cp-stats">
+              <div><small>HOURS RECLAIMED</small><strong>186<span>/mo</span></strong><em>Across mapped workflows</em></div>
+              <div><small>DELIVERY RISK</small><strong>Low</strong><em>Nothing flagged</em></div>
               <div><small>SYSTEMS</small><strong>10</strong><em>All healthy</em></div>
-              <div><small>NEEDS ATTENTION</small><strong>0</strong><em>Nothing flagged</em></div>
               <div><small>DELIVERY</small><strong>3<span>/5</span></strong><em>Billing integration</em></div>
-              <div><small>DEPLOYS</small><strong>24</strong><em>3 in last 24h</em></div>
             </div>
+
+            <div className="cp-sample-data">SAMPLE DATA · ACME OPERATIONS</div>
 
             <div className="cp-grid">
               <div className="cp-card">
