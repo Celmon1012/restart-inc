@@ -74,7 +74,7 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const session = useAuthSession();
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
-  const consoleLabel = "Sign in";
+  const consoleLabel = session ? "Dashboard" : "Console Login";
   const { insights } = useInsights();
 
   useEffect(() => {
@@ -107,7 +107,7 @@ export default function Home() {
       </Link>
       <nav className={menuOpen ? "open" : ""}>
         <Link href="/platform" onClick={() => setMenuOpen(false)}>
-          <span>CONSOLE</span>
+          <span>PLATFORM</span>
           <span className="nav-indicator" />
         </Link>
         <Link href="/solutions" onClick={() => setMenuOpen(false)}>
@@ -128,12 +128,12 @@ export default function Home() {
         </Link>
           <div className="mobile-nav-actions">
 <a href={consoleHref}>{consoleLabel}</a>
-            <Link href="/scorecard" className="header-cta">Get an assessment <ArrowUpRight size={14} /></Link>
+            <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
           </div>
         </nav>
         <div className="header-actions">
 <a href={consoleHref} className="login-link">{consoleLabel}</a>
-          <Link href="/scorecard" className="header-cta">Get an assessment <ArrowUpRight size={14} /></Link>
+          <Link href="/start-project" className="header-cta">Start a Project <ArrowUpRight size={14} /></Link>
         <button className="menu-toggle" aria-label={menuOpen ? "Close menu" : "Open menu"} onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
