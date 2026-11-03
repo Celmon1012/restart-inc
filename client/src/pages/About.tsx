@@ -152,7 +152,7 @@ export default function About() {
             <h2>Bring us <span>the hard part.</span></h2>
             <p>Restart will help you build systems your growth can depend on—reliable enough for today, structured enough for tomorrow, and clear enough to give your team time back.</p>
             <div className="final-cta-buttons">
-              <Link href="/start-project" className="button solid">Tell us what you're building <ArrowUpRight size={15} /></Link>
+            <Link href="/start-project" className="button solid">Tell us where it's stuck <ArrowUpRight size={15} /></Link>
               <Link href="/contact" className="button outline">Get in touch</Link>
             </div>
           </div>

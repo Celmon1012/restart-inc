@@ -97,7 +97,7 @@ export default function CaseStudies() {
         <section className="portfolio-hero container">
           <div className="section-intro centered">
             <span className="section-label teal">PRODUCTION DELIVERY DOSSIERS</span>
-            <h1>Show the work.<br /><span>Prove the difference.</span></h1>
+            <h1>Show the constraint.<br /><span>Prove the change.</span></h1>
             <p>
               Documented interventions that remove operational friction, return capacity to teams, and hold up in production.
             </p>
@@ -194,7 +194,7 @@ export default function CaseStudies() {
             <h2>Turn the constraint into<br /><span>technical leverage.</span></h2>
             <p>Tell us where the work is getting stuck, what it is costing the team, and what needs to change in production.</p>
             <div className="final-cta-buttons">
-              <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
+              <Link href="/start-project" className="button solid">Tell us where it’s stuck <ArrowUpRight size={15} /></Link>
               <Link href="/" className="button outline">Back to Home <ChevronRight size={15} /></Link>
             </div>
           </div>

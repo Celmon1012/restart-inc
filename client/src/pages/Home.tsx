@@ -333,7 +333,7 @@ export default function Home() {
           <h2>Bring us <span>the hard part.</span></h2>
           <p>Restart will help you build systems your growth can depend on—reliable enough for today, structured enough for tomorrow, and clear enough for your team to keep improving.</p>
           <div className="final-cta-buttons">
-            <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
+          <Link href="/start-project" className="button solid">Tell us where it’s stuck <ArrowUpRight size={15} /></Link>
             <Link href="/solutions" className="button outline">Explore solutions <ChevronRight size={15} /></Link>
           </div>
         </div>

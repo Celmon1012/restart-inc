@@ -231,9 +231,9 @@ export default function Insights() {
           <div className="container final-cta-content">
             <span className="section-label teal">START A CONVERSATION</span>
             <h2>Have a system in mind?<br /><span>Let's talk about it.</span></h2>
-            <p>Tell us what you are building, where your architecture is feeling pressure, or which migration you need to execute with zero downtime.</p>
+            <p>Tell us where the work is getting stuck, what it is costing the team, or which migration needs to happen without downtime.</p>
             <div className="final-cta-buttons">
-              <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
+              <Link href="/start-project" className="button solid">Tell us where it’s stuck <ArrowUpRight size={15} /></Link>
               <Link href="/case-studies" className="button outline">See our work <ChevronRight size={15} /></Link>
             </div>
           </div>
