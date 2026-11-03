@@ -89,7 +89,7 @@ export default function Contact() {
             <span className="nav-indicator" />
           </Link>
           <Link href="/case-studies" className={location.startsWith("/case-studies") ? "active" : ""} onClick={() => setMenuOpen(false)}>
-            <span>PROOF</span>
+            <span>CASE STUDIES</span>
             <span className="nav-indicator" />
           </Link>
           <Link href="/insights" className={location.startsWith("/insights") ? "active" : ""} onClick={() => setMenuOpen(false)}>

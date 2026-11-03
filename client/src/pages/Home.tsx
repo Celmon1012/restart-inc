@@ -115,7 +115,7 @@ export default function Home() {
           <span className="nav-indicator" />
         </Link>
         <Link href="/case-studies" onClick={() => setMenuOpen(false)}>
-          <span>PROOF</span>
+          <span>CASE STUDIES</span>
           <span className="nav-indicator" />
         </Link>
         <Link href="/insights" onClick={() => setMenuOpen(false)}>
