@@ -270,7 +270,7 @@ export default function StartProject() {
     applyPageSeo({
       title: "Start a Project",
       description:
-        "Scope your build with Restart Inc. — tell us what you're building, where the constraint sits, and what decision you need to make next.",
+        "Scope the system that will remove your biggest constraint — tell Restart where operational friction is costing your team time and what needs to change next.",
       path: "/start-project",
     });
     return () => resetSeoToDefault();
@@ -751,10 +751,10 @@ export default function StartProject() {
 
       <main className="scorecard-main container">
         <header className="scorecard-intro">
-          <span className="section-label teal">START A PROJECT</span>
-          <h1>Tell us what you're <span>building</span></h1>
+          <span className="section-label teal">SCOPE THE NEXT SYSTEM</span>
+          <h1>Tell us where it's <span>stuck.</span></h1>
           <p>
-            A senior engineer reads every brief and replies within one business day.
+            A senior engineer reads every brief and replies within one business day with the clearest next step.
           </p>
         </header>
 

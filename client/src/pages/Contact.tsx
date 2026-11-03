@@ -17,7 +17,7 @@ export default function Contact() {
   useEffect(() => {
     applyPageSeo({
       title: "Contact",
-      description: "Tell Restart Inc. what you're building and where it's stuck. We reply quickly with whether the timing and fit make sense.",
+      description: "Tell Restart Inc. where operational friction is costing your team time. We reply quickly with whether the timing and fit make sense.",
       path: "/contact",
     });
     return () => resetSeoToDefault();
@@ -119,9 +119,9 @@ export default function Contact() {
           {/* Left Column: Contact Details */}
           <div className="squeeze-pitch">
             <span className="section-label teal">GET IN TOUCH</span>
-            <h1>Let's talk about <span>what you're building.</span></h1>
+            <h1>Let's talk about <span>where it's stuck.</span></h1>
             <p className="squeeze-subheading">
-              Send us a message and a senior engineer will get back to you directly — no sales queue, no account rep relay.
+              Tell us what is costing your team time. A senior engineer will get back to you directly — no sales queue, no account rep relay.
             </p>
 
             <div className="squeeze-commitments">

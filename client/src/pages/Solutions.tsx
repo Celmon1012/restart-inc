@@ -16,7 +16,7 @@ export default function Solutions() {
   useEffect(() => {
     applyPageSeo({
       title: "Solutions",
-      description: "Four engineering disciplines: SaaS platforms, commerce infrastructure, AI engineering, and architecture leadership — each delivered with senior technical ownership.",
+      description: "Restart turns operational friction into technical leverage through production-ready platforms, commerce systems, AI engineering, and senior technical direction.",
       path: "/solutions",
     });
     return () => resetSeoToDefault();
@@ -67,9 +67,9 @@ export default function Solutions() {
       <main>
         <section className="portfolio-hero container">
           <div className="section-intro centered">
-            <span className="section-label teal">FOUR DISCIPLINES</span>
-            <h1>Let's build together!</h1>
-            <p>Restart brings architecture, automation, product engineering, and production discipline together so bold ideas can move from decision to delivery without becoming a technical liability.</p>
+            <span className="section-label teal">SYSTEMS WE BUILD</span>
+            <h1>Remove the friction <span>slowing growth.</span></h1>
+            <p>Restart maps the workflows costing you time, builds the systems that remove them, and delivers the technical foundation your team can run.</p>
           </div>
         </section>
 
@@ -102,9 +102,9 @@ export default function Solutions() {
           <div className="container final-cta-content">
             <span className="section-label teal">NEXT STEP</span>
             <h2>Bring us <span>the hard part.</span></h2>
-            <p>Tell us what you are building and where the constraint sits. We will tell you quickly whether the timing and fit make sense.</p>
+            <p>Tell us where the constraint sits. We will help you identify the next system to build, the capacity it can return, and whether the timing and fit make sense.</p>
             <div className="final-cta-buttons">
-              <Link href="/start-project" className="button solid">Start a project <ArrowUpRight size={15} /></Link>
+              <Link href="/start-project" className="button solid">Tell us where it’s stuck <ArrowUpRight size={15} /></Link>
               <Link href="/platform" className="button outline">How the platform works <ChevronRight size={15} /></Link>
             </div>
           </div>

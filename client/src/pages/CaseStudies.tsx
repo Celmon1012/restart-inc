@@ -20,7 +20,7 @@ export default function CaseStudies() {
   useEffect(() => {
     applyPageSeo({
       title: "Case Studies",
-      description: "Verified outcomes from Restart Inc. engagements — private cloud migrations, AI engineering, and commerce infrastructure, with the starting constraint and the production result.",
+      description: "Proof of technical leverage from Restart Inc. engagements — the operational constraint, the system built, and the measurable production result.",
       path: "/case-studies",
     });
     return () => resetSeoToDefault();
@@ -99,7 +99,7 @@ export default function CaseStudies() {
             <span className="section-label teal">PRODUCTION DELIVERY DOSSIERS</span>
             <h1>Show the work.<br /><span>Prove the difference.</span></h1>
             <p>
-              Documented engineering interventions, verified client outcomes, and battle-tested production architectures built for serious operators.
+              Documented interventions that remove operational friction, return capacity to teams, and hold up in production.
             </p>
           </div>
 
@@ -163,8 +163,8 @@ export default function CaseStudies() {
           <div className="portfolio-method-box">
             <div className="method-box-header">
               <span className="section-label violet">OPERATING DISCIPLINE</span>
-              <h2>How We Deliver With Zero Surprise</h2>
-              <p>Every Restart engagement follows an unyielding production cadence designed to de-risk technical choices before they impact your growth.</p>
+                  <h2>How we turn friction into leverage</h2>
+                  <p>Every Restart engagement follows a clear production cadence designed to return capacity without introducing a new operational burden.</p>
             </div>
             <div className="method-steps-grid">
               <div className="method-step">
@@ -191,8 +191,8 @@ export default function CaseStudies() {
           <div className="final-cta-grid" />
           <div className="container final-cta-content">
             <span className="section-label teal">START A CONVERSATION</span>
-            <h2>Build your system with<br /><span>senior engineering rigor.</span></h2>
-            <p>Tell us what you are building, where your architecture is feeling pressure, or which migration you need to execute with zero downtime.</p>
+            <h2>Turn the constraint into<br /><span>technical leverage.</span></h2>
+            <p>Tell us where the work is getting stuck, what it is costing the team, and what needs to change in production.</p>
             <div className="final-cta-buttons">
               <Link href="/start-project" className="button solid">Tell us what you’re building <ArrowUpRight size={15} /></Link>
               <Link href="/" className="button outline">Back to Home <ChevronRight size={15} /></Link>
