@@ -649,7 +649,7 @@ async function loadSiteData() {
 function writeLlmsTxt(posts, { studies, solutions }) {
   const published = posts.filter(isPublished);
   const metricLine = (s) => s.metrics.map((m) => `${m.label}: ${m.value}`).join("; ");
-  const studyUrl = (s) => `${SITE_URL}/case-studies?study=${s.id}`;
+  const studyUrl = (s) => `${SITE_URL}/case-studies/${s.id}`;
 
   const header = [
     `# ${SITE_NAME}`,

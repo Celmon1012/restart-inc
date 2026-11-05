@@ -4,8 +4,7 @@ import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { ArrowRight, ArrowUpRight, Check, ChevronRight, ShieldCheck, Menu, X, ExternalLink } from "lucide-react";
-import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
-import CaseStudyModal from "@/components/CaseStudyModal";
+import { caseStudiesData } from "@/data/caseStudies";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 import StudyCard from "@/components/StudyCard";
 import { FaqSection, ContactSection, SignOff } from "@/components/PageSections";
@@ -22,7 +21,6 @@ const toneColor: Record<string, string> = {
 const PERCENT = /^[−+-]?\d+(\.\d+)?%$/;
 
 export default function CaseStudies() {
-  const [selectedStudy, setSelectedStudy] = useState<CaseStudy | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [menuOpen, setMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
@@ -39,12 +37,11 @@ export default function CaseStudies() {
     return () => resetSeoToDefault();
   }, []);
 
-  // Deep link: /case-studies?study=<id> opens that study (used by the homepage
-  // stats bar and llms.txt).
+  // Old deep link: /case-studies?study=<id> now lives at /case-studies/<id>.
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("study");
-    const study = id && caseStudiesData.find((c) => c.id === id);
-    if (study) setSelectedStudy(study);
+    if (id && caseStudiesData.some((c) => c.id === id)) setLocation(`/case-studies/${id}`, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const categories = [
@@ -148,7 +145,7 @@ export default function CaseStudies() {
           </div>
           <div className="cs-list">
             {filteredStudies.map((study, i) => (
-              <StudyCard key={study.id} study={study} index={i} onOpen={() => setSelectedStudy(study)} />
+              <StudyCard key={study.id} study={study} index={i} onOpen={() => setLocation(`/case-studies/${study.id}`)} />
             ))}
           </div>
         </section>
@@ -214,17 +211,6 @@ export default function CaseStudies() {
 
       {/* Footer */}
       <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" /></Link><p>Engineering systems your growth depends on.</p><div className="footer-brand-contact"><a href="mailto:hello@restart.ng">hello@restart.ng</a><a href="tel:+2349060114747">+234 906 011 4747</a></div></div><div><strong>PLATFORM</strong><Link href="/platform">Platform</Link><Link href="/solutions">Solutions</Link><Link href="/case-studies">Case Studies</Link><Link href="/insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/careers">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/privacy">Privacy Policy</Link><Link href="/terms">Terms of Service</Link><button type="button" className="footer-cookie-btn" onClick={openCookieSettings}>Cookie settings</button></span></div></footer>
-
-      {/* Case Study Detail Modal */}
-      <CaseStudyModal
-        isOpen={!!selectedStudy}
-        onClose={() => setSelectedStudy(null)}
-        caseStudy={selectedStudy}
-        onDiscuss={(title) => {
-          setSelectedStudy(null);
-          openOnboarding(title);
-        }}
-      />
 
     </div>
   );

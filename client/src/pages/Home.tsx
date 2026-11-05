@@ -6,12 +6,11 @@ import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { ArrowRight, ArrowUpRight, Check, ChevronRight, Layers3, Map as MapIcon, Menu, MessagesSquare, Rocket, X } from "lucide-react";
-import CaseStudyModal from "@/components/CaseStudyModal";
-import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
+import { caseStudiesData } from "@/data/caseStudies";
 import InsightArt from "@/components/InsightArt";
 import { HeroStats } from "@/components/HeroBackdrop";
 import DeliveryPreview from "@/components/DeliveryPreview";
-import ProcessTimeline from "@/components/ProcessTimeline";
+import ProcessSlider from "@/components/ProcessSlider";
 import { FaqSection, ContactSection, SignOff } from "@/components/PageSections";
 import { solutionsData } from "@/data/solutions";
 import { offers } from "@/data/offers";
@@ -41,7 +40,6 @@ function LogoMark() {
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openRow, setOpenRow] = useState<string | null>(solutionsData[0]?.slug ?? null);
-  const [selectedCaseStudy, setSelectedCaseStudy] = useState<CaseStudy | null>(null);
   const [, setLocation] = useLocation();
   const session = useAuthSession();
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
@@ -65,16 +63,6 @@ export default function Home() {
   };
 
   return <div className="restart-home sol-page">
-    <CaseStudyModal
-      isOpen={!!selectedCaseStudy}
-      onClose={() => setSelectedCaseStudy(null)}
-      caseStudy={selectedCaseStudy}
-      onDiscuss={(title) => {
-        setSelectedCaseStudy(null);
-        openOnboarding(title);
-      }}
-    />
-
     <header className="site-header">
       <Link href="/" className="site-logo" aria-label="Restart home">
         <LogoMark />
@@ -136,7 +124,7 @@ export default function Home() {
       </section>
       <HeroStats
         label="Measured in production"
-        items={caseStudiesData.flatMap((c) => c.metrics.map((m) => ({ ...m, href: `/case-studies?study=${c.id}`, title: c.title, onSelect: () => setSelectedCaseStudy(c) })))}
+        items={caseStudiesData.flatMap((c) => c.metrics.map((m) => ({ ...m, href: `/case-studies/${c.id}`, title: c.title, onSelect: () => setLocation(`/case-studies/${c.id}`) })))}
       />
 
       <section className="sol-section sol-wrap" id="solutions">
@@ -200,7 +188,7 @@ export default function Home() {
               className={`sd-proof-card hm-proof ${study.tone} sol-reveal`}
               style={{ "--d": i } as React.CSSProperties}
               key={study.id}
-              onClick={() => setSelectedCaseStudy(study)}
+              onClick={() => setLocation(`/case-studies/${study.id}`)}
               aria-label={`View case study: ${study.title}`}
             >
               <span className="sd-proof-type">{study.type}</span>
@@ -214,11 +202,10 @@ export default function Home() {
         <div className="hm-more sol-reveal"><Link href="/case-studies" className="button outline small">View all case studies <ArrowRight size={14} /></Link></div>
       </section>
 
-      <ProcessTimeline
+      <ProcessSlider
         id="process"
-        eyebrow="PROCESS"
-        heading={<>From idea <span>to production.</span></>}
-        lede="No lengthy proposals or open-ended retainers. A clear sequence from your first message to a system your team can run."
+        label="Process"
+        heading={<>From Idea<br />to Production</>}
         steps={processSteps}
       />
 

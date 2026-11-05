@@ -11,6 +11,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import CaseStudies from "./pages/CaseStudies";
+import CaseStudyDetail from "./pages/CaseStudyDetail";
 import Insights from "./pages/Insights";
 import InsightDetail from "./pages/InsightDetail";
 import StartProject from "./pages/StartProject";
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/platform" component={Platform} />
       <Route path="/about" component={About} />
       <Route path="/case-studies" component={CaseStudies} />
+      <Route path="/case-studies/:id" component={CaseStudyDetail} />
       <Route path="/insights" component={Insights} />
       <Route path="/insights/:slug" component={InsightDetail} />
       <Route path="/solutions" component={Solutions} />

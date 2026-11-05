@@ -173,7 +173,7 @@ export default function SolutionDetail({ params }: { params: { slug: string } })
             </div>
             <div className="sd-proof">
               {related.map((study, i) => (
-                <Link href={`/case-studies?study=${study.id}`} className={`sd-proof-card ${study.tone} sol-reveal`} style={{ "--d": i } as React.CSSProperties} key={study.id}>
+                <Link href={`/case-studies/${study.id}`} className={`sd-proof-card ${study.tone} sol-reveal`} style={{ "--d": i } as React.CSSProperties} key={study.id}>
                   <span className="sd-proof-type">{study.type}</span>
                   <strong>{study.metrics[0].value}</strong>
                   <small>{study.metrics[0].label}</small>
