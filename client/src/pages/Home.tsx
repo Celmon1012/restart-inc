@@ -110,7 +110,7 @@ export default function Home() {
           <span className="sol-hero-grid" />
         </div>
         <div className="hm-hero-copy">
-          <h1>Turn operational friction<br />into <span className="sol-pill">technical leverage.</span></h1>
+          <h1>Turn operational friction<br />{" "}into <span className="sol-pill">technical leverage.</span></h1>
           <p>We map the workflows costing you most, build the systems that remove them, and you follow every step in the Restart Console.</p>
           <div className="sol-hero-actions">
             <Link href="/start-project" className="button solid">Tell us where it’s stuck <ArrowUpRight size={15} /></Link>
@@ -205,7 +205,7 @@ export default function Home() {
       <ProcessSlider
         id="process"
         label="Process"
-        heading={<>From Idea<br />to Production</>}
+        heading={<>From Idea<br />{" "}to Production</>}
         steps={processSteps}
       />
 

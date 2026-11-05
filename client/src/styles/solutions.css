@@ -476,15 +476,12 @@
   .ps-box{ padding: 50px 0; margin-top: 72px; }
   .ps-title{ font-size: 40px; line-height: 48px; }
   .ps-title br{ display: none; }
-  .ps-card{ flex-basis: calc((100% + 12.5px) / 1.5); padding: 20px; }
+  .ps-card{ flex-basis: calc(100% + 20px); padding: 20px; }
   .ps-icon{ margin-bottom: 36px; }
   .ps-content{ margin-bottom: 36px; }
   .ps-content h3{ font-size: 28px; line-height: 36px; }
   .ps-arrow{ width: 44px; height: 44px; }
   .ps-track{ gap: 15px; }
-}
-@media (max-width: 575px){
-  .ps-card{ flex-basis: calc((100% + 17px) / 1.2); }
 }
 @media (prefers-reduced-motion: reduce){
   .ps-arrow, .ps-arrow::before{ transition: none; }
@@ -554,3 +551,30 @@
 .ps-note b{ display: block; margin-bottom: 4px; color: var(--teal); font-size: .6875rem; font-weight: 800; letter-spacing: .12em; }
 @media (prefers-reduced-motion: reduce){ .pf-glow{ animation: none !important; } }
 @media (max-width: 720px){ .pf-frame{ padding: 10px; border-radius: 22px; } .pf-features{ grid-template-columns: 1fr; } }
+
+/* ---- Mobile pass ---- */
+@media (max-width: 720px){
+  .sol-wrap, .sol-hero, .ps-inner, .hm-console-inner{ width: calc(100% - 40px); }
+  .ps-slide{ --gutter: 20px; }
+  .sol-hero h1, .hm-hero-copy h1{ font-size: clamp(2rem, 9vw, 2.5rem); line-height: 1.2; letter-spacing: -.045em; }
+  .sol-hero h1 br, .hm-hero-copy h1 br{ display: none; }
+  .sol-pill{ display: inline; padding: 0 .24em; border-radius: .45em; -webkit-box-decoration-break: clone; box-decoration-break: clone; animation: none; box-shadow: 0 6px 24px rgba(46,229,193,.3); }
+  .sol-hero p{ font-size: 1rem; }
+  .sol-hero-actions{ flex-direction: column; align-items: stretch; width: 100%; }
+  .sol-hero-actions .button{ width: 100%; justify-content: center; }
+  .sol-h2{ font-size: clamp(1.75rem, 8vw, 2.25rem); }
+  .sol-lede{ font-size: .9375rem; }
+  .hm-hero-copy .hero-proof-row{ flex-direction: column; align-items: center; gap: 8px; }
+  .sol-faq-item button{ padding: 16px 18px; }
+  .sol-contact-copy .sol-h2{ font-size: clamp(1.75rem, 8vw, 2.25rem); }
+  .sol-socials a{ padding: 10px 14px; }
+}
+@media (max-width: 767px){
+  .ps-number{ font-size: 48px; line-height: 48px; }
+}
+/* The legacy .saas-art wrapper adds a hard offset shadow behind the mockup; drop it. */
+.pf-frame .saas-art, .hm-console-art.saas-art{ box-shadow: none !important; }
+@media (max-width: 720px){
+  .cd-metrics{ grid-template-columns: minmax(0, 1fr); min-width: 0; }
+  .cd-metrics strong{ font-size: clamp(2.25rem, 12vw, 3rem); overflow-wrap: anywhere; }
+}
