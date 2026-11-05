@@ -14,6 +14,7 @@ import { HeroDots, HeroLines, HeroStats } from "@/components/HeroBackdrop";
 import DeliveryPreview from "@/components/DeliveryPreview";
 import { platformStack } from "@/data/stack";
 import { faqs } from "@/data/faqs";
+import { offers } from "@/data/offers";
 import { useInsights } from "@/hooks/useInsights";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 
@@ -44,12 +45,6 @@ const lanes = [
   { number: "04", slug: "architecture-leadership", title: "Bring experience to the decisions that matter.", accent: "amber", icon: Network, text: "Architecture reviews, fractional technical leadership, hiring support, and hands-on mentorship for teams that need a clearer path from complexity to execution.", tags: ["Architecture reviews", "Domain modeling", "Testing strategy", "Technical leadership", "Mentorship"], action: "Talk to an engineer" },
 ];
 
-const offers = [
-  { kicker: "MVP BUILD", duration: "4–12 Weeks", title: "From a sharp idea to a system that can ship.", text: "A focused build path for founders and operators who need the right boundaries, architecture, and production foundation before momentum turns into rework.", tags: ["Architecture and schema design", "Authentication, roles, permissions, and tenancy", "Billing through Stripe or Paddle", "CI/CD and zero-downtime deployment", "Observability and production handoff"], visual: "code", cta: "Start an MVP build" },
-  { kicker: "AI INTEGRATION SPRINT", duration: "2–4 Weeks", title: "Add AI your customers can rely on.", text: "A focused sprint to turn a promising AI concept into a useful, observable product feature — with evaluation, tool use, retrieval, and cost controls included.", tags: ["Claude or OpenAI API integration", "MCP server and tool-use implementation", "Hybrid retrieval with pgvector", "Evaluation harness and regression checks", "Cost and latency guardrails"], visual: "calendar", cta: "Scope an AI sprint" },
-  { kicker: "MEDUSA COMMERCE BUILD", duration: "Scoped build", title: "Build commerce infrastructure that earns its keep.", text: "Custom storefronts and admin workflows built on Medusa — billing, APIs, webhooks, protected data, and the operating constraints of serious commerce teams.", tags: ["Custom admin workflows", "Billing, dunning, and analytics", "Catalog, order, and customer APIs", "Idempotent webhook processing", "Protected customer data review"], visual: "shopify", cta: "Scope a commerce build" },
-  { kicker: "ARCHITECTURE AUDIT", duration: "1 Week", title: "Find the constraint before you scale into it.", text: "A senior review of your code, schema, infrastructure, deployment model, cost curve, and technical risk — followed by a practical plan for what to do next.", tags: ["One-week technical deep dive", "Risk, cost, and reliability report", "Prioritized 12-week remediation plan", "Optional pair-programming follow-up"], visual: "gauge", cta: "Book an architecture audit" },
-];
 
 function LogoMark() {
   return <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />;
@@ -146,7 +141,7 @@ export default function Home() {
         <HeroLines />
         <div className="hero-shell">
           <div className="hero-content">
-            <h1>Turn operational friction into <span>technical leverage.</span></h1>
+            <h1>Turn operational friction<br />into <span>technical leverage.</span></h1>
             <p>We map the workflows costing you most, build the systems that remove them, and you follow every step in the Restart Console.</p>
             <div className="hero-buttons">
               <Link href="/start-project" className="button solid">Tell us where it’s stuck <ArrowUpRight size={15} /></Link>

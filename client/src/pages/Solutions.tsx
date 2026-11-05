@@ -1,14 +1,46 @@
 import { openCookieSettings } from "@/lib/consent";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { ArrowRight, ArrowUpRight, ChevronRight, Menu, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronRight, Github, Linkedin, Mail, Menu, Phone, X } from "lucide-react";
 import { solutionsData } from "@/data/solutions";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
+import { offers } from "@/data/offers";
+import { faqs } from "@/data/faqs";
+import { platformStack } from "@/data/stack";
+import { useReveal } from "@/hooks/useReveal";
+import "@/styles/solutions.css";
+
+const shortNames: Record<string, string> = {
+  "saas-platforms": "SaaS platforms",
+  commerce: "Commerce infrastructure",
+  "ai-engineering": "AI engineering",
+  "architecture-leadership": "Architecture & leadership",
+};
+
+const architectureAudit = solutionsData.find((x) => x.slug === "architecture-leadership");
 
 export default function Solutions() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openRow, setOpenRow] = useState<string | null>(solutionsData[0]?.slug ?? null);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [edge, setEdge] = useState({ start: true, end: false });
+  useReveal();
+
+  const syncEdge = () => {
+    const el = trackRef.current;
+    if (!el) return;
+    setEdge({ start: el.scrollLeft <= 4, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 });
+  };
+  const slide = (dir: 1 | -1) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const card = el.querySelector<HTMLElement>(".sol-card");
+    el.scrollBy({ left: dir * ((card?.offsetWidth ?? 320) + 16), behavior: "smooth" });
+  };
+  useEffect(() => { syncEdge(); }, []);
   const session = useAuthSession();
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
   const consoleLabel = session ? "Dashboard" : "Console Login";
@@ -23,7 +55,7 @@ export default function Solutions() {
   }, []);
 
   return (
-    <div className="page-shell">
+    <div className="page-shell sol-page">
       {/* Header Navigation */}
       <header className="site-header">
         <Link href="/" className="site-logo" aria-label="Restart home">
@@ -65,47 +97,185 @@ export default function Solutions() {
       </header>
 
       <main>
-        <section className="portfolio-hero container">
-          <div className="section-intro centered">
-            <span className="section-label teal">SYSTEMS WE BUILD</span>
-            <h1>Remove the friction <span>slowing growth.</span></h1>
+        <section className="sol-hero">
+          <div className="sol-hero-art" aria-hidden="true">
+            <span className="sol-orb a" /><span className="sol-orb b" /><span className="sol-orb c" />
+            <span className="sol-hero-grid" />
+          </div>
+          <div>
+            <span className="sol-eyebrow">SYSTEMS WE BUILD</span>
+            <h1>Remove the friction slowing <span className="sol-pill">growth.</span></h1>
             <p>Restart maps the workflows costing you time, builds the systems that remove them, and delivers the technical foundation your team can run.</p>
+            <div className="sol-hero-actions">
+              <Link href="/start-project" className="button solid">Tell us where it’s stuck <ArrowUpRight size={15} /></Link>
+              <Link href="/platform" className="button outline">See the Console <ChevronRight size={15} /></Link>
+            </div>
           </div>
         </section>
 
-        <section className="lanes-section container">
-          <div className="lane-grid">
-            {solutionsData.map((solution) => {
-              const Icon = solution.icon;
+        <section className="sol-section sol-wrap" id="disciplines">
+          <div className="sol-head sol-reveal">
+            <span className="sol-eyebrow">FOUR DISCIPLINES</span>
+            <h2 className="sol-h2">Built end to <span>end.</span></h2>
+            <p className="sol-lede">Architecture, automation, product engineering, and production discipline, so a decision turns into a system without becoming a liability.</p>
+          </div>
+          <div className="sol-list">
+            {solutionsData.map((solution, i) => {
+              const open = openRow === solution.slug;
               return (
-                <article className={`lane-card ${solution.accent}`} key={solution.slug}>
-                  <div className="lane-top">
-                    <span className="lane-number">{solution.number}</span>
-                    <Icon size={17} />
+                <div className={`sol-row sol-reveal ${open ? "open" : ""}`} style={{ "--d": i } as React.CSSProperties} key={solution.slug}>
+                  <button
+                    type="button"
+                    className="sol-row-head"
+                    aria-expanded={open}
+                    aria-controls={`sol-row-${solution.slug}`}
+                    onClick={() => setOpenRow(open ? null : solution.slug)}
+                  >
+                    <span className="sol-row-num">{solution.number}</span>
+                    <span className="sol-row-title">{shortNames[solution.slug] ?? solution.kicker}</span>
+                    <span className="sol-row-arrow" aria-hidden="true"><ArrowUpRight size={17} /></span>
+                  </button>
+                  <div className="sol-row-body" id={`sol-row-${solution.slug}`} role="region" aria-label={shortNames[solution.slug]}>
+                    <div>
+                      <div className="sol-row-inner">
+                        <h3>{solution.title}</h3>
+                        <p>{solution.intro}</p>
+                        <div className="sol-tags">{solution.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+                        <Link href={`/solutions/${solution.slug}`} className="sol-link">Explore {shortNames[solution.slug]?.toLowerCase()} <ArrowRight size={15} /></Link>
+                      </div>
+                    </div>
                   </div>
-                  <h3 style={{ fontSize: "24px", fontWeight: "600" }}>{solution.title}</h3>
-                  <p>{solution.intro}</p>
-                  <div className="tag-row">
-                    {solution.tags.map((tag) => <span key={tag}>{tag}</span>)}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="sol-marquee-wrap sol-reveal">
+            <span className="sol-marquee-label">Built on tools you could hire for</span>
+            <div className="sol-marquee">
+              <div className="sol-marquee-track">
+                {[0, 1].map((copy) => platformStack.map((item) => (
+                  <span className="sol-marquee-item" key={`${copy}-${item.name}`} aria-hidden={copy === 1 ? "true" : undefined}>
+                    <img src={item.logo} alt="" />{item.name}
+                  </span>
+                )))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="sol-wrap" id="engagements">
+          <div className="sol-process sol-reveal">
+            <div className="sol-process-copy">
+              <span className="sol-eyebrow">ENGAGEMENTS</span>
+              <h2 className="sol-h2">From idea <span>to production.</span></h2>
+              <p className="sol-lede">Each engagement starts from a defined outcome, with scope, timeline, and cost agreed up front.</p>
+              <div className="sol-arrows">
+                <button type="button" className="sol-arrow-btn" aria-label="Previous engagement" disabled={edge.start} onClick={() => slide(-1)}><ArrowLeft size={18} /></button>
+                <button type="button" className="sol-arrow-btn" aria-label="Next engagement" disabled={edge.end} onClick={() => slide(1)}><ArrowRight size={18} /></button>
+              </div>
+            </div>
+            <div className="sol-track" ref={trackRef} onScroll={syncEdge} tabIndex={0} aria-label="Engagement types">
+              {offers.map((offer, i) => (
+                <article className={`sol-card ${i % 2 ? "violet" : "teal"}`} key={offer.kicker}>
+                  <span className="sol-card-icon" aria-hidden="true"><Check size={20} /></span>
+                  <span className="sol-card-kicker">{offer.kicker}</span>
+                  <h3>{offer.title}</h3>
+                  <p>{offer.text}</p>
+                  <div className="sol-card-foot">
+                    <div><small>TIMELINE</small><strong>{offer.duration}</strong></div>
+                    <span className="sol-card-count" aria-hidden="true"><b>0{i + 1}</b>/0{offers.length}</span>
                   </div>
-                  <Link href={`/solutions/${solution.slug}`} className="card-link">
-                    Explore {solution.kicker.toLowerCase()} <ArrowRight size={14} />
-                  </Link>
+                  <Link href={`/start-project?tier=${encodeURIComponent(offer.kicker)}`} className="sol-link">{offer.cta} <ArrowUpRight size={14} /></Link>
                 </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="sol-section sol-wrap" id="start">
+          <div className="sol-head sol-reveal">
+            <span className="sol-eyebrow">WHERE TO START</span>
+            <h2 className="sol-h2">Start small, <span>scope clearly.</span></h2>
+            <p className="sol-lede">Two low-commitment first steps. Both end with something you keep, whether or not we work together after.</p>
+          </div>
+          <div className="sol-plans">
+            <article className="sol-plan sol-reveal">
+              <span className="sol-plan-tag">READINESS SCORECARD</span>
+              <h3>Free <small>5 minutes</small></h3>
+              <p>Twelve questions across six areas, scored instantly.</p>
+              <ul>
+                <li><Check size={15} />A readiness score for your systems</li>
+                <li><Check size={15} />Your weakest areas, ranked</li>
+                <li><Check size={15} />The first steps we would take</li>
+              </ul>
+              <Link href="/scorecard" className="button outline">Take the scorecard <ArrowUpRight size={15} /></Link>
+            </article>
+            <article className="sol-plan feature sol-reveal" style={{ "--d": 1 } as React.CSSProperties}>
+              <span className="sol-plan-tag">ARCHITECTURE AUDIT</span>
+              <h3>1 week <small>senior review</small></h3>
+              <p>A deep review of your code, schema, infrastructure, and cost curve, with a plan for what to do next.</p>
+              <ul>
+                {architectureAudit?.deliverables.map((d) => <li key={d}><Check size={15} />{d}</li>)}
+              </ul>
+              <Link href={`/start-project?tier=${encodeURIComponent("ARCHITECTURE AUDIT")}`} className="button solid">Book an architecture audit <ArrowUpRight size={15} /></Link>
+            </article>
+          </div>
+        </section>
+
+        <section className="sol-section sol-wrap" id="faq">
+          <div className="sol-head sol-reveal">
+            <span className="sol-eyebrow">FAQS</span>
+            <h2 className="sol-h2">Good questions. <span>Useful answers.</span></h2>
+          </div>
+          <div className="sol-faq">
+            {faqs.map(([question, answer], i) => {
+              const open = openFaq === i;
+              return (
+                <div className={`sol-faq-item sol-reveal ${open ? "open" : ""}`} key={question}>
+                  <button type="button" aria-expanded={open} aria-controls={`sol-faq-${i}`} onClick={() => setOpenFaq(open ? null : i)}>
+                    <span>{question}</span>
+                    <span className="sol-faq-icon" aria-hidden="true" />
+                  </button>
+                  <div className="sol-faq-body" id={`sol-faq-${i}`} role="region">
+                    <div><p>{answer}</p></div>
+                  </div>
+                </div>
               );
             })}
           </div>
         </section>
 
-        <section className="final-cta" id="contact">
-          <div className="final-cta-grid" />
-          <div className="container final-cta-content">
-            <span className="section-label teal">NEXT STEP</span>
-            <h2>Bring us <span>the hard part.</span></h2>
-            <p>Tell us where the constraint sits. We will help you identify the next system to build, the capacity it can return, and whether the timing and fit make sense.</p>
-            <div className="final-cta-buttons">
-              <Link href="/start-project" className="button solid">Tell us where it’s stuck <ArrowUpRight size={15} /></Link>
-              <Link href="/platform" className="button outline">How the platform works <ChevronRight size={15} /></Link>
+        <section className="sol-wrap" id="contact">
+          <div className="sol-contact sol-reveal">
+            <div className="sol-hero-art" aria-hidden="true"><span className="sol-orb a" /><span className="sol-orb b" /></div>
+            <div className="sol-contact-copy">
+              <span className="sol-eyebrow">NEXT STEP</span>
+              <h2 className="sol-h2">Bring us <span>the hard part.</span></h2>
+              <p className="sol-lede">Tell us where the constraint sits. We will help you identify the next system to build, the capacity it can return, and whether the timing and fit make sense.</p>
+              <ul className="sol-contact-list">
+                <li><a href="mailto:hello@restart.ng"><span><Mail size={16} /></span>hello@restart.ng</a></li>
+                <li><a href="tel:+2349060114747"><span><Phone size={16} /></span>+234 906 011 4747</a></li>
+              </ul>
+            </div>
+            <div className="sol-contact-card">
+              <h3>Tell us what you’re building</h3>
+              <p>A short note on the system and the constraint is enough. We reply quickly with whether it is a fit.</p>
+              <div className="sol-contact-actions">
+                <Link href="/start-project" className="button solid">Start a project <ArrowUpRight size={15} /></Link>
+                <Link href="/contact" className="button outline">Send a message</Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="sol-sign" aria-label="Restart">
+          <span className="sol-watermark" aria-hidden="true">Restart</span>
+          <div className="sol-sign-inner sol-reveal">
+            <p>Follow the work</p>
+            <div className="sol-socials">
+              <a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer"><Linkedin size={15} />LinkedIn</a>
+              <a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer"><Github size={15} />GitHub</a>
             </div>
           </div>
         </section>
