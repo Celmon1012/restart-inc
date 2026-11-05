@@ -3,13 +3,13 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronRight, Github, Linkedin, Mail, Menu, Phone, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronRight, Menu, X } from "lucide-react";
 import { solutionsData } from "@/data/solutions";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 import { offers } from "@/data/offers";
-import { faqs } from "@/data/faqs";
 import { platformStack } from "@/data/stack";
 import { useReveal } from "@/hooks/useReveal";
+import { FaqSection, ContactSection, SignOff } from "@/components/PageSections";
 import "@/styles/solutions.css";
 
 const shortNames: Record<string, string> = {
@@ -24,7 +24,6 @@ const architectureAudit = solutionsData.find((x) => x.slug === "architecture-lea
 export default function Solutions() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openRow, setOpenRow] = useState<string | null>(solutionsData[0]?.slug ?? null);
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
   const trackRef = useRef<HTMLDivElement>(null);
   const [edge, setEdge] = useState({ start: true, end: false });
   useReveal();
@@ -223,62 +222,13 @@ export default function Solutions() {
           </div>
         </section>
 
-        <section className="sol-section sol-wrap" id="faq">
-          <div className="sol-head sol-reveal">
-            <span className="sol-eyebrow">FAQS</span>
-            <h2 className="sol-h2">Good questions. <span>Useful answers.</span></h2>
-          </div>
-          <div className="sol-faq">
-            {faqs.map(([question, answer], i) => {
-              const open = openFaq === i;
-              return (
-                <div className={`sol-faq-item sol-reveal ${open ? "open" : ""}`} key={question}>
-                  <button type="button" aria-expanded={open} aria-controls={`sol-faq-${i}`} onClick={() => setOpenFaq(open ? null : i)}>
-                    <span>{question}</span>
-                    <span className="sol-faq-icon" aria-hidden="true" />
-                  </button>
-                  <div className="sol-faq-body" id={`sol-faq-${i}`} role="region">
-                    <div><p>{answer}</p></div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="sol-wrap" id="contact">
-          <div className="sol-contact sol-reveal">
-            <div className="sol-hero-art" aria-hidden="true"><span className="sol-orb a" /><span className="sol-orb b" /></div>
-            <div className="sol-contact-copy">
-              <span className="sol-eyebrow">NEXT STEP</span>
-              <h2 className="sol-h2">Bring us <span>the hard part.</span></h2>
-              <p className="sol-lede">Tell us where the constraint sits. We will help you identify the next system to build, the capacity it can return, and whether the timing and fit make sense.</p>
-              <ul className="sol-contact-list">
-                <li><a href="mailto:hello@restart.ng"><span><Mail size={16} /></span>hello@restart.ng</a></li>
-                <li><a href="tel:+2349060114747"><span><Phone size={16} /></span>+234 906 011 4747</a></li>
-              </ul>
-            </div>
-            <div className="sol-contact-card">
-              <h3>Tell us what you’re building</h3>
-              <p>A short note on the system and the constraint is enough. We reply quickly with whether it is a fit.</p>
-              <div className="sol-contact-actions">
-                <Link href="/start-project" className="button solid">Start a project <ArrowUpRight size={15} /></Link>
-                <Link href="/contact" className="button outline">Send a message</Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="sol-sign" aria-label="Restart">
-          <span className="sol-watermark" aria-hidden="true">Restart</span>
-          <div className="sol-sign-inner sol-reveal">
-            <p>Follow the work</p>
-            <div className="sol-socials">
-              <a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer"><Linkedin size={15} />LinkedIn</a>
-              <a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer"><Github size={15} />GitHub</a>
-            </div>
-          </div>
-        </section>
+        <FaqSection />
+        <ContactSection
+          eyebrow="NEXT STEP"
+          heading={<>Bring us <span>the hard part.</span></>}
+          lede="Tell us where the constraint sits. We will help you identify the next system to build, the capacity it can return, and whether the timing and fit make sense."
+        />
+        <SignOff />
       </main>
 
       <footer className="site-footer"><div className="container footer-grid"><div className="footer-brand"><Link href="/" className="site-logo"><img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" /></Link><p>Engineering systems your growth depends on.</p><div className="footer-brand-contact"><a href="mailto:hello@restart.ng">hello@restart.ng</a><a href="tel:+2349060114747">+234 906 011 4747</a></div></div><div><strong>PLATFORM</strong><Link href="/platform">Platform</Link><Link href="/solutions">Solutions</Link><Link href="/case-studies">Case Studies</Link><Link href="/insights">Insights</Link></div><div><strong>COMPANY</strong><Link href="/about">About</Link><Link href="/contact">Contact</Link><Link href="/careers">Careers</Link></div><div><strong>CONNECT</strong><a href="https://www.linkedin.com/company/restart-inc-ng" target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={12} /></a><a href="https://github.com/Restart-inc" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={12} /></a><Link href="/start-project" className="footer-text-btn">Book an intro <ArrowUpRight size={12} /></Link></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Restart Inc. All rights reserved.</span><span><Link href="/privacy">Privacy Policy</Link><Link href="/terms">Terms of Service</Link><button type="button" className="footer-cookie-btn" onClick={openCookieSettings}>Cookie settings</button></span></div></footer>

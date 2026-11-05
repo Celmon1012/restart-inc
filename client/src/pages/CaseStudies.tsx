@@ -7,6 +7,19 @@ import { ArrowRight, ArrowUpRight, Check, ChevronRight, ShieldCheck, Menu, X, Ex
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import CaseStudyModal from "@/components/CaseStudyModal";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
+import StudyCard from "@/components/StudyCard";
+import { FaqSection, ContactSection, SignOff } from "@/components/PageSections";
+import { useReveal } from "@/hooks/useReveal";
+import "@/styles/solutions.css";
+
+const toneColor: Record<string, string> = {
+  teal: "var(--teal)",
+  violet: "var(--violet)",
+  amber: "var(--amber)",
+  blue: "var(--blue)",
+};
+
+const PERCENT = /^[−+-]?\d+(\.\d+)?%$/;
 
 export default function CaseStudies() {
   const [selectedStudy, setSelectedStudy] = useState<CaseStudy | null>(null);
@@ -46,12 +59,27 @@ export default function CaseStudies() {
     ? caseStudiesData
     : caseStudiesData.filter((c) => c.category === activeCategory);
 
+  const bars = caseStudiesData.flatMap((c) =>
+    c.metrics
+      .filter((m) => PERCENT.test(m.value))
+      .map((m) => ({
+        id: c.id,
+        type: c.type,
+        tone: c.tone,
+        label: m.label,
+        value: m.value,
+        width: Math.min(100, Math.abs(parseFloat(m.value.replace("−", "-")))),
+      })),
+  );
+
+  useReveal([activeCategory]);
+
   const openOnboarding = (lane?: string) => {
     setLocation(lane ? `/start-project?tier=${encodeURIComponent(lane)}` : "/start-project");
   };
 
   return (
-    <div className="page-shell">
+    <div className="page-shell sol-page">
       {/* Header Navigation */}
       <header className="site-header">
         <Link href="/" className="site-logo" aria-label="Restart home">
@@ -93,18 +121,20 @@ export default function CaseStudies() {
       </header>
 
       <main>
-        {/* Portfolio Hero Banner */}
-        <section className="portfolio-hero container">
-          <div className="section-intro centered">
-            <span className="section-label teal">PRODUCTION DELIVERY DOSSIERS</span>
-            <h1>Show the constraint.<br /><span>Prove the change.</span></h1>
-            <p>
-              Documented interventions that remove operational friction, return capacity to teams, and hold up in production.
-            </p>
+        <section className="sol-hero">
+          <div className="sol-hero-art" aria-hidden="true">
+            <span className="sol-orb a" /><span className="sol-orb b" /><span className="sol-orb c" />
+            <span className="sol-hero-grid" />
           </div>
+          <div>
+            <span className="sol-eyebrow">PRODUCTION DELIVERY DOSSIERS</span>
+            <h1>Show the constraint. Prove the <span className="sol-pill">change.</span></h1>
+            <p>Documented interventions that remove operational friction, return capacity to teams, and hold up in production.</p>
+          </div>
+        </section>
 
-          {/* Filter Pills */}
-          <div className="portfolio-filter-row">
+        <section className="sol-wrap" id="work">
+          <div className="portfolio-filter-row cs-filters">
             {categories.map((cat) => (
               <button
                 key={cat.id}
@@ -116,55 +146,42 @@ export default function CaseStudies() {
               </button>
             ))}
           </div>
-        </section>
-
-        {/* Portfolio Grid */}
-        <section className="portfolio-grid-section container">
-          <div className="case-study-grid">
+          <div className="cs-list">
             {filteredStudies.map((study, i) => (
-              <article
-                className={`case-study-card ${study.tone} clickable-card`}
-                key={study.id}
-                onClick={() => setSelectedStudy(study)}
-                tabIndex={0}
-                role="button"
-                aria-label={`View case study: ${study.title}`}
-              >
-                <div className="case-study-top">
-                  <span className={`section-label ${study.tone}`}>{study.type}</span>
-                  <span className="case-study-index">0{i + 1}</span>
-                </div>
-                <h3>{study.title}</h3>
-                <p>{study.summary}</p>
-                <div className="case-tags">
-                  {study.tags.map((tag) => <span key={tag}>{tag}</span>)}
-                </div>
-                <div className="outcome-grid">
-                  {study.metrics.map((m) => (
-                    <div key={m.label}>
-                      <small>{m.label}</small>
-                      <strong>{m.value}</strong>
-                    </div>
-                  ))}
-                </div>
-                <div className="case-card-actions">
-                  <span className="case-link-btn">
-                    <span>Read Full Dossier</span>
-                    <ArrowUpRight size={13} />
-                  </span>
-                </div>
-              </article>
+              <StudyCard key={study.id} study={study} index={i} onOpen={() => setSelectedStudy(study)} />
             ))}
           </div>
         </section>
 
-        {/* Engineering Methodology Banner */}
-        <section className="portfolio-methodology-section container">
+        {bars.length > 0 && (
+          <section className="sol-wrap" id="results">
+            <div className="cs-results sol-reveal">
+              <div className="sol-head">
+                <span className="sol-eyebrow">MEASURED IN PRODUCTION</span>
+                <h2 className="sol-h2">Results that <span>held up.</span></h2>
+                <p className="sol-lede">The percentage outcomes from the engagements above, as documented in each delivery file.</p>
+              </div>
+              <div className="cs-bars">
+                {bars.map((b) => (
+                  <div className="cs-bar-row sol-reveal" key={`${b.id}-${b.label}`} style={{ "--tone": toneColor[b.tone] } as React.CSSProperties}>
+                    <div><b>{b.label}</b><small>{b.type}</small></div>
+                    <div className="cs-bar" role="img" aria-label={`${b.label}: ${b.value}`}>
+                      <i style={{ "--w": `${b.width}%` } as React.CSSProperties} />
+                      <em>{b.value}</em>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="portfolio-methodology-section container cs-method">
           <div className="portfolio-method-box">
             <div className="method-box-header">
               <span className="section-label violet">OPERATING DISCIPLINE</span>
-                  <h2>How we turn friction into leverage</h2>
-                  <p>Every Restart engagement follows a clear production cadence designed to return capacity without introducing a new operational burden.</p>
+              <h2>How we turn friction into leverage</h2>
+              <p>Every Restart engagement follows a clear production cadence designed to return capacity without introducing a new operational burden.</p>
             </div>
             <div className="method-steps-grid">
               <div className="method-step">
@@ -186,19 +203,13 @@ export default function CaseStudies() {
           </div>
         </section>
 
-        {/* Bottom CTA Section */}
-        <section className="final-cta" id="contact">
-          <div className="final-cta-grid" />
-          <div className="container final-cta-content">
-            <span className="section-label teal">START A CONVERSATION</span>
-            <h2>Turn the constraint into<br /><span>technical leverage.</span></h2>
-            <p>Tell us where the work is getting stuck, what it is costing the team, and what needs to change in production.</p>
-            <div className="final-cta-buttons">
-              <Link href="/start-project" className="button solid">Tell us where it’s stuck <ArrowUpRight size={15} /></Link>
-              <Link href="/" className="button outline">Back to Home <ChevronRight size={15} /></Link>
-            </div>
-          </div>
-        </section>
+        <FaqSection />
+        <ContactSection
+          eyebrow="START A CONVERSATION"
+          heading={<>Turn the constraint into <span>technical leverage.</span></>}
+          lede="Tell us where the work is getting stuck, what it is costing the team, and what needs to change in production."
+        />
+        <SignOff />
       </main>
 
       {/* Footer */}
