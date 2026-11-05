@@ -10,7 +10,7 @@ import { useEffect } from "react";
 export function useReveal(deps: unknown[] = []) {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) {
-      document.querySelectorAll<HTMLElement>(".sol-reveal").forEach((el) => el.classList.add("in"));
+      document.querySelectorAll<HTMLElement>(".sol-reveal").forEach((el) => el.setAttribute("data-in", ""));
       return;
     }
     document.documentElement.classList.add("sol-js");
@@ -18,16 +18,16 @@ export function useReveal(deps: unknown[] = []) {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add("in");
+            entry.target.setAttribute("data-in", "");
             io.unobserve(entry.target);
           }
         });
       },
       { threshold: 0.12, rootMargin: "0px 0px -6% 0px" },
     );
-    document.querySelectorAll<HTMLElement>(".sol-reveal:not(.in)").forEach((el) => {
+    document.querySelectorAll<HTMLElement>(".sol-reveal:not([data-in])").forEach((el) => {
       // Anything already on screen is revealed straight away, without waiting for the observer.
-      if (el.getBoundingClientRect().top < window.innerHeight * 0.92) el.classList.add("in");
+      if (el.getBoundingClientRect().top < window.innerHeight * 0.92) el.setAttribute("data-in", "");
       else io.observe(el);
     });
     return () => io.disconnect();

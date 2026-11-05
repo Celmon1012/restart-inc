@@ -1,12 +1,11 @@
 import { openCookieSettings } from "@/lib/consent";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronRight, Menu, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, ChevronRight, Menu, X } from "lucide-react";
 import { solutionsData } from "@/data/solutions";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
-import { offers } from "@/data/offers";
 import { platformStack } from "@/data/stack";
 import { useReveal } from "@/hooks/useReveal";
 import { FaqSection, ContactSection, SignOff } from "@/components/PageSections";
@@ -24,22 +23,6 @@ const architectureAudit = solutionsData.find((x) => x.slug === "architecture-lea
 export default function Solutions() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openRow, setOpenRow] = useState<string | null>(solutionsData[0]?.slug ?? null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [edge, setEdge] = useState({ start: true, end: false });
-  useReveal();
-
-  const syncEdge = () => {
-    const el = trackRef.current;
-    if (!el) return;
-    setEdge({ start: el.scrollLeft <= 4, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 });
-  };
-  const slide = (dir: 1 | -1) => {
-    const el = trackRef.current;
-    if (!el) return;
-    const card = el.querySelector<HTMLElement>(".sol-card");
-    el.scrollBy({ left: dir * ((card?.offsetWidth ?? 320) + 16), behavior: "smooth" });
-  };
-  useEffect(() => { syncEdge(); }, []);
   const session = useAuthSession();
   const consoleHref = session ? `${CONSOLE_URL}/dashboard` : CONSOLE_URL;
   const consoleLabel = session ? "Dashboard" : "Console Login";
@@ -159,35 +142,6 @@ export default function Solutions() {
                   </span>
                 )))}
               </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="sol-wrap" id="engagements">
-          <div className="sol-process sol-reveal">
-            <div className="sol-process-copy">
-              <span className="sol-eyebrow">ENGAGEMENTS</span>
-              <h2 className="sol-h2">From idea <span>to production.</span></h2>
-              <p className="sol-lede">Each engagement starts from a defined outcome, with scope, timeline, and cost agreed up front.</p>
-              <div className="sol-arrows">
-                <button type="button" className="sol-arrow-btn" aria-label="Previous engagement" disabled={edge.start} onClick={() => slide(-1)}><ArrowLeft size={18} /></button>
-                <button type="button" className="sol-arrow-btn" aria-label="Next engagement" disabled={edge.end} onClick={() => slide(1)}><ArrowRight size={18} /></button>
-              </div>
-            </div>
-            <div className="sol-track" ref={trackRef} onScroll={syncEdge} tabIndex={0} aria-label="Engagement types">
-              {offers.map((offer, i) => (
-                <article className={`sol-card ${i % 2 ? "violet" : "teal"}`} key={offer.kicker}>
-                  <span className="sol-card-icon" aria-hidden="true"><Check size={20} /></span>
-                  <span className="sol-card-kicker">{offer.kicker}</span>
-                  <h3>{offer.title}</h3>
-                  <p>{offer.text}</p>
-                  <div className="sol-card-foot">
-                    <div><small>TIMELINE</small><strong>{offer.duration}</strong></div>
-                    <span className="sol-card-count" aria-hidden="true"><b>0{i + 1}</b>/0{offers.length}</span>
-                  </div>
-                  <Link href={`/start-project?tier=${encodeURIComponent(offer.kicker)}`} className="sol-link">{offer.cta} <ArrowUpRight size={14} /></Link>
-                </article>
-              ))}
             </div>
           </div>
         </section>

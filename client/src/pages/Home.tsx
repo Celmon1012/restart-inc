@@ -11,7 +11,7 @@ import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import InsightArt from "@/components/InsightArt";
 import { HeroStats } from "@/components/HeroBackdrop";
 import DeliveryPreview from "@/components/DeliveryPreview";
-import ProcessCarousel from "@/components/ProcessCarousel";
+import ProcessTimeline from "@/components/ProcessTimeline";
 import { FaqSection, ContactSection, SignOff } from "@/components/PageSections";
 import { solutionsData } from "@/data/solutions";
 import { offers } from "@/data/offers";
@@ -214,7 +214,7 @@ export default function Home() {
         <div className="hm-more sol-reveal"><Link href="/case-studies" className="button outline small">View all case studies <ArrowRight size={14} /></Link></div>
       </section>
 
-      <ProcessCarousel
+      <ProcessTimeline
         id="process"
         eyebrow="PROCESS"
         heading={<>From idea <span>to production.</span></>}
