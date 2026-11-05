@@ -27,8 +27,8 @@
 .sol-hero-grid{ position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px); background-size: 56px 56px; -webkit-mask-image: radial-gradient(ellipse at center, #000 20%, transparent 72%); mask-image: radial-gradient(ellipse at center, #000 20%, transparent 72%); }
 @keyframes sol-drift-a{ to{ transform: translate(80px, 60px) scale(1.12); } }
 @keyframes sol-drift-b{ to{ transform: translate(-90px, -50px) scale(1.1); } }
-.sol-hero h1{ margin: 22px auto 0; max-width: 900px; font-size: clamp(2.5rem, 6vw, 4.75rem); line-height: 1.04; letter-spacing: -.055em; font-weight: 700; }
-.sol-pill{ display: inline-block; padding: 0 .28em .06em; margin-left: .04em; border-radius: 999px; background: linear-gradient(135deg, var(--teal), var(--teal-deep)); color: #03130f; box-shadow: 0 10px 40px rgba(46,229,193,.35); animation: sol-pill 5s ease-in-out infinite; }
+.sol-hero h1{ margin: 22px auto 0; max-width: 900px; font-size: clamp(2.5rem, 6vw, 4.75rem); line-height: 1.16; letter-spacing: -.055em; font-weight: 700; }
+.sol-pill{ display: inline-block; padding: .06em .3em .12em; margin-left: .04em; line-height: 1; vertical-align: -.04em; border-radius: 999px; background: linear-gradient(135deg, var(--teal), var(--teal-deep)); color: #03130f; box-shadow: 0 10px 40px rgba(46,229,193,.35); animation: sol-pill 5s ease-in-out infinite; }
 @keyframes sol-pill{ 50%{ transform: translateY(-4px) rotate(-1.2deg); box-shadow: 0 18px 50px rgba(46,229,193,.45); } }
 .sol-hero p{ margin: 22px auto 0; max-width: 620px; color: #b4bac8; font-size: 1.0625rem; line-height: 1.7; }
 .sol-hero-actions{ display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
