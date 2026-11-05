@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { ArrowUpRight, Github, Linkedin, Mail, Phone } from "lucide-react";
 import { faqs } from "@/data/faqs";
+import { platformStack } from "@/data/stack";
 
 /*
  * Closing sections shared by the Solutions and Case Studies pages. Styles live
@@ -75,5 +76,22 @@ export function SignOff() {
         </div>
       </div>
     </section>
+  );
+}
+
+export function StackMarquee({ label = "Built on tools you could hire for" }: { label?: string }) {
+  return (
+    <div className="sol-marquee-wrap sol-reveal">
+      <span className="sol-marquee-label">{label}</span>
+      <div className="sol-marquee">
+        <div className="sol-marquee-track">
+          {[0, 1].map((copy) => platformStack.map((item) => (
+            <span className="sol-marquee-item" key={`${copy}-${item.name}`} aria-hidden={copy === 1 ? "true" : undefined}>
+              <img src={item.logo} alt="" />{item.name}
+            </span>
+          )))}
+        </div>
+      </div>
+    </div>
   );
 }
