@@ -399,3 +399,30 @@
 @media (prefers-reduced-motion: reduce){
   .hm-chip{ animation: none !important; }
 }
+
+/* Home: "What we build" split layout */
+.hm-build{ display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 64px; align-items: start; }
+.hm-build-copy{ position: sticky; top: 96px; }
+.hm-build-copy .sol-h2{ font-size: clamp(2.25rem, 4.6vw, 3.75rem); }
+.hm-build-copy .sol-lede{ max-width: 480px; }
+.hm-build-visual{ margin-top: 32px; min-height: 280px; padding: 32px 20px; animation: cs-pop .55s var(--ease-out) both; }
+.hm-build-visual .cs-rings{ width: 420px; height: 420px; margin: -210px 0 0 -210px; }
+.hm-build-more{ margin-top: 28px; }
+.hm-build .sol-list{ margin: 0; max-width: none; }
+.hm-build .sol-row-head{ padding: 34px 30px; }
+.hm-build .sol-row-title{ font-size: clamp(1.4rem, 2.2vw, 1.875rem); letter-spacing: -.035em; }
+.hm-build .sol-row-num{ order: 2; align-self: flex-start; margin-top: 4px; min-width: 0; color: var(--dim); font-size: .875rem; letter-spacing: .04em; }
+.hm-build .sol-row-arrow{ order: 3; }
+.hm-build .sol-row-inner{ padding: 0 30px 30px; }
+@media (max-width: 960px){
+  .hm-build{ grid-template-columns: 1fr; gap: 40px; }
+  .hm-build-copy{ position: static; }
+}
+@media (max-width: 720px){
+  .hm-build .sol-row-head{ padding: 22px 18px; }
+  .hm-build .sol-row-inner{ padding: 0 18px 24px; }
+  .hm-build-visual{ min-height: 240px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .hm-build-visual{ animation: none !important; }
+}

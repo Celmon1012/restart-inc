@@ -5,12 +5,13 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { ArrowRight, ArrowUpRight, Check, ChevronRight, Menu, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, ChevronRight, Layers3, Map as MapIcon, Menu, MessagesSquare, Rocket, X } from "lucide-react";
 import CaseStudyModal from "@/components/CaseStudyModal";
 import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import InsightArt from "@/components/InsightArt";
 import { HeroStats } from "@/components/HeroBackdrop";
 import DeliveryPreview from "@/components/DeliveryPreview";
+import ProcessCarousel from "@/components/ProcessCarousel";
 import { FaqSection, ContactSection, SignOff } from "@/components/PageSections";
 import { solutionsData } from "@/data/solutions";
 import { offers } from "@/data/offers";
@@ -19,15 +20,19 @@ import { useReveal } from "@/hooks/useReveal";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 import "@/styles/solutions.css";
 
-/** First headline result from each of the first three case studies, floated in the hero. */
-const chips = caseStudiesData.slice(0, 3).map((c) => ({ value: c.metrics[0].value, label: c.metrics[0].label }));
-
 const shortNames: Record<string, string> = {
   "saas-platforms": "SaaS platforms",
   commerce: "Commerce infrastructure",
   "ai-engineering": "AI engineering",
   "architecture-leadership": "Architecture & leadership",
 };
+
+const processSteps = [
+  { icon: MessagesSquare, phase: "Intro", title: "Start the conversation", text: "Tell us what you are building and where it is stuck. We reply quickly with whether the timing and fit make sense." },
+  { icon: MapIcon, phase: "Scope", title: "Scope the real work", text: "A short technical review turns your constraint into a concrete plan: deliverables, timeline, and cost, with no surprises later." },
+  { icon: Layers3, phase: "Build", title: "Build in the open", text: "Weekly checkpoints, visible progress, and decisions made together, not a black box that reappears at the deadline." },
+  { icon: Rocket, phase: "Handoff", title: "Launch and hand off", text: "Ship to production with documentation and context your team can operate without us." },
+];
 
 function LogoMark() {
   return <img src="/brand/restart-logo.svg" alt="Restart Inc." className="site-logo-img" />;
@@ -43,6 +48,8 @@ export default function Home() {
   const consoleLabel = session ? "Dashboard" : "Console Login";
   const { insights } = useInsights();
   useReveal();
+  const activeSolution = solutionsData.find((s) => s.slug === openRow) ?? solutionsData[0];
+  const ActiveIcon = activeSolution.icon;
 
   useEffect(() => {
     applyPageSeo({
@@ -113,12 +120,6 @@ export default function Home() {
           <span className="sol-orb a" /><span className="sol-orb b" /><span className="sol-orb c" />
           <span className="sol-hero-grid" />
         </div>
-        {chips.map((chip, i) => (
-          <span className={`hm-chip c${i + 1}`} key={chip.label} aria-hidden="true">
-            <strong>{chip.value}</strong>
-            <small>{chip.label}</small>
-          </span>
-        ))}
         <div className="hm-hero-copy">
           <h1>Turn operational friction<br />into <span className="sol-pill">technical leverage.</span></h1>
           <p>We map the workflows costing you most, build the systems that remove them, and you follow every step in the Restart Console.</p>
@@ -139,42 +140,51 @@ export default function Home() {
       />
 
       <section className="sol-section sol-wrap" id="solutions">
-        <div className="sol-head sol-reveal">
-          <span className="sol-eyebrow">WHAT WE BUILD</span>
-          <h2 className="sol-h2">Built end to <span>end.</span></h2>
-          <p className="sol-lede">Architecture, automation, product engineering, and production discipline, so a decision turns into a system without becoming a liability.</p>
-        </div>
-        <div className="sol-list">
-          {solutionsData.map((solution, i) => {
-            const open = openRow === solution.slug;
-            return (
-              <div className={`sol-row sol-reveal ${open ? "open" : ""}`} style={{ "--d": i } as React.CSSProperties} key={solution.slug}>
-                <button
-                  type="button"
-                  className="sol-row-head"
-                  aria-expanded={open}
-                  aria-controls={`home-row-${solution.slug}`}
-                  onClick={() => setOpenRow(open ? null : solution.slug)}
-                >
-                  <span className="sol-row-num">{solution.number}</span>
-                  <span className="sol-row-title">{shortNames[solution.slug] ?? solution.kicker}</span>
-                  <span className="sol-row-arrow" aria-hidden="true"><ArrowUpRight size={17} /></span>
-                </button>
-                <div className="sol-row-body" id={`home-row-${solution.slug}`} role="region">
-                  <div>
-                    <div className="sol-row-inner">
-                      <h3>{solution.title}</h3>
-                      <p>{solution.intro}</p>
-                      <div className="sol-tags">{solution.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
-                      <Link href={`/solutions/${solution.slug}`} className="sol-link">Explore this discipline <ArrowRight size={15} /></Link>
+        <div className="hm-build">
+          <div className="hm-build-copy sol-reveal">
+            <span className="sol-eyebrow">WHAT WE BUILD</span>
+            <h2 className="sol-h2">Built end <span>to end.</span></h2>
+            <p className="sol-lede">Architecture, automation, product engineering, and production discipline, so a decision turns into a system without becoming a liability.</p>
+            <div className={`sd-visual hm-build-visual ${activeSolution.accent}`} key={activeSolution.slug}>
+              <span className="cs-rings" aria-hidden="true" />
+              <span className="sd-number" aria-hidden="true">{activeSolution.number}</span>
+              <span className="sd-icon" aria-hidden="true"><ActiveIcon size={30} /></span>
+              <span className="sd-kicker">{activeSolution.kicker}</span>
+              <div className="sd-chips">{activeSolution.tags.slice(0, 4).map((tag) => <span key={tag}>{tag}</span>)}</div>
+            </div>
+            <Link href="/solutions" className="button outline small hm-build-more">See all solutions <ArrowRight size={14} /></Link>
+          </div>
+          <div className="sol-list">
+            {solutionsData.map((solution, i) => {
+              const open = openRow === solution.slug;
+              return (
+                <div className={`sol-row sol-reveal ${open ? "open" : ""}`} style={{ "--d": i } as React.CSSProperties} key={solution.slug}>
+                  <button
+                    type="button"
+                    className="sol-row-head"
+                    aria-expanded={open}
+                    aria-controls={`home-row-${solution.slug}`}
+                    onClick={() => setOpenRow(open ? null : solution.slug)}
+                  >
+                    <span className="sol-row-title">{shortNames[solution.slug] ?? solution.kicker}</span>
+                    <span className="sol-row-num">({solution.number})</span>
+                    <span className="sol-row-arrow" aria-hidden="true"><ArrowUpRight size={17} /></span>
+                  </button>
+                  <div className="sol-row-body" id={`home-row-${solution.slug}`} role="region">
+                    <div>
+                      <div className="sol-row-inner">
+                        <h3>{solution.title}</h3>
+                        <p>{solution.intro}</p>
+                        <div className="sol-tags">{solution.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+                        <Link href={`/solutions/${solution.slug}`} className="sol-link">Explore this discipline <ArrowRight size={15} /></Link>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-        <div className="hm-more sol-reveal"><Link href="/solutions" className="button outline small">See all solutions <ArrowRight size={14} /></Link></div>
       </section>
 
       <section className="sol-section sol-wrap" id="case-studies">
@@ -203,6 +213,14 @@ export default function Home() {
         </div>
         <div className="hm-more sol-reveal"><Link href="/case-studies" className="button outline small">View all case studies <ArrowRight size={14} /></Link></div>
       </section>
+
+      <ProcessCarousel
+        id="process"
+        eyebrow="PROCESS"
+        heading={<>From idea <span>to production.</span></>}
+        lede="No lengthy proposals or open-ended retainers. A clear sequence from your first message to a system your team can run."
+        steps={processSteps}
+      />
 
       <section className="sol-section sol-wrap" id="platform">
         <div className="hm-console sol-reveal">
