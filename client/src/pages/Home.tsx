@@ -11,7 +11,6 @@ import { caseStudiesData, CaseStudy } from "@/data/caseStudies";
 import NamedClients from "@/components/NamedClients";
 import InsightArt from "@/components/InsightArt";
 import { HeroDots, HeroLines, HeroStats } from "@/components/HeroBackdrop";
-import ConsolePreview from "@/components/ConsolePreview";
 import DeliveryPreview from "@/components/DeliveryPreview";
 import { platformStack } from "@/data/stack";
 import { faqs } from "@/data/faqs";
@@ -145,7 +144,6 @@ export default function Home() {
       <section className="hero-section hero-trend">
         <HeroDots />
         <HeroLines />
-        <ConsolePreview href={consoleHref} />
         <div className="hero-shell">
           <div className="hero-content">
             <h1>Turn operational friction into <span>technical leverage.</span></h1>

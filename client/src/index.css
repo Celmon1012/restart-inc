@@ -1675,3 +1675,9 @@ body { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-are
   .leverage-chain-connector { transform: rotate(90deg); min-height: 16px; }
   .leverage-chain-step { min-height: 0; }
 }
+
+/* Home hero: copy centred now that the Console preview is gone */
+.hero-trend .hero-shell{ grid-template-columns: minmax(0, 860px); justify-content: center; }
+.hero-trend .hero-content{ max-width: 860px; text-align: center; }
+.hero-trend .hero-content p{ margin-left: auto; margin-right: auto; }
+.hero-trend .hero-buttons, .hero-trend .hero-content .hero-proof-row{ justify-content: center; }
