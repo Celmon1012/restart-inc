@@ -76,7 +76,7 @@ export default function Platform() {
   useEffect(() => {
     applyPageSeo({
       title: "Platform",
-      description: "The Restart Console: every system we build, with its health, delivery milestones, activity, access, billing, and support in one client workspace.",
+      description: "The Restart Console: every system we build and run, with its health, delivery milestones, activity, access, billing, and support in one client workspace.",
       path: "/platform",
     });
     return () => resetSeoToDefault();
@@ -131,7 +131,7 @@ export default function Platform() {
           </div>
           <div>
             <span className="sol-eyebrow">THE RESTART CONSOLE</span>
-            <h1>Every system we build, visible in <span className="sol-pill">one place.</span></h1>
+            <h1>Every system we build and run, visible in <span className="sol-pill">one place.</span></h1>
             <p>Each client gets a Restart Console: system health, delivery milestones, activity, access, billing, and support in one workspace. Nothing happens to your system off the record.</p>
             <div className="sol-hero-actions">
               <a href={consoleHref} className="button solid">{session ? "Open your console" : "Console login"} <ArrowUpRight size={15} /></a>
