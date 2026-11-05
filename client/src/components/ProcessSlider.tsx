@@ -6,6 +6,8 @@ export interface ProcessStep {
   title: string;
   text: string;
   phase: string;
+  /** Optional line under the text, e.g. what the client receives. */
+  note?: string;
 }
 
 /**
@@ -55,12 +57,13 @@ export default function ProcessSlider({ id, label, heading, steps }: {
         </div>
         <div className="ps-slide">
           <div className="ps-track" ref={trackRef} onScroll={syncEdge} tabIndex={0} aria-label="Process steps">
-            {steps.map(({ icon: Icon, title, text, phase }, i) => (
+            {steps.map(({ icon: Icon, title, text, phase, note }, i) => (
               <article className="ps-card" key={title}>
                 <span className="ps-icon" aria-hidden="true"><Icon size={32} /></span>
                 <div className="ps-content">
                   <h3>{title}</h3>
                   <p>{text}</p>
+                  {note && <p className="ps-note"><b>YOU RECEIVE</b>{note}</p>}
                 </div>
                 <div className="ps-bot">
                   <span className="ps-time">{phase}</span>

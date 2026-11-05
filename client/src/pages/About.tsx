@@ -7,13 +7,11 @@ import { Activity, ArrowRight, ArrowUpRight, Layers3, Menu, Target, UserCheck, X
 import { solutionsData } from "@/data/solutions";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 import { caseStudiesData } from "@/data/caseStudies";
-import { platformStack } from "@/data/stack";
 import CountUp from "@/components/CountUp";
+import ToolsHub from "@/components/ToolsHub";
 import { FaqSection, ContactSection, SignOff, StackMarquee } from "@/components/PageSections";
 import { useReveal } from "@/hooks/useReveal";
 import "@/styles/solutions.css";
-
-const hubTools = platformStack.slice(0, 8);
 
 /** First headline result from each of the first three case studies. */
 const stats = caseStudiesData.slice(0, 3).map((c) => ({ id: c.id, type: c.type, label: c.metrics[0].label, value: c.metrics[0].value }));
@@ -159,18 +157,7 @@ export default function About() {
             <h2 className="sol-h2">We work with <span>named tools.</span></h2>
             <p className="sol-lede">Everything we build runs on open, documented technology you could hire for tomorrow. If we part ways, the system stays yours.</p>
           </div>
-          <div className="ab-hub sol-reveal" aria-label="Technologies Restart builds on">
-            <span className="ab-ring" aria-hidden="true" />
-            <span className="ab-ring inner" aria-hidden="true" />
-            <div className="ab-orbit">
-              {hubTools.map((tool, i) => (
-                <span className="ab-node" style={{ "--a": `${(360 / hubTools.length) * i}deg` } as React.CSSProperties} key={tool.name}>
-                  <span title={tool.name}><img src={tool.logo} alt={tool.name} /></span>
-                </span>
-              ))}
-            </div>
-            <div className="ab-core"><img src="/brand/restart-logo.svg" alt="Restart" /></div>
-          </div>
+          <ToolsHub />
         </section>
 
         <section className="sol-section sol-wrap" id="results">

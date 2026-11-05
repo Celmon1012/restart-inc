@@ -37,7 +37,21 @@ export function FaqSection() {
   );
 }
 
-export function ContactSection({ eyebrow, heading, lede }: { eyebrow: string; heading: ReactNode; lede: string }) {
+interface ContactCard {
+  title: string;
+  text: string;
+  primary: { label: string; href: string };
+  secondary: { label: string; href: string };
+}
+
+const defaultCard: ContactCard = {
+  title: "Tell us what you’re building",
+  text: "A short note on the system and the constraint is enough. We reply quickly with whether it is a fit.",
+  primary: { label: "Start a project", href: "/start-project" },
+  secondary: { label: "Send a message", href: "/contact" },
+};
+
+export function ContactSection({ eyebrow, heading, lede, card = defaultCard }: { eyebrow: string; heading: ReactNode; lede: string; card?: ContactCard }) {
   return (
     <section className="sol-wrap" id="contact">
       <div className="sol-contact sol-reveal">
@@ -52,11 +66,11 @@ export function ContactSection({ eyebrow, heading, lede }: { eyebrow: string; he
           </ul>
         </div>
         <div className="sol-contact-card">
-          <h3>Tell us what you’re building</h3>
-          <p>A short note on the system and the constraint is enough. We reply quickly with whether it is a fit.</p>
+          <h3>{card.title}</h3>
+          <p>{card.text}</p>
           <div className="sol-contact-actions">
-            <Link href="/start-project" className="button solid">Start a project <ArrowUpRight size={15} /></Link>
-            <Link href="/contact" className="button outline">Send a message</Link>
+            <Link href={card.primary.href} className="button solid">{card.primary.label} <ArrowUpRight size={15} /></Link>
+            <Link href={card.secondary.href} className="button outline">{card.secondary.label}</Link>
           </div>
         </div>
       </div>

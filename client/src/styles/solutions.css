@@ -542,3 +542,15 @@
 /* Tool tags carry their logo, as in the stack marquee. */
 .sol-tags span, .sd-chips span{ display: inline-flex; align-items: center; gap: 8px; }
 .sol-tags img, .sd-chips img{ width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; }
+
+/* ---- Platform ---- */
+.pf-mock{ margin-top: 28px; }
+.pf-frame{ position: relative; max-width: 1080px; margin: 0 auto; padding: 18px; border: 1px solid var(--line-strong); border-radius: 30px; background: linear-gradient(160deg, #0d0d12, #060608); box-shadow: 0 40px 120px rgba(0,0,0,.6); isolation: isolate; }
+.pf-glow{ position: absolute; inset: -1px; z-index: -1; border-radius: 30px; background: radial-gradient(60% 50% at 20% 0%, rgba(46,229,193,.22), transparent 70%), radial-gradient(50% 50% at 90% 100%, rgba(167,139,250,.2), transparent 70%); filter: blur(30px); opacity: .8; animation: pf-glow 8s ease-in-out infinite alternate; }
+@keyframes pf-glow{ to{ opacity: .45; transform: scale(1.03); } }
+.pf-frame .saas-art{ position: relative; margin: 0; width: 100%; }
+.pf-features{ grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.ps-note{ margin: 16px 0 0 !important; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,.14); color: #c3c8d6 !important; font-size: 14px !important; line-height: 20px !important; }
+.ps-note b{ display: block; margin-bottom: 4px; color: var(--teal); font-size: .6875rem; font-weight: 800; letter-spacing: .12em; }
+@media (prefers-reduced-motion: reduce){ .pf-glow{ animation: none !important; } }
+@media (max-width: 720px){ .pf-frame{ padding: 10px; border-radius: 22px; } .pf-features{ grid-template-columns: 1fr; } }
