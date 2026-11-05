@@ -538,3 +538,7 @@
   .cd-stack{ padding: 24px 20px; }
   .cd-next{ padding: 26px 22px; }
 }
+
+/* Tool tags carry their logo, as in the stack marquee. */
+.sol-tags span, .sd-chips span{ display: inline-flex; align-items: center; gap: 8px; }
+.sol-tags img, .sd-chips img{ width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; }

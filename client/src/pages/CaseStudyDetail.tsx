@@ -5,14 +5,11 @@ import { CONSOLE_URL } from "@/lib/site";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { ArrowRight, ArrowUpRight, Check, ChevronRight, ExternalLink, Menu, X } from "lucide-react";
 import { caseStudiesData } from "@/data/caseStudies";
-import { platformStack } from "@/data/stack";
+import { techLogo } from "@/data/stack";
 import { ContactSection, SignOff } from "@/components/PageSections";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 import { useReveal } from "@/hooks/useReveal";
 import "@/styles/solutions.css";
-
-const stackLogo = (name: string) =>
-  platformStack.find((p) => name.toLowerCase().includes(p.name.toLowerCase().split(" ")[0]))?.logo;
 
 export default function CaseStudyDetail({ params }: { params: { id: string } }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -154,7 +151,7 @@ export default function CaseStudyDetail({ params }: { params: { id: string } }) 
             <span className="cd-stack-label">BUILT WITH</span>
             <div className="cd-stack-chips">
               {study.stack.map((s) => {
-                const logo = stackLogo(s);
+                const logo = techLogo(s);
                 return <span key={s}>{logo && <img src={logo} alt="" />}{s}</span>;
               })}
             </div>

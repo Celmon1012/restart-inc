@@ -8,6 +8,7 @@ import { solutionsData } from "@/data/solutions";
 import { applyPageSeo, resetSeoToDefault } from "@/lib/seo";
 import { platformStack } from "@/data/stack";
 import { useReveal } from "@/hooks/useReveal";
+import TechTag from "@/components/TechTag";
 import { FaqSection, ContactSection, SignOff } from "@/components/PageSections";
 import "@/styles/solutions.css";
 
@@ -122,7 +123,7 @@ export default function Solutions() {
                       <div className="sol-row-inner">
                         <h3>{solution.title}</h3>
                         <p>{solution.intro}</p>
-                        <div className="sol-tags">{solution.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+                        <div className="sol-tags">{solution.tags.map((tag) => <TechTag key={tag} name={tag} />)}</div>
                         <Link href={`/solutions/${solution.slug}`} className="sol-link">Explore {shortNames[solution.slug]?.toLowerCase()} <ArrowRight size={15} /></Link>
                       </div>
                     </div>

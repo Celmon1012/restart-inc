@@ -10,6 +10,7 @@ import { offers } from "@/data/offers";
 import { caseStudiesData } from "@/data/caseStudies";
 import { FaqSection, ContactSection, SignOff } from "@/components/PageSections";
 import { useReveal } from "@/hooks/useReveal";
+import TechTag from "@/components/TechTag";
 import "@/styles/solutions.css";
 
 /** Which scoped engagement and which case-study category belong to each discipline. */
@@ -131,7 +132,7 @@ export default function SolutionDetail({ params }: { params: { slug: string } })
             <span className="sd-number" aria-hidden="true">{solution.number}</span>
             <span className="sd-icon" aria-hidden="true"><Icon size={34} /></span>
             <span className="sd-kicker">{solution.kicker}</span>
-            <div className="sd-chips">{solution.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+            <div className="sd-chips">{solution.tags.map((tag) => <TechTag key={tag} name={tag} />)}</div>
           </div>
 
           <div className="sd-intro">
@@ -141,7 +142,7 @@ export default function SolutionDetail({ params }: { params: { slug: string } })
             </div>
             <aside className="sol-reveal" style={{ "--d": 1 } as React.CSSProperties}>
               <h3 className="sd-h small">Built with</h3>
-              <div className="sol-tags">{solution.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+              <div className="sol-tags">{solution.tags.map((tag) => <TechTag key={tag} name={tag} />)}</div>
             </aside>
           </div>
         </section>

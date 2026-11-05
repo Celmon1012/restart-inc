@@ -11,6 +11,7 @@ import InsightArt from "@/components/InsightArt";
 import { HeroStats } from "@/components/HeroBackdrop";
 import DeliveryPreview from "@/components/DeliveryPreview";
 import ProcessSlider from "@/components/ProcessSlider";
+import TechTag from "@/components/TechTag";
 import { FaqSection, ContactSection, SignOff } from "@/components/PageSections";
 import { solutionsData } from "@/data/solutions";
 import { offers } from "@/data/offers";
@@ -138,7 +139,7 @@ export default function Home() {
               <span className="sd-number" aria-hidden="true">{activeSolution.number}</span>
               <span className="sd-icon" aria-hidden="true"><ActiveIcon size={30} /></span>
               <span className="sd-kicker">{activeSolution.kicker}</span>
-              <div className="sd-chips">{activeSolution.tags.slice(0, 4).map((tag) => <span key={tag}>{tag}</span>)}</div>
+              <div className="sd-chips">{activeSolution.tags.slice(0, 4).map((tag) => <TechTag key={tag} name={tag} />)}</div>
             </div>
             <Link href="/solutions" className="button outline small hm-build-more">See all solutions <ArrowRight size={14} /></Link>
           </div>
@@ -162,7 +163,7 @@ export default function Home() {
                       <div className="sol-row-inner">
                         <h3>{solution.title}</h3>
                         <p>{solution.intro}</p>
-                        <div className="sol-tags">{solution.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+                        <div className="sol-tags">{solution.tags.map((tag) => <TechTag key={tag} name={tag} />)}</div>
                         <Link href={`/solutions/${solution.slug}`} className="sol-link">Explore this discipline <ArrowRight size={15} /></Link>
                       </div>
                     </div>
