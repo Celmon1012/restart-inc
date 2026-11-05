@@ -155,7 +155,6 @@ export default function Home() {
                     onClick={() => setOpenRow(open ? null : solution.slug)}
                   >
                     <span className="sol-row-title">{shortNames[solution.slug] ?? solution.kicker}</span>
-                    <span className="sol-row-num">({solution.number})</span>
                     <span className="sol-row-arrow" aria-hidden="true"><ArrowUpRight size={17} /></span>
                   </button>
                   <div className="sol-row-body" id={`home-row-${solution.slug}`} role="region">
@@ -209,8 +208,9 @@ export default function Home() {
         steps={processSteps}
       />
 
-      <section className="sol-section sol-wrap" id="platform">
+      <section className="sol-section" id="platform">
         <div className="hm-console sol-reveal">
+          <div className="hm-console-inner">
           <div className="hm-console-copy">
             <span className="sol-eyebrow">THE RESTART CONSOLE</span>
             <h2 className="sol-h2">No black box <span>between you and the work.</span></h2>
@@ -219,6 +219,7 @@ export default function Home() {
           </div>
           <div className="hm-console-art saas-art platform-art platform-page-art">
             <DeliveryPreview />
+          </div>
           </div>
         </div>
       </section>
