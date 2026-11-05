@@ -25,7 +25,11 @@ export function useReveal(deps: unknown[] = []) {
       },
       { threshold: 0.12, rootMargin: "0px 0px -6% 0px" },
     );
-    document.querySelectorAll<HTMLElement>(".sol-reveal:not(.in)").forEach((el) => io.observe(el));
+    document.querySelectorAll<HTMLElement>(".sol-reveal:not(.in)").forEach((el) => {
+      // Anything already on screen is revealed straight away, without waiting for the observer.
+      if (el.getBoundingClientRect().top < window.innerHeight * 0.92) el.classList.add("in");
+      else io.observe(el);
+    });
     return () => io.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
